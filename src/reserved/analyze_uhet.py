@@ -6,34 +6,25 @@ Author: Caleb Hallinan
 License: 
 """
 
-
 ##################################################################################################
 
-from numpy.random import random_sample
-import pandas as pd
-import os
-import numpy as np
-import scipy.stats as stats
-import time
-# from sklearn.preprocessing import MinMaxScaler
-import math
-from scipy.spatial import distance
-import umap
-from sklearn.cluster import KMeans
-from scipy.stats import zscore
-from imblearn.under_sampling import RandomUnderSampler, NearMiss
-from sklearn.cluster import SpectralClustering
-from tqdm import tqdm
-import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn.metrics import silhouette_samples, silhouette_score
-from sklearn.metrics.cluster import adjusted_rand_score
-from sklearn.svm import SVC
-from sklearn.feature_selection import RFE
+import numpy as np
+import pandas as pd
+import seaborn as sns
+# from sklearn.preprocessing import MinMaxScaler
+import umap
 from scipy.stats import zscore
+from sklearn.cluster import AgglomerativeClustering
+from sklearn.cluster import KMeans
+from sklearn.cluster import SpectralClustering
+from sklearn.feature_selection import RFE
+from sklearn.metrics import silhouette_score
+from sklearn.metrics.cluster import adjusted_rand_score
 from sklearn.metrics.cluster import rand_score
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.cluster import AgglomerativeClustering
+from sklearn.svm import SVC
+
 
 ##################################################################################################
 
@@ -76,7 +67,7 @@ def UMAP_results(data, y, heteronet_results, n_features, min_dist=0, n_neighbors
     # standardize if needed
     if standardize:
         data = zscore(data)
-    
+
     # check if dataframe, used to subset features later
     # if not isinstance(data, pd.DataFrame):
     #     raise Exception("Input data as pd.Dataframe with features as columns.")
@@ -87,17 +78,17 @@ def UMAP_results(data, y, heteronet_results, n_features, min_dist=0, n_neighbors
 
     # make column names
     df_umap = pd.DataFrame(umap_data)
-    df_umap.columns = ['umap1','umap2']
+    df_umap.columns = ['umap1', 'umap2']
 
     # add class to dataframe
     df_umap['class'] = y
 
     # plot figure
-    plt.figure(figsize=(6,5))
-    sns.scatterplot(df_umap['umap1'],df_umap['umap2'], hue=df_umap['class'], palette='tab10')
+    plt.figure(figsize=(6, 5))
+    sns.scatterplot(df_umap['umap1'], df_umap['umap2'], hue=df_umap['class'], palette='tab10')
     plt.xlabel('UMAP 1')
     plt.ylabel('UMAP 2')
-    plt.title('Using Top '+str(n_features)+' Features from Hetero-Net', fontsize=18)
+    plt.title('Using Top ' + str(n_features) + ' Features from Hetero-Net', fontsize=18)
     plt.legend(title="Class")
     sns.despine()
 
@@ -107,7 +98,8 @@ def UMAP_results(data, y, heteronet_results, n_features, min_dist=0, n_neighbors
 
 # function to look at clustering results
 
-def cluster_results(data, y, heteronet_results, n_features, cluster_type = 'kmeans', n_clusters=None, min_dist=0, n_neighbors=15, random_state=0, standardize=True, heatmap=False, proportion=False, plot=True):
+def cluster_results(data, y, heteronet_results, n_features, cluster_type='kmeans', n_clusters=None, min_dist=0,
+                    n_neighbors=15, random_state=0, standardize=True, heatmap=False, proportion=False, plot=True):
     """
     Cluster results from Hetero-Net
 
@@ -152,7 +144,7 @@ def cluster_results(data, y, heteronet_results, n_features, cluster_type = 'kmea
     # standardize if needed
     if standardize:
         data = zscore(data)
-    
+
     # check if dataframe, used to subset features later
     # if not isinstance(data, pd.DataFrame):
     #     raise Exception("Input data as pd.Dataframe with features as columns.")
@@ -163,13 +155,13 @@ def cluster_results(data, y, heteronet_results, n_features, cluster_type = 'kmea
 
     # make column names
     df_umap = pd.DataFrame(umap_data)
-    df_umap.columns = ['umap1','umap2']
+    df_umap.columns = ['umap1', 'umap2']
 
     # Perform Silhoette Analysis
     silhouette_avg_n_clusters = []
 
     if n_clusters == None:
-        for i in range(2,10):
+        for i in range(2, 10):
             # do clustering first
             if cluster_type == 'kmeans':
                 clusterer = KMeans(n_clusters=int(i), random_state=random_state).fit(umap_data)
@@ -188,28 +180,28 @@ def cluster_results(data, y, heteronet_results, n_features, cluster_type = 'kmea
 
         # use highest silhoette score for clusters
         tmp = max(silhouette_avg_n_clusters)
-        n_clusters = silhouette_avg_n_clusters.index(tmp)+2 # add 2 here because start clustering at 2
-        print('Using '+ str(n_clusters) + ' to cluster data..')
+        n_clusters = silhouette_avg_n_clusters.index(tmp) + 2  # add 2 here because start clustering at 2
+        print('Using ' + str(n_clusters) + ' to cluster data..')
         print("Silhoette Score " + str(tmp))
-        
+
         if cluster_type == 'kmeans':
             kmeans = KMeans(n_clusters=n_clusters, random_state=random_state).fit(umap_data)
-            df_umap['cluster'] = kmeans.labels_+1
+            df_umap['cluster'] = kmeans.labels_ + 1
         if cluster_type == 'sc':
             kmeans = SpectralClustering(n_clusters=n_clusters, random_state=random_state).fit(umap_data)
-            df_umap['cluster'] = kmeans.labels_+1
+            df_umap['cluster'] = kmeans.labels_ + 1
         if cluster_type == 'agg':
             clusterer = AgglomerativeClustering(n_clusters=int(i)).fit(umap_data)
-            df_umap['cluster'] = kmeans.labels_+1
+            df_umap['cluster'] = kmeans.labels_ + 1
 
     # or do own cluster number
     else:
         if cluster_type == 'kmeans':
             kmeans = KMeans(n_clusters=n_clusters, random_state=random_state).fit(umap_data)
-            df_umap['cluster'] = kmeans.labels_+1
+            df_umap['cluster'] = kmeans.labels_ + 1
         if cluster_type == 'sc':
             kmeans = SpectralClustering(n_clusters=n_clusters, random_state=random_state).fit(umap_data)
-            df_umap['cluster'] = kmeans.labels_+1
+            df_umap['cluster'] = kmeans.labels_ + 1
         tmp = 0
 
     # add class to dataframe
@@ -223,17 +215,16 @@ def cluster_results(data, y, heteronet_results, n_features, cluster_type = 'kmea
 
     if plot:
         # plot
-        plt.figure(figsize=(6,5))
-        sns.scatterplot(df_umap['umap1'],df_umap['umap2'], hue=df_umap['cluster'], palette='Dark2')
+        plt.figure(figsize=(6, 5))
+        sns.scatterplot(df_umap['umap1'], df_umap['umap2'], hue=df_umap['cluster'], palette='Dark2')
         plt.xlabel('UMAP 1')
         plt.ylabel('UMAP 2')
-        plt.title('Using Top '+str(n_features)+' Features from Hetero-Net', fontsize=18)
+        plt.title('Using Top ' + str(n_features) + ' Features from Hetero-Net', fontsize=18)
         plt.legend(title="Cluster")
         sns.despine()
 
     # print heatmap if true
     if heatmap:
-
         ## intensity plot for deephetero
         scaler = MinMaxScaler()
         data = data[heteronet_results['features'][:n_features]]
@@ -244,12 +235,12 @@ def cluster_results(data, y, heteronet_results, n_features, cluster_type = 'kmea
 
         data_gb = data.groupby('cluster').mean()
 
-        plt.figure(figsize=(2.5,3))
+        plt.figure(figsize=(2.5, 3))
         # sns.heatmap(to_hm_colon.T,cbar_kws={'label': 'Normalized Average Expression'})
-        cg = sns.clustermap(data_gb.T,col_cluster=False,cbar_pos=(.95, .08, .03, .7))
+        cg = sns.clustermap(data_gb.T, col_cluster=False, cbar_pos=(.95, .08, .03, .7))
         ax = cg.ax_heatmap
-        cg.ax_heatmap.set_yticklabels(cg.ax_heatmap.get_ymajorticklabels(), fontsize = 16)
-        cg.ax_heatmap.set_xticklabels(cg.ax_heatmap.get_xmajorticklabels(), fontsize = 16)
+        cg.ax_heatmap.set_yticklabels(cg.ax_heatmap.get_ymajorticklabels(), fontsize=16)
+        cg.ax_heatmap.set_xticklabels(cg.ax_heatmap.get_xmajorticklabels(), fontsize=16)
         cg.ax_row_dendrogram.set_visible(False)
         cg.ax_col_dendrogram.set_visible(False)
         ax.set_xlabel('Cluster', fontsize=16)
@@ -266,14 +257,14 @@ def cluster_results(data, y, heteronet_results, n_features, cluster_type = 'kmea
 
         dic = {}
         clus_labels = []
-        for i in range(1, len(np.unique(data['cluster']))+1):
+        for i in range(1, len(np.unique(data['cluster'])) + 1):
             tmp_df = data[data['cluster'] == i]
             issue = False
             issue_wk = []
             issue_index = []
             for cla in np.unique(data['class']):
                 if cla not in np.unique(tmp_df['class']):
-                    tmp_df = pd.concat([tmp_df, pd.DataFrame({'class':cla}, index=[0])], ignore_index=True).fillna(0)
+                    tmp_df = pd.concat([tmp_df, pd.DataFrame({'class': cla}, index=[0])], ignore_index=True).fillna(0)
                     issue = True
                     issue_wk.append(cla)
             if issue == False:
@@ -289,18 +280,17 @@ def cluster_results(data, y, heteronet_results, n_features, cluster_type = 'kmea
                     tmp_arr[issue] = 0
                 dic[i] = list(tmp_arr)
 
-            clus_labels.append("C"+str(i))
-
+            clus_labels.append("C" + str(i))
 
         # proportion of weeks
         df_prop = pd.DataFrame(dic)[::-1]
         df_prop.columns = clus_labels
         df_prop.index = np.unique(data['class'])
 
-        df_prop = df_prop.T.div(df_prop.sum(axis=0),axis=0)
+        df_prop = df_prop.T.div(df_prop.sum(axis=0), axis=0)
 
         # plot
-        plt.figure(figsize=(6,5))
+        plt.figure(figsize=(6, 5))
         df_prop.plot(kind="bar", stacked=True)
         plt.xlabel('Cluster')
         plt.ylabel('Proportion')
@@ -308,7 +298,6 @@ def cluster_results(data, y, heteronet_results, n_features, cluster_type = 'kmea
         sns.despine()
 
     return tmp, ars, n_clusters
-
 
 
 ##################################################################################################
@@ -346,21 +335,23 @@ def boxplot_results(data, y, heteronet_results, n_features, standardize=False, s
     # standardize if needed
     if standardize:
         data = zscore(data)
-    
+
     # add class to dataframe
     data['class'] = y
-        
+
     # cycle through which features
-    for i in range(0,n_features):
+    for i in range(0, n_features):
         feat_int = heteronet_results['features'][i]
         # plot figure
-        plt.figure(figsize=(6,5))
-        sns.boxplot(data=data.loc[:,[feat_int, 'class']], x = data.loc[:,[feat_int, 'class']]['class'], y=feat_int,palette='tab10')
+        plt.figure(figsize=(6, 5))
+        sns.boxplot(data=data.loc[:, [feat_int, 'class']], x=data.loc[:, [feat_int, 'class']]['class'], y=feat_int,
+                    palette='tab10')
         if swarmplot:
-            sns.swarmplot(data=data.loc[:,[feat_int, 'class']], x = data.loc[:,[feat_int, 'class']]['class'], y=feat_int, color='black')
+            sns.swarmplot(data=data.loc[:, [feat_int, 'class']], x=data.loc[:, [feat_int, 'class']]['class'],
+                          y=feat_int, color='black')
         plt.xlabel('Class')
         sns.despine()
-    
+
 
 ##################################################################################################
 
@@ -393,7 +384,7 @@ def SVM_RFE(data, y, n_features, standardize=True):
     # standardize if needed
     if standardize:
         data = zscore(data)
-    
+
     estimator = SVC(kernel="linear")
     selector = RFE(estimator, n_features_to_select=n_features, step=1)
     selector = selector.fit(data, y)
@@ -406,7 +397,5 @@ def SVM_RFE(data, y, n_features, standardize=True):
     rfe_results.columns = ['features']
 
     return rfe_results
-
-
 
 ##################################################################################################

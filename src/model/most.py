@@ -3,9 +3,8 @@ from scipy.stats import norm
 
 
 class MOST:
-    def __init__(self, k:int = None):
+    def __init__(self, k: int = None):
         self.k = k
-
 
     def fit_predict(self, X, y, normal_class: int = 0, test_class: int = 1):
         # Sanity checking
@@ -43,11 +42,11 @@ class MOST:
                 X_temp = norm.cdf(X[:sample_idx, feature_idx], loc=loc, scale=scale)
                 loc, scale = norm.fit(X_temp)
                 temp_idx = np.argsort(X_temp * -1)
-                M[feature_idx, sample_idx] = np.sum(X[temp_idx, feature_idx] - med1[feature_idx]) 
+                M[feature_idx, sample_idx] = np.sum(X[temp_idx, feature_idx] - med1[feature_idx])
                 M[feature_idx, sample_idx] /= med[feature_idx]
                 M[feature_idx, sample_idx] -= loc
                 M[feature_idx, sample_idx] /= scale
 
         results = np.max(M, axis=1)
-        
+
         return results

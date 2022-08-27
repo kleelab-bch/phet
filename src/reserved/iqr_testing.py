@@ -5,19 +5,18 @@ Test new method
 Environment: uclid
 """
 
+import time
+
 # import packages
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-
+from scipy import stats
+from scipy.stats import iqr
 # from umap_eucl import umap_eucl
 # from heteronet import heteronet
 # from heteronet import heteronet_sample
 from scipy.stats import zscore
-from scipy.stats import iqr
-import time
 from sklearn.preprocessing import MinMaxScaler
-from scipy import stats
 
 # import importlib
 # import analyze_heteronet

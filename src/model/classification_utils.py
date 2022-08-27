@@ -1,88 +1,83 @@
 import os
-import shutil
 import warnings
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
-from scipy.stats import zscore
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.feature_selection import RFE
-from sklearn.feature_selection import VarianceThreshold
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GridSearchCV
+from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
-
-EPSILON = np.finfo(np.float).eps
+from sklearn.tree import DecisionTreeClassifier
 
 np.seterr(divide='ignore', invalid='ignore')
 warnings.filterwarnings('ignore')
-sns.set_theme()
-
-plt.rc('font', **{'family': 'serif', 'serif': ['Times'], 'size': 20})
-plt.rc('xtick', labelsize=15)
-plt.rc('ytick', labelsize=15)
-plt.rc('axes', labelsize=16)
 
 
-def create_directory(name_folder: str = "test", save_path: str = "."):
-    file_path = os.path.join(save_path, name_folder)
-    if os.path.exists(save_path):
-        if os.path.exists(file_path):
-            shutil.rmtree(file_path)
-        os.makedirs(file_path)
-        return file_path
-    else:
-        raise Exception("Invalid file path: {0}".format(save_path))
+def classifiers_results(X, y, features_name: list, num_features: int, standardize: bool = True, num_jobs: int = 2,
+                        save_path=""):
+    # Sanity checking
+    if X.shape[0] != y.shape[0]:
+        temp = "The number of samples must be same for both X and y."
+        raise Exception(temp)
 
-
-def features_selection(X, attribute_columns, variance_threshold, verbose: bool = False):
-    if verbose:
-        print("\t    >> Selecting features...")
-    selector = VarianceThreshold(threshold=variance_threshold)
-    selector.feature_names_in_ = attribute_columns
-    X = selector.fit_transform(X)
-    attribute_columns = [attribute_columns[idx]
-                         for idx, feat in enumerate(selector.get_support()) if feat]
-    return X, attribute_columns
-
-
-def SVM_RFE(X, y, num_features: int, standardize: bool = True):
-    """
-    Boxplots of top features from Hetero-Net
-
-    Parameters
-    ----------
-    X : pd.DataFrame of shape (n_samples, n_features)
-        The input samples
-
-    y : array-like of shape (n_samples,)
-        The target values
-
-    num_features : int
-        Number of features to use for UMAP
-
-    standardize : bool (default=True)
-        Standardize data before UMAP
-
-    Returns
-    -------
-    SVM-RFE results for comparison to Hetero-Net
-    """
-
-    # get feature names
-    feature_names = X.columns
-    # standardize if needed
+    # Standardize if needed
     if standardize:
-        X = zscore(X)
+        scaler = StandardScaler()
+        scaler.fit(X=X)
+        X = scaler.transform(X=X)
 
-    estimator = SVC(kernel="linear")
-    selector = RFE(estimator, n_features_to_select=num_features, step=1)
-    selector = selector.fit(X, y)
+    classifiers_dict = {
+        "DecisionTree": (DecisionTreeClassifier(),
+                         {'max_depth': np.arange(2, 10),
+                          'min_samples_leaf': np.arange(2, 5)}),
+        "RandomForest": (RandomForestClassifier(n_jobs=num_jobs),
+                         {'max_depth': np.arange(2, 10), 'min_samples_leaf': np.arange(2, 5),
+                          'n_estimators': np.arange(5, 30, 5)}),
+        "AdaBoost": (AdaBoostClassifier(),
+                     {'n_estimators': np.arange(5, 30, 5)}),
+        "LogisticRegression": (LogisticRegression(penalty="elasticnet", solver="saga", max_iter=10000, n_jobs=num_jobs),
+                               {'C': np.logspace(-2, 4, 15), 'l1_ratio': np.linspace(0, 1, 10)}),
+        "SVM": (SVC(probability=True, random_state=12345),
+                {'kernel': ('linear', 'rbf'), 'C': np.logspace(-2, 4, 15),
+                 'degree': np.arange(1, 11),
+                 'gamma': np.logspace(-9, 3, 13)})
+    }
 
-    # reindex based on ranking
-    feature_names = pd.Series(feature_names)
-    feature_names.index = selector.ranking_
+    current_progress = 0
+    total_progress = len(classifiers_dict)
+    best_score = 0
+    ranked_features = list()
+    estimators = list()
+    for cls_name, item in classifiers_dict.items():
+        current_progress += 1
+        desc = '\t>> Grid search cross validation and feature selection for {0} ({1:.2f}%)...'.format(cls_name,
+                                                                                                      current_progress / total_progress * 100)
+        if current_progress == total_progress:
+            print(desc)
+        else:
+            print(desc, end="\r")
 
-    rfe_results = pd.DataFrame(list(feature_names.sort_index().reset_index(drop=True)))
-    rfe_results.columns = ['features']
+        estimator, parameters = item
+        cls = GridSearchCV(estimator, parameters)
+        cls.fit(X=X, y=y)
+        score = cls.best_score_
+        if score > best_score:
+            best_score = score
 
-    return rfe_results
+        # Select features based on RFE
+        cls = cls.best_estimator_
+        estimators.append((cls_name, cls))
+        selector = RFE(cls, n_features_to_select=num_features)
+        selector = selector.fit(X, y)
+        ranked_features.append(np.array(features_name)[np.argsort(selector.ranking_)].tolist())
+        # feature_name = pd.Series(features_name)
+        # feature_name.index = selector.ranking_
+        # df = pd.DataFrame(list(feature_name.sort_index().reset_index(drop=True)))
+
+    df = pd.DataFrame(ranked_features)
+    df.columns = list(classifiers_dict.keys())
+    df.to_csv(path_or_buf=os.path.join(save_path, "ranked_features.tsv"), sep='\t')
+
+    return df, estimators

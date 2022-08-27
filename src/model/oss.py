@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import iqr
 
 
-class OutlierStatistic:
+class OutlierSumStatistic:
     def __init__(self, q: float = 0.75, iqr_range: int = (25, 75), two_sided_test: bool = True):
         self.q = q
         self.iqr_range = iqr_range

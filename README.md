@@ -2,7 +2,8 @@
 
 ## Basic Description
 
-This repo contains an implementation of U-Het (**U**nraveling cellular **Het**erogeneity by analyzing intra-cellular variation) [XXX]
+This repo contains an implementation of U-Het (**U**nraveling cellular **Het**erogeneity by analyzing intra-cellular
+variation) [XXX]
 
 ## Dependencies
 
