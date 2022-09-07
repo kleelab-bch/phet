@@ -1,3 +1,10 @@
+'''
+TODO: 
+1. Borrow ideas from MOST wrt Order Statsitics
+2. Link those methods with Outliers detection
+3. Perform multiple permuation tests
+'''
+
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -6,10 +13,13 @@ from scipy.stats import zscore
 
 
 class UHeT:
-    def __init__(self, normalize: str = None, q: float = 0.75, iqr_range: int = (25, 75)):
+    def __init__(self, normalize: str = None, q: float = 0.75, iqr_range: int = (25, 75),
+                 calculate_pval: bool = True, num_iterations: int = 10000):
         self.normalize = normalize
         self.q = q
         self.iqr_range = iqr_range
+        self.calculate_pval = calculate_pval
+        self.num_iterations = num_iterations
 
     def fit_predict(self, X, y):
         """
@@ -79,12 +89,14 @@ class UHeT:
                 for j in range(i + 1, num_classes):
                     examples_j = np.where(y == j)[0]
                     temp = iqr(X[examples_i, p], rng=self.iqr_range, scale=1.0)
-                    temp = temp - iqr(X[examples_j, p], rng=self.iqr_range, scale=1.0)
+                    temp = temp - iqr(X[examples_j, p],
+                                      rng=self.iqr_range, scale=1.0)
                     temp_lst.append(temp)
                     temp = np.mean(X[examples_i, p])
                     temp = temp - np.mean(X[examples_j, p])
                     temp_mean_lst.append(temp)
-                    temp = stats.ttest_ind(X[examples_i, p], X[examples_j, p])[0]
+                    temp = stats.ttest_ind(
+                        X[examples_i, p], X[examples_j, p])[0]
                     temp_ttest_lst.append(temp)
 
             # check if negative to seperate classes for later
@@ -106,4 +118,5 @@ class UHeT:
         results['class_diff'] = what_class
 
         results = results.to_numpy()
+
         return results

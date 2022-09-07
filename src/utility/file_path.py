@@ -1,6 +1,6 @@
 import os.path
 
-DIRECTORY_NAME = "NetworkAnalysis"
+DIRECTORY_NAME = "GeneAnalysis"
 DIRECTORY_PATH = os.getcwd()
 REPO_PATH = DIRECTORY_PATH.split(os.sep)
 INDEX_DIRECTORY_NAME = REPO_PATH.index(DIRECTORY_NAME)

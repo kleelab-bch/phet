@@ -1,23 +1,18 @@
 import os
 import warnings
 
-import hdbscan
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import pyCompare
 import seaborn as sns
-import umap
 from scipy.stats import zscore
-from sklearn.cluster import AffinityPropagation, AgglomerativeClustering
-from sklearn.cluster import SpectralClustering, MiniBatchKMeans
-from sklearn.cluster import SpectralCoclustering
-from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
 from sklearn.metrics import silhouette_score
 from sklearn.metrics.cluster import adjusted_rand_score
 from sklearn.metrics.cluster import rand_score
-from sklearn.mixture import GaussianMixture
 from sklearn.preprocessing import MinMaxScaler
+
+from utils import dimensionality_reduction, clustering
 
 np.seterr(divide='ignore', invalid='ignore')
 warnings.filterwarnings('ignore')
@@ -27,57 +22,6 @@ plt.rc('font', **{'family': 'serif', 'serif': ['Times'], 'size': 20})
 plt.rc('xtick', labelsize=15)
 plt.rc('ytick', labelsize=15)
 plt.rc('axes', labelsize=16)
-
-
-def dimensionality_reduction(X, num_neighbors: int = 5, num_components: int = 2, min_dist: float = 0.1,
-                             reduction_method: str = "umap", num_epochs: int = 2000, num_jobs: int = 2):
-    num_examples, num_attributes = X.shape
-    if reduction_method == "umap":
-        init = "spectral"
-        if num_attributes >= num_examples:
-            init = "random"
-        reducer = umap.UMAP(n_neighbors=num_neighbors, n_components=num_components, n_epochs=num_epochs, init=init,
-                            min_dist=min_dist, n_jobs=num_jobs)
-    elif reduction_method == "tsne":
-        init = "pca"
-        if num_attributes >= num_examples:
-            init = "random"
-        reducer = TSNE(n_components=num_components, perplexity=num_examples / 100, early_exaggeration=4,
-                       learning_rate="auto", n_iter=num_epochs, init=init, random_state=12345, n_jobs=num_jobs)
-    else:
-        reducer = PCA(n_components=num_components, random_state=12345)
-    X_reducer = reducer.fit_transform(X)
-    return X_reducer
-
-
-def clustering(X, cluster_type: str = "spectral", affinity: str = "nearest_neighbors", num_neighbors: int = 5,
-               num_clusters: int = 4, num_jobs: int = 2, predict: bool = True):
-    num_examples, num_attributes = X.shape
-    if num_examples < num_clusters:
-        num_clusters = num_examples
-    if cluster_type == "kmeans":
-        cls = MiniBatchKMeans(n_clusters=num_clusters, max_iter=500, random_state=12345)
-    elif cluster_type == "gmm":
-        cls = GaussianMixture(n_components=num_clusters, max_iter=500, random_state=12345)
-    elif cluster_type == "hdbscan":
-        cls = hdbscan.HDBSCAN(min_samples=num_neighbors, min_cluster_size=num_clusters)
-    elif cluster_type == "spectral":
-        if num_neighbors > num_examples:
-            num_neighbors = num_examples
-        cls = SpectralClustering(n_clusters=num_clusters, eigen_solver="arpack", n_neighbors=num_neighbors,
-                                 affinity=affinity, n_init=100, assign_labels='discretize', n_jobs=num_jobs,
-                                 random_state=12345)
-    elif cluster_type == "cocluster":
-        cls = SpectralCoclustering(n_clusters=num_clusters, svd_method="arpack", random_state=12345)
-    elif cluster_type == "agglomerative":
-        cls = AgglomerativeClustering(n_clusters=num_clusters, affinity='manhattan', linkage='single')
-    elif cluster_type == "affinity":
-        cls = AffinityPropagation(affinity='euclidean', random_state=12345)
-    if predict:
-        cls = cls.fit_predict(X)
-    else:
-        cls.fit(X)
-    return cls
 
 
 def plot_scatter(X, y, num_features: int = 100, legend_title: str = "Class", suptitle: str = "Hetero-Net",
@@ -322,13 +266,45 @@ def plot_boxplot(X, y, features_name, num_features: int, standardize: bool = Fal
         X = zscore(X)
 
     # cycle through which features
-    for i in range(0, num_features):
+    for feature_idx in range(num_features):
         # plot figure
         plt.figure(figsize=(6, 5))
-        sns.boxplot(x=y, y=X[:, i], palette='tab10')
+        sns.boxplot(x=y, y=X[:, feature_idx], palette='tab10')
         if swarmplot:
-            sns.swarmplot(x=y, y=X[:, i], color='black')
+            sns.swarmplot(x=y, y=X[:, feature_idx], color='black')
         plt.xlabel('Class')
         plt.ylabel("Expression values (Z-score)")
-        plt.suptitle(features_name[i], fontsize=18, fontweight="bold")
+        plt.suptitle(features_name[feature_idx], fontsize=18, fontweight="bold")
         sns.despine()
+
+
+def plot_blandaltman(X, y, features_name, num_features: int, standardize: bool = False, save_path: str = "."):
+    if np.unique(y).shape[0] != 2:
+        raise Exception("Bland–Altman plot supports only two groups!")
+    # standardize if needed
+    if standardize:
+        X = zscore(X)
+
+    classes = np.unique(y)
+    # cycle through which features
+    for feature_idx in range(num_features):
+        examples1 = np.where(y == classes[0])[0]
+        examples2 = np.where(y == classes[1])[0]
+        file_path = os.path.join(save_path, features_name[feature_idx] + "_blandAltman.png")
+        pyCompare.blandAltman(X[examples1, feature_idx], X[examples2, feature_idx], savePath=file_path)
+
+
+def plot_barplot(X, methods_name, file_name: str = "temp", save_path: str = "."):
+    plt.figure(figsize=(12, 8))
+    plt.bar(x=methods_name, height=X)
+    plt.xticks(fontsize=18, rotation=45)
+    plt.yticks(fontsize=18)
+    plt.xlabel('Method', fontsize=20, fontweight="bold")
+    plt.ylabel("Jaccard scores", fontsize=20, fontweight="bold")
+    plt.suptitle("Results using {0} data".format(file_name), fontsize=22, fontweight="bold")
+    file_path = os.path.join(save_path, file_name + ".png")
+    plt.tight_layout()
+    plt.savefig(file_path)
+    plt.clf()
+    plt.cla()
+    plt.close(fig="all")
