@@ -11,8 +11,7 @@ from sklearn.metrics import silhouette_score
 from sklearn.metrics.cluster import adjusted_rand_score
 from sklearn.metrics.cluster import rand_score
 from sklearn.preprocessing import MinMaxScaler
-
-from utils import dimensionality_reduction, clustering
+from utility.utils import dimensionality_reduction, clustering
 
 np.seterr(divide='ignore', invalid='ignore')
 warnings.filterwarnings('ignore')

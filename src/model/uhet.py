@@ -76,46 +76,62 @@ class UHeT:
 
         # make transposed matrix with shape (feat per class, observation per class)
         # find mean and iqr difference between genes
-        var_ls = []
-        mean_ls = []
-        ttest_ls = []
-        what_class = []
-        for p in range(num_features):
-            temp_lst = []
-            temp_mean_lst = []
-            temp_ttest_lst = []
+        diff_iqrs = list()
+        diff_means = list()
+        ttest_statistics = list()
+        classes = list()
+        for feature_idx in range(num_features):
+            iqrs = list()
+            means = list()
+            ttests = list()
             for i in range(num_classes):
                 examples_i = np.where(y == i)[0]
                 for j in range(i + 1, num_classes):
                     examples_j = np.where(y == j)[0]
-                    temp = iqr(X[examples_i, p], rng=self.iqr_range, scale=1.0)
-                    temp = temp - iqr(X[examples_j, p],
-                                      rng=self.iqr_range, scale=1.0)
-                    temp_lst.append(temp)
-                    temp = np.mean(X[examples_i, p])
-                    temp = temp - np.mean(X[examples_j, p])
-                    temp_mean_lst.append(temp)
-                    temp = stats.ttest_ind(
-                        X[examples_i, p], X[examples_j, p])[0]
-                    temp_ttest_lst.append(temp)
+                    iqr1 = iqr(X[examples_i, feature_idx], rng=self.iqr_range, scale=1.0)
+                    iqr2 = iqr(X[examples_j, feature_idx], rng=self.iqr_range, scale=1.0)
+                    mean1 = np.mean(X[examples_i, feature_idx])
+                    mean2 = np.mean(X[examples_j, feature_idx])
+                    statistic = stats.ttest_ind(X[examples_i, feature_idx], X[examples_j, feature_idx])[0]
+                    # # TODO: COMMENT if didnt work
+                    # if np.sign(mean1) < np.sign(iqr1):
+                    #     iqr_rng1 = np.mean(self.iqr_range).astype(int)
+                    #     percentile1 = np.percentile(X[examples_i, feature_idx], iqr_rng1)
+                    #     percentile2 = np.percentile(X[examples_i, feature_idx], self.iqr_range[1])
+                    #     picked_examples = np.where(np.logical_and(X[examples_i, feature_idx] >= percentile1,
+                    #                                               X[examples_i, feature_idx] <= percentile2))[0]
+                    #     iqr1 = iqr(X[examples_i, feature_idx], rng=(iqr_rng1, self.iqr_range[1]), scale=1.0)
+                    #     mean1 = np.mean(X[examples_i[picked_examples], feature_idx])
+                    # if np.sign(mean2) < np.sign(iqr2):
+                    #     iqr_rng1 = np.mean(self.iqr_range).astype(int)
+                    #     percentile1 = np.percentile(X[examples_j, feature_idx], iqr_rng1)
+                    #     percentile2 = np.percentile(X[examples_j, feature_idx], self.iqr_range[1])
+                    #     picked_examples = np.where(np.logical_and(X[examples_j, feature_idx] >= percentile1,
+                    #                                               X[examples_j, feature_idx] <= percentile2))[0]
+                    #     iqr2 = iqr(X[examples_j, feature_idx], rng=(iqr_rng1, self.iqr_range[1]), scale=1.0)
+                    #     mean2 = np.mean(X[examples_j[picked_examples], feature_idx])
+                    # #############################
+                    iqrs.append(iqr1 - iqr2)
+                    means.append(mean1 - mean2)
+                    ttests.append(statistic)
 
-            # check if negative to seperate classes for later
-            if max(temp_lst) <= 0:
-                what_class.append(0)
+            # check if negative to separate classes for later
+            if max(iqrs) <= 0:
+                classes.append(0)
             else:
-                what_class.append(1)
+                classes.append(1)
 
             # append the top variance
-            var_ls.append(max(np.abs(temp_lst)))
-            mean_ls.append(max(np.abs(temp_mean_lst)))
-            ttest_ls.append(max(np.abs(temp_ttest_lst)))
+            diff_iqrs.append(max(np.abs(iqrs)))
+            diff_means.append(max(np.abs(means)))
+            ttest_statistics.append(max(np.abs(ttests)))
 
-        results = pd.concat([pd.DataFrame(var_ls)], axis=1)
+        results = pd.concat([pd.DataFrame(diff_iqrs)], axis=1)
         results.columns = ['iqr']
-        results['median_diff'] = mean_ls
-        results['ttest'] = ttest_ls
-        results['score'] = np.array(mean_ls) + np.array(var_ls)
-        results['class_diff'] = what_class
+        results['median_diff'] = diff_means
+        results['ttest'] = ttest_statistics
+        results['score'] = np.array(diff_iqrs) + np.array(diff_means)
+        results['class_diff'] = classes
 
         results = results.to_numpy()
 

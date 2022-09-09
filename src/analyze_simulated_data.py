@@ -124,7 +124,7 @@ def train(num_jobs: int = 4):
     print("## Perform simulation studies using {0} data...".format(file_name))
     methods_name = ["COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "UHet_zscore", "UHet_robust"]
     current_progress = 1
-    total_progress = 8
+    total_progress = len(methods_name)
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "COPA"), end="\r")
@@ -209,11 +209,11 @@ def train(num_jobs: int = 4):
     print("## Plot results using top k features...")
     for idx, item in enumerate(methods_df):
         stat_name, df = item
-        if len(methods_name) == idx + 1:
-            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((idx + 1) / len(methods_name)) * 100,
+        if total_progress == idx + 1:
+            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((idx + 1) / total_progress) * 100,
                                                                     stat_name))
         else:
-            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((idx + 1) / len(methods_name)) * 100,
+            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((idx + 1) / total_progress) * 100,
                                                                     stat_name), end="\r")
         temp = [idx for idx, feature in enumerate(features_name)
                 if feature in df['features'][:top_k_features].tolist()]
