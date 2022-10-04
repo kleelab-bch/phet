@@ -4,6 +4,7 @@ import hdbscan
 import numpy as np
 import pandas as pd
 import umap
+from scipy.stats import zscore, gamma
 from sklearn.cluster import AffinityPropagation, AgglomerativeClustering
 from sklearn.cluster import SpectralClustering, MiniBatchKMeans
 from sklearn.cluster import SpectralCoclustering
@@ -18,16 +19,16 @@ warnings.filterwarnings('ignore')
 
 def dimensionality_reduction(X, num_neighbors: int = 5, num_components: int = 2, min_dist: float = 0.1,
                              reduction_method: str = "umap", num_epochs: int = 2000, num_jobs: int = 2):
-    num_examples, num_attributes = X.shape
+    num_examples, num_features = X.shape
     if reduction_method == "umap":
         init = "spectral"
-        if num_attributes >= num_examples:
+        if num_features >= num_examples:
             init = "random"
         reducer = umap.UMAP(n_neighbors=num_neighbors, n_components=num_components, n_epochs=num_epochs, init=init,
                             min_dist=min_dist, n_jobs=num_jobs)
     elif reduction_method == "tsne":
         init = "pca"
-        if num_attributes >= num_examples:
+        if num_features >= num_examples:
             init = "random"
         reducer = TSNE(n_components=num_components, perplexity=num_examples / 100, early_exaggeration=4,
                        learning_rate="auto", n_iter=num_epochs, init=init, random_state=12345, n_jobs=num_jobs)
@@ -39,7 +40,7 @@ def dimensionality_reduction(X, num_neighbors: int = 5, num_components: int = 2,
 
 def clustering(X, cluster_type: str = "spectral", affinity: str = "nearest_neighbors", num_neighbors: int = 5,
                num_clusters: int = 4, num_jobs: int = 2, predict: bool = True):
-    num_examples, num_attributes = X.shape
+    num_examples, num_features = X.shape
     if num_examples < num_clusters:
         num_clusters = num_examples
     if cluster_type == "kmeans":
@@ -47,7 +48,8 @@ def clustering(X, cluster_type: str = "spectral", affinity: str = "nearest_neigh
     elif cluster_type == "gmm":
         cls = GaussianMixture(n_components=num_clusters, max_iter=500, random_state=12345)
     elif cluster_type == "hdbscan":
-        cls = hdbscan.HDBSCAN(min_samples=num_neighbors, min_cluster_size=num_clusters)
+        cls = hdbscan.HDBSCAN(min_samples=num_neighbors, min_cluster_size=5, allow_single_cluster=False,
+                              core_dist_n_jobs=num_jobs)
     elif cluster_type == "spectral":
         if num_neighbors > num_examples:
             num_neighbors = num_examples
@@ -65,6 +67,21 @@ def clustering(X, cluster_type: str = "spectral", affinity: str = "nearest_neigh
     else:
         cls.fit(X)
     return cls
+
+
+def significant_features(X, features_name, pvalue: float = 0.05, X_map=None, map_genes: bool = True,
+                         ttest: bool = False):
+    tempX = np.copy(X)
+    if X.shape[1] != 1:
+        tempX = X[:, 3]
+    shape, loc, scale = gamma.fit(zscore(tempX))
+    selected_features = np.where((1 - gamma.cdf(zscore(tempX), shape, loc=loc, scale=scale)) <= pvalue)[0]
+    if len(selected_features) != 0:
+        X = X[selected_features]
+        features_name = np.array(features_name)[selected_features].tolist()
+    df = sort_features(X=X, features_name=features_name, X_map=X_map, map_genes=map_genes,
+                       ttest=ttest)
+    return df
 
 
 def sort_features(X, features_name, X_map=None, map_genes: bool = True, ttest: bool = False):

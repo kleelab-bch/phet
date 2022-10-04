@@ -14,7 +14,7 @@ from scipy.stats import zscore
 
 class UHeT:
     def __init__(self, normalize: str = None, q: float = 0.75, iqr_range: int = (25, 75),
-                 calculate_pval: bool = True, num_iterations: int = 10000):
+                 calculate_pval: bool = False, num_iterations: int = 10000):
         self.normalize = normalize
         self.q = q
         self.iqr_range = iqr_range
@@ -134,5 +134,5 @@ class UHeT:
         results['class_diff'] = classes
 
         results = results.to_numpy()
-
+        np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
         return results

@@ -4,10 +4,10 @@ require(limma)
 require(umap)
 
 working_dir <- file.path("R:/GeneAnalysis/data")
-file_name <- "myelodysplastic_mds1"
+file_name <- "bcca1"
 
 # load series and platform data from GEO
-gset <- getGEO("GSE19429", destdir = working_dir, GSEMatrix = TRUE,
+gset <- getGEO("GSE25055", destdir = working_dir, GSEMatrix = TRUE,
                AnnotGPL = TRUE)
 if (length(gset) > 1) idx <- grep("GPL570", attr(gset, "names")) else idx <- 1
 gset <- gset[[idx]]
@@ -16,10 +16,13 @@ gset <- gset[[idx]]
 fvarLabels(gset) <- make.names(fvarLabels(gset))
 
 # group membership for all samples
-gsms <- paste0("XXX0XXX1XXX0X00XXX1XXXX1XX0X1XXX1X1XX1XXX0XX1X11XX",
-               "1111XX0XX1XXXX010010101100001111000XXX1XXX0XXXXXXX",
-               "XXXXX1100111X00X01100X0XXXX1XX0XXXXX00XX1X11XXXX01",
-               "XX1XXXX1X1XX01XX1X0XXXX01X0XXXX0XXXXXXXXXXXXXXXXXX")
+gsms <- paste0("1X001001010010000010000011110X11110111XX0010001010",
+               "0100100100001001110XXX10101110X1011001001110001X00",
+               "101111011111101000101100X11010X11X011XX11111010101",
+               "11000011101XX1011X0X111100110001110101010X010010XX",
+               "10110000111011010X101010000X00001100100001010101X1",
+               "000111110110101X1001110010011001000101001011010001",
+               "0011111010")
 sml <- strsplit(gsms, split = "")[[1]]
 
 # filter out excluded samples (marked as "X")
@@ -28,7 +31,7 @@ sml <- sml[sel]
 gset <- gset[, sel]
 
 # collect subtypes 
-subtypes <- gset@phenoData@data[["characteristics_ch1.3"]]
+subtypes <- gset@phenoData@data[["pam50_class:ch1"]]
 write.table(as.data.frame(subtypes), file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
@@ -47,7 +50,7 @@ if (LogC) { ex[which(ex <= 0)] <- NaN
 
 # assign samples to groups and set up design matrix
 gs <- factor(sml)
-groups <- make.names(c("RAEB1", "RAEB2"))
+groups <- make.names(c("Basal Like", "Luminal"))
 levels(gs) <- groups
 gset$group <- gs
 design <- model.matrix(~group + 0, gset)
@@ -105,14 +108,14 @@ ord <- order(gs)  # order samples by group
 palette(c("#1B9E77", "#7570B3", "#E7298A", "#E6AB02", "#D95F02",
           "#66A61E", "#A6761D", "#B32424", "#B324B3", "#666666"))
 par(mar = c(7, 4, 2, 1))
-title <- paste("GSE34138", "/", annotation(gset), sep = "")
+title <- paste("GSE25055", "/", annotation(gset), sep = "")
 boxplot(ex[, ord], boxwex = 0.6, notch = T, main = title, outline = FALSE, las = 2, col = gs[ord])
 legend("topleft", groups, fill = palette(), bty = "n")
 dev.off()
 
 # expression value distribution
 par(mar = c(4, 4, 2, 1))
-title <- paste("GSE34138", "/", annotation(gset), " value distribution", sep = "")
+title <- paste("GSE25055", "/", annotation(gset), " value distribution", sep = "")
 plotDensities(ex, group = gs, main = title, legend = "topright")
 
 # UMAP plot (dimensionality reduction)
@@ -127,5 +130,5 @@ library("maptools")  # point labels without overlaps
 pointLabel(ump$layout, labels = rownames(ump$layout), method = "SANN", cex = 0.6)
 
 # mean-variance trend, helps to see if precision weights are needed
-plotSA(fit2, main = "Mean variance trend, GSE34138")
+plotSA(fit2, main = "Mean variance trend, GSE25055")
 

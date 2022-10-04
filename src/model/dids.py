@@ -14,7 +14,7 @@ from mlxtend.evaluate import permutation_test
 
 class DIDS:
     def __init__(self, score_function: str = "tanh", direction: str = "both",
-                 calculate_pval: bool = True, num_iterations: int = 10000):
+                 calculate_pval: bool = False, num_iterations: int = 10000):
         self.score_function = score_function
         self.direction = direction  # up, down, both
         self.calculate_pval = calculate_pval
@@ -66,6 +66,7 @@ class DIDS:
             temp_X2 = 3 * temp_X2 - 3
             temp_X2 = 1 + np.tanh(temp_X2)
         results = np.sum(temp_X2, axis=0)
+        np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
         if self.calculate_pval:
             # Permutation based p-value calculation using approximate method

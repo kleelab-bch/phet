@@ -1,23 +1,76 @@
+# Lake, B.B., Ai, R., Kaeser, G.E., Salathia, N.S., Yung, Y.C., Liu, R., Wildberg, A., Gao, D., Fung, H.L., Chen, S. and Vijayaraghavan, R., 2016. Neuronal subtypes and diversity revealed by single-nucleus RNA sequencing of the human brain. Science, 352(6293), pp.1586-1590.
+
 # Differential expression analysis with limma
 require(limma)
 require(umap)
 
 working_dir <- file.path("R:/GeneAnalysis/data")
-file_name <- "leukemia_golub"
+file_name <- "lake"
+source("R:/GeneAnalysis/uhet/src/utility/create_sce.R")
 
-# load series and platform data from GEO
-gset <- read.table(file.path(working_dir, paste(file_name, ".csv", sep = "")),
-                   header = TRUE, sep = ",", check.names = FALSE,
-                   stringsAsFactors = FALSE)
-drop_cols <- c("", "Samples", "BM.PB", "Gender", "Source", "tissue.mf",
-               "cancer")
-classes <- gset$cancer
-featureNames <- colnames(gset)[!(names(gset) %in% drop_cols)]
-gset <- gset[, featureNames]
+### DATA
+#Prefrontal cortex - BA10
+#Frontal cortex (eye fields) - BA8
+#Auditory cortex (speech) - BA21
+#Auditory cortex (Wernicke's area) - BA22
+#Auditory cortex - BA41/42
+#Visual cortex - BA17
+# Problems: duplicate row names
+# Human
+x1 = read.delim(file.path(working_dir, paste(file_name, ".dat", sep = "")), "\t", header=F, stringsAsFactors=FALSE)
+ann <- read.table(file.path(working_dir, paste(file_name, "_annotation.txt", sep = "")), header=T)
+gene_names <- x1[,1]
+cell_names <- x1[1,]
+cell_names <- as.character(unlist(cell_names))
+cell_names <- cell_names[-1]
+gene_names <- gene_names[-1]
+x1 <- x1[-1,-1]
+# not log-transformed tpms
+exclude = duplicated(gene_names)
+keep_cells = cell_names %in% ann[,2]
+x1 <- x1[,keep_cells]
+cell_names <- cell_names[keep_cells]
+colnames(x1) <- cell_names;
+reorder <- order(colnames(x1))
+x1 <- x1[,reorder]
+
+### ANNOTATIONS
+ann <- ann[ann[,2] %in% colnames(x1),]
+ann <- ann[order(ann[,2]),]
+SOURCE <- as.character(unlist(ann[,4]))
+BATCH <- as.character(unlist(ann[,4]))
+SOURCE[SOURCE=="BA10"] = "Prefrontal cortex"
+SOURCE[SOURCE=="BA8"] = "Frontal cortex"
+SOURCE[SOURCE=="BA21"] = "Auditory cortex (speech)"
+SOURCE[SOURCE=="BA22"] = "Auditory cortex (Wernicke)"
+SOURCE[SOURCE=="BA41"] = "Auditory cortex"
+SOURCE[SOURCE=="BA17"] = "Visual cortex"
+TYPE <- as.character(unlist(ann[3]))
+AGE <- rep("51yo", times=length(BATCH))
+stuff <- sub( "_S.+","", colnames(x1));
+stuff <- matrix(unlist(strsplit(stuff, "_")), ncol=2, byrow=T)
+WELL <- stuff[,2]
+PLATE <- stuff[,1]
+gset <- apply(x1, 1, as.numeric)
+gset<- t(gset)
+colnames(gset) <- colnames(x1)
+gset <- gset[!exclude, ]
+rownames(gset) <- gene_names[!exclude]
+classes <- data.frame(Species=rep("Homo sapiens", times=length(TYPE)), cell_type1=TYPE, Source=SOURCE, age=AGE, WellID=WELL, batch=BATCH, Plate=PLATE)
+rownames(classes) <- colnames(x1)
+remove(x1, ann, gene_names, stuff, AGE, BATCH, SOURCE, TYPE, WELL, PLATE, keep_cells, exclude, cell_names)
+
+### SINGLECELLEXPERIMENT
+gset <- create_sce_from_normcounts(gset, classes)
+featureNames <- as.character(rownames(gset))
+classes <- gset@colData@listData[["Source"]]
+gset <- as.data.frame(t(gset@assays@data@listData[["logcounts"]]))
 
 # group membership for all samples
-gsms <- c(0, 1, 1)
-names(gsms) <- c("aml", "allB", "allT")
+# 0 (non auditory cortex): "Frontal cortex", "Visual cortex", and "Prefrontal cortex"       
+# 1 (auditory cortex): "Auditory cortex (speech)", "Auditory cortex (Wernicke)", and "Auditory cortex"
+gsms <- c(0, 0, 1, 1, 1, 0)
+names(gsms) <- unique(classes)
 gsms <- gsms[classes]
 gsms <- paste0(gsms, collapse = "")
 sml <- strsplit(gsms, split = "")[[1]]
@@ -28,7 +81,6 @@ write.table(as.data.frame(subtypes), file = file.path(working_dir, paste(file_na
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # log2 transformation
-ex <- gset
 df <- gset
 df$class <- sml
 write.table(df, file = file.path(working_dir, paste(file_name, "_matrix.csv", sep = "")),
@@ -37,7 +89,7 @@ remove(df)
 
 # assign samples to groups and set up design matrix
 gs <- factor(sml)
-groups <- make.names(c("AML", "ALL"))
+groups <- make.names(c("Control", "Case"))
 levels(gs) <- groups
 gset$group <- gs
 design <- model.matrix(~group + 0, gset)
@@ -91,33 +143,30 @@ plotMD(fit2, column = ct, status = dT[, ct], legend = F, pch = 20, cex = 1)
 abline(h = 0)
 
 ################################################################
-# General expression data analysis
-ex <- gset
-
 # box-and-whisker plot
 dev.new(width = 3 + ncol(gset) / 6, height = 5)
 ord <- order(gs)  # order samples by group
 palette(c("#1B9E77", "#7570B3", "#E7298A", "#E6AB02", "#D95F02",
           "#66A61E", "#A6761D", "#B32424", "#B324B3", "#666666"))
 par(mar = c(7, 4, 2, 1))
-title <- paste("Leukemia", sep = "")
-boxplot(ex[, ord], boxwex = 0.6, notch = T, main = title, outline = FALSE, las = 2, col = gs[ord])
+title <- paste(toupper(file_name), sep = "")
+boxplot(gset[, ord], boxwex = 0.6, notch = T, main = title, outline = FALSE, las = 2, col = gs[ord])
 legend("topleft", groups, fill = palette(), bty = "n")
 dev.off()
 
 # expression value distribution
 par(mar = c(4, 4, 2, 1))
-title <- paste("Leukemia value distribution", sep = "")
-plotDensities(ex, group = gs, main = title, legend = "topright")
+title <- paste(toupper(file_name), " value distribution", sep = "")
+plotDensities(gset, group = gs, main = title, legend = "topright")
 
 # UMAP plot (dimensionality reduction)
-ex <- na.omit(ex) # eliminate rows with NAs
-ex <- ex[!duplicated(ex),]  # remove duplicates
-ump <- umap(t(ex), n_neighbors = 5, random_state = 123)
+gset <- na.omit(gset) # eliminate rows with NAs
+gset <- gset[!duplicated(gset),]  # remove duplicates
+ump <- umap(t(gset), n_neighbors = 5, random_state = 123)
 par(mar = c(3, 3, 2, 6), xpd = TRUE)
 plot(ump$layout, main = "UMAP plot, nbrs=5", xlab = "", ylab = "", col = gs, pch = 20, cex = 1.5)
 legend("topright", inset = c(-0.15, 0), legend = levels(gs), pch = 20,
        col = 1:nlevels(gs), title = "Group", pt.cex = 1.5)
 
 # mean-variance trend, helps to see if precision weights are needed
-plotSA(fit2, main = "Mean variance trend, Leukemia")
+plotSA(fit2, main = paste("Mean variance trend,", toupper(file_name)))

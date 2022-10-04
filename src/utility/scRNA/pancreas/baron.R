@@ -1,22 +1,68 @@
+# Baron, M., Veres, A., Wolock, S.L., Faust, A.L., Gaujoux, R., Vetere, A., Ryu, J.H., Wagner, B.K., Shen-Orr, S.S., Klein, A.M. and Melton, D.A., 2016. A single-cell transcriptomic map of the human and mouse pancreas reveals inter-and intra-cell population structure. Cell systems, 3(4), pp.346-360.
+
 # Differential expression analysis with limma
 require(limma)
 require(umap)
 
 working_dir <- file.path("R:/GeneAnalysis/data")
-file_name <- "colon"
+file_name <- "baron"
+source("R:/GeneAnalysis/uhet/src/utility/create_sce.R")
 
-# load series and platform data from GEO
-gset <- read.table(file.path(working_dir, paste(file_name, ".csv", sep = "")),
-                   header = TRUE, sep = ",", check.names = FALSE,
-                   stringsAsFactors = FALSE)
-drop_cols <- c("", "class")
-classes <- gset$class
-featureNames <- colnames(gset)[!(names(gset) %in% drop_cols)]
-gset <- gset[, featureNames]
+### DATA
+# human1
+h1 <- read.csv(file.path(working_dir, paste(file_name, "1.csv", sep = "")), header = T)
+rownames(h1) <- h1[,1]
+labels_h1 <- as.character(h1$assigned_cluster)
+h1 <- h1[,4:ncol(h1)]
+h1 <- t(h1)
+# human2
+h2 <- read.csv(file.path(working_dir, paste(file_name, "2.csv", sep = "")), header = T)
+rownames(h2) <- h2[,1]
+labels_h2 <- as.character(h2$assigned_cluster)
+h2 <- h2[,4:ncol(h2)]
+h2 <- t(h2)
+# human3
+h3 <- read.csv(file.path(working_dir, paste(file_name, "3.csv", sep = "")), header = T)
+rownames(h3) <- h3[,1]
+labels_h3 <- as.character(h3$assigned_cluster)
+h3 <- h3[,4:ncol(h3)]
+h3 <- t(h3)
+# human4
+h4 <- read.csv(file.path(working_dir, paste(file_name, "4.csv", sep = "")), header = T)
+rownames(h4) <- h4[,1]
+labels_h4 <- as.character(h4$assigned_cluster)
+h4 <- h4[,4:ncol(h4)]
+h4 <- t(h4)
+
+# merge data
+gset <- cbind(h1, h2, h3, h4)
+gset <- as.data.frame(gset)
+remove(h1,h2,h3,h4)
+
+### ANNOTATIONS
+# human
+classes <- data.frame(
+    human = c(
+        rep(1, length(labels_h1)), 
+        rep(2, length(labels_h2)), 
+        rep(3, length(labels_h3)), 
+        rep(4, length(labels_h4))
+    ),
+    cell_type1 = c(labels_h1, labels_h2, labels_h3, labels_h4))
+rownames(classes) <- colnames(gset)
+remove(labels_h1, labels_h2, labels_h3, labels_h4)
+
+### SINGLECELLEXPERIMENT
+gset <- create_sce_from_counts(gset, classes)
+featureNames <- as.character(rownames(gset))
+classes <- gset@colData@listData[["cell_type1"]]
+gset <- as.data.frame(t(gset@assays@data@listData[["logcounts"]]))
 
 # group membership for all samples
-gsms <- c(0, 1)
-names(gsms) <- c("Normal", "Cancer")
+# 0 (non ductal): "acinar", "beta", "delta", "activated_stellate", "alpha", "epsilon", "gamma", "endothelial", "quiescent_stellate", "macrophage", "schwann", "mast", and "t_cell"
+# 1 (ductal) : "ductal"
+gsms <- c(0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+names(gsms) <- unique(classes)
 gsms <- gsms[classes]
 gsms <- paste0(gsms, collapse = "")
 sml <- strsplit(gsms, split = "")[[1]]
@@ -27,20 +73,15 @@ write.table(as.data.frame(subtypes), file = file.path(working_dir, paste(file_na
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # log2 transformation
-ex <- gset
 df <- gset
 df$class <- sml
 write.table(df, file = file.path(working_dir, paste(file_name, "_matrix.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 remove(df)
-qx <- as.numeric(quantile(ex, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm = T))
-LogC <- (qx[5] > 100) || (qx[6] - qx[1] > 50 && qx[2] > 0)
-if (LogC) { ex[which(ex <= 0)] <- NaN
-  gset <- log2(ex) }
 
 # assign samples to groups and set up design matrix
 gs <- factor(sml)
-groups <- make.names(c("Normal", "Cancer"))
+groups <- make.names(c("Control", "Case"))
 levels(gs) <- groups
 gset$group <- gs
 design <- model.matrix(~group + 0, gset)
@@ -69,11 +110,11 @@ write.table(tT, file = file.path(working_dir, paste(file_name, "_features.csv",
 # Build histogram of P-values for all genes. Normal test
 # assumption is that most genes are not differentially expressed.
 tT2 <- topTable(fit2, adjust = "fdr", sort.by = "B", number = Inf)
-hist(tT2$adj.P.Val, col = "grey", border = "white", xlab = "P-adj",
+hist(tT2$adj.P.Val, breaks = 100, col = "grey", border = "white", xlab = "P-adj",
      ylab = "Number of genes", main = "P-adj value distribution")
 
 # summarize test results as "up", "down" or "not expressed"
-dT <- decideTests(fit2, adjust.method = "fdr", p.value = 0.05)
+dT <- decideTests(fit2, adjust.method = "fdr", p.value = 0.01)
 
 # Venn diagram of results
 vennDiagram(dT, circle.col = palette())
@@ -94,33 +135,30 @@ plotMD(fit2, column = ct, status = dT[, ct], legend = F, pch = 20, cex = 1)
 abline(h = 0)
 
 ################################################################
-# General expression data analysis
-ex <- gset
-
 # box-and-whisker plot
 dev.new(width = 3 + ncol(gset) / 6, height = 5)
 ord <- order(gs)  # order samples by group
 palette(c("#1B9E77", "#7570B3", "#E7298A", "#E6AB02", "#D95F02",
           "#66A61E", "#A6761D", "#B32424", "#B324B3", "#666666"))
 par(mar = c(7, 4, 2, 1))
-title <- paste("Colon", sep = "")
-boxplot(ex[, ord], boxwex = 0.6, notch = T, main = title, outline = FALSE, las = 2, col = gs[ord])
+title <- paste(toupper(file_name), sep = "")
+boxplot(gset[, ord], boxwex = 0.6, notch = T, main = title, outline = FALSE, las = 2, col = gs[ord])
 legend("topleft", groups, fill = palette(), bty = "n")
 dev.off()
 
 # expression value distribution
 par(mar = c(4, 4, 2, 1))
-title <- paste("Colon value distribution", sep = "")
-plotDensities(ex, group = gs, main = title, legend = "topright")
+title <- paste(toupper(file_name), " value distribution", sep = "")
+plotDensities(gset, group = gs, main = title, legend = "topright")
 
 # UMAP plot (dimensionality reduction)
-ex <- na.omit(ex) # eliminate rows with NAs
-ex <- ex[!duplicated(ex),]  # remove duplicates
-ump <- umap(t(ex), n_neighbors = 15, random_state = 123)
+gset <- na.omit(gset) # eliminate rows with NAs
+gset <- gset[!duplicated(gset),]  # remove duplicates
+ump <- umap(t(gset), n_neighbors = 5, random_state = 123)
 par(mar = c(3, 3, 2, 6), xpd = TRUE)
-plot(ump$layout, main = "UMAP plot, nbrs=15", xlab = "", ylab = "", col = gs, pch = 20, cex = 1.5)
+plot(ump$layout, main = "UMAP plot, nbrs=5", xlab = "", ylab = "", col = gs, pch = 20, cex = 1.5)
 legend("topright", inset = c(-0.15, 0), legend = levels(gs), pch = 20,
        col = 1:nlevels(gs), title = "Group", pt.cex = 1.5)
 
 # mean-variance trend, helps to see if precision weights are needed
-plotSA(fit2, main = "Mean variance trend, Colon")
+plotSA(fit2, main = paste("Mean variance trend,", toupper(file_name)))

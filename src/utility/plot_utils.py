@@ -23,14 +23,14 @@ plt.rc('ytick', labelsize=15)
 plt.rc('axes', labelsize=16)
 
 
-def plot_scatter(X, y, num_features: int = 100, legend_title: str = "Class", suptitle: str = "Hetero-Net",
+def plot_scatter(X, y, num_features: int = 100, legend_title: str = "Class", suptitle: str = "temp",
                  file_name: str = "temp", save_path: str = "."):
     # plot figure
     plt.figure(figsize=(12, 8))
     sns.scatterplot(X[:, 0], X[:, 1], hue=y, palette='tab10')
     plt.xlabel("UMAP 1")
     plt.ylabel("UMAP 2")
-    plt.suptitle('Using Top %s Features from %s' % (str(num_features), suptitle), fontsize=18, fontweight="bold")
+    plt.suptitle('Using top %s features from %s' % (str(num_features), suptitle), fontsize=18, fontweight="bold")
     plt.legend(title=legend_title)
     sns.despine()
     file_path = os.path.join(save_path, file_name)
@@ -64,40 +64,16 @@ def plot_heatmap(df, file_name: str = "temp", save_path: str = "."):
 
 
 def plot_umap(X, y, num_features: int, standardize: bool = True, num_neighbors: int = 15, min_dist: float = 0,
-              num_jobs: int = 2, suptitle: str = "Hetero-Net", file_name: str = "temp", save_path: str = "."):
-    """
-    UMAP results from Hetero-Net
-
-    Parameters
-    ----------
-    X : pd.DataFrame of shape (n_samples, n_features)
-        The input samples
-
-    y : array-like of shape (n_samples,)
-        The target values
-
-    min_dist : int (default=0)
-        Minimum distance set for UMAP
-
-    num_neighbors : int (default=15)
-        Number of nearest neighbors for UMAP
-
-    standardize : bool (default=True)
-        Standardize data before UMAP
-
-    Returns
-    -------
-    matplotlib plot of UMAP-ed data with top n_features from Hetero-Net
-    """
-
+              num_jobs: int = 2, suptitle: str = "temp", file_name: str = "temp", save_path: str = "."):
     # standardize if needed
     if standardize:
         X = zscore(X)
+        np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
     # make umap and umap data
     X_reducer = dimensionality_reduction(X, num_neighbors=num_neighbors, num_components=2, min_dist=min_dist,
                                          reduction_method="umap", num_epochs=2000, num_jobs=num_jobs)
-    plot_scatter(X=X_reducer, y=y, num_features=num_features, suptitle=suptitle, file_name=file_name + "_umap.png",
-                 save_path=save_path)
+    plot_scatter(X=X_reducer, y=y, num_features=num_features, suptitle=suptitle,
+                 file_name=file_name + "_umap.png", save_path=save_path)
 
 
 def plot_clusters(X, y, features_name: list, num_features: int, standardize: bool = True,

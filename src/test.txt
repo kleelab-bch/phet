@@ -1,0 +1,52 @@
+normalize = "robust"
+q = 0.75
+iqr_range = (25, 75)
+num_subsamples = 100
+subsampling_size = 3
+significant_p: float = 0.05
+partition_by_anova = False
+num_components = 10
+num_subclusters = 10
+binary_clustering = True
+feature_weight = [0.4, 0.3, 0.2, 0.1]
+criterion = 'entropy'
+max_features="sqrt"
+max_depth = 3
+min_samples_split = 2
+num_epochs = 10
+num_rounds = 50
+calculate_pval = False
+num_jobs = 4
+partition_data = False
+control_class = 0
+case_class = 1
+
+
+df = significant_features(X=df_cleanse[0], features_name=features_name, pvalue=pvalue, X_map=None, map_genes=False, ttest=False)
+selected_regulated_features = topKfeatures
+temp = np.sum(top_features_true)
+if selected_regulated_features > temp:
+	selected_regulated_features = temp
+temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'][:selected_regulated_features].tolist()]
+top_features_pred = np.zeros((len(top_features_true)))
+top_features_pred[temp] = 1
+score = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
+
+reducer = umap.UMAP(n_neighbors=5, n_components=2, n_epochs=2000, init="random", min_dist=0.1, n_jobs=num_jobs)
+temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()[:topKfeatures]]
+X_reducer = reducer.fit_transform(X[:, temp])
+sns.scatterplot(X_reducer[:, 0], X_reducer[:, 1], hue=subtypes, palette='tab10')
+plt.xlabel("UMAP 1")
+plt.ylabel("UMAP 2")
+plt.suptitle('Using top %s features from %s' % (str(len(temp)), expression_file_name), fontsize=18, fontweight="bold")
+plt.legend(title="Class")
+sns.despine()
+
+reducer = umap.UMAP(n_neighbors=5, n_components=2, n_epochs=2000, init="random", min_dist=0.1, n_jobs=num_jobs)
+X_reducer = reducer.fit_transform(X[:, df_cleanse[1]])
+sns.scatterplot(X_reducer[:, 0], X_reducer[:, 1], hue=subtypes, palette='tab10')
+plt.xlabel("UMAP 1")
+plt.ylabel("UMAP 2")
+plt.suptitle('Using top %s features from %s' % (str(len(df_cleanse[1])), expression_file_name), fontsize=18, fontweight="bold")
+plt.legend(title="Class")
+sns.despine()

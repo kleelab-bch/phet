@@ -1,56 +1,66 @@
+# Patel, A.P., Tirosh, I., Trombetta, J.J., Shalek, A.K., Gillespie, S.M., Wakimoto, H., Cahill, D.P., Nahed, B.V., Curry, W.T., Martuza, R.L. and Louis, D.N., 2014. Single-cell RNA-seq highlights intratumoral heterogeneity in primary glioblastoma. Science, 344(6190), pp.1396-1401.
+
 # Differential expression analysis with limma
-require(GEOquery)
 require(limma)
 require(umap)
 
 working_dir <- file.path("R:/GeneAnalysis/data")
-file_name <- "bcca1"
+file_name <- "patel"
+source("R:/GeneAnalysis/uhet/src/utility/create_sce.R")
 
-# load series and platform data from GEO
-gset <- getGEO("GSE25055", destdir = working_dir, GSEMatrix = TRUE,
-               AnnotGPL = TRUE)
-if (length(gset) > 1) idx <- grep("GPL570", attr(gset, "names")) else idx <- 1
-gset <- gset[[idx]]
+### DATA
+gset <- read.table(file.path(working_dir, paste(file_name, ".txt", sep = "")))
+# select 5 patients
+gset <- gset[,grepl("MGH26_", colnames(gset)) |
+       grepl("MGH264_", colnames(gset)) |
+       grepl("MGH28_", colnames(gset)) |
+       grepl("MGH29_", colnames(gset)) |
+       grepl("MGH30_", colnames(gset)) |
+       grepl("MGH31_", colnames(gset))]
 
-# make proper column names to match toptable 
-fvarLabels(gset) <- make.names(fvarLabels(gset))
+### ANNOTATIONS
+patients <- unlist(lapply(strsplit(colnames(gset), "_"), "[[", 1))
+patients[patients == "MGH264"] <- "MGH26"
+classes <- data.frame(cell_type1 = patients)
+rownames(classes) <- colnames(gset)
+
+### SINGLECELLEXPERIMENT
+gset <- create_sce_from_logcounts(gset, classes)
+featureNames <- as.character(rownames(gset))
+classes <- gset@colData@listData[["cell_type1"]]
+gset <- as.data.frame(t(gset@assays@data@listData[["logcounts"]]))
 
 # group membership for all samples
-gsms <- paste0("1X001001010010000010000011110X11110111XX0010001010",
-               "0100100100001001110XXX10101110X1011001001110001X00",
-               "101111011111101000101100X11010X11X011XX11111010101",
-               "11000011101XX1011X0X111100110001110101010X010010XX",
-               "10110000111011010X101010000X00001100100001010101X1",
-               "000111110110101X1001110010011001000101001011010001",
-               "0011111010")
+# 0 (proneural (and classical)): "MGH26" and "MGH30"
+# 1 (non proneural) : "MGH28", "MGH29", and "MGH31"
+gsms <- c(0, 1, 1, 0, 1)
+names(gsms) <- unique(classes)
+gsms <- gsms[classes]
+gsms <- paste0(gsms, collapse = "")
 sml <- strsplit(gsms, split = "")[[1]]
 
-# filter out excluded samples (marked as "X")
-sel <- which(sml != "X")
-sml <- sml[sel]
-gset <- gset[, sel]
+# collect subtypes 
+subtypes <- classes
+write.table(as.data.frame(subtypes), file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
 
 # log2 transformation
-ex <- exprs(gset)
-df <- as.data.frame(t(ex))
+df <- gset
 df$class <- sml
 write.table(df, file = file.path(working_dir, paste(file_name, "_matrix.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 remove(df)
-qx <- as.numeric(quantile(ex, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm = T))
-LogC <- (qx[5] > 100) ||
-  (qx[6] - qx[1] > 50 && qx[2] > 0)
-if (LogC) { ex[which(ex <= 0)] <- NaN
-  exprs(gset) <- log2(ex) }
 
 # assign samples to groups and set up design matrix
 gs <- factor(sml)
-groups <- make.names(c("Basal Like", "Luminal"))
+groups <- make.names(c("Control", "Case"))
 levels(gs) <- groups
 gset$group <- gs
 design <- model.matrix(~group + 0, gset)
 colnames(design) <- levels(gs)
 
+gset <- gset[, !(names(gset) %in% "group")]
+gset <- t(gset)
 fit <- lmFit(gset, design)  # fit linear model
 
 # set up contrasts of interest and recalculate model coefficients
@@ -61,19 +71,22 @@ fit2 <- contrasts.fit(fit, cont.matrix)
 # compute statistics and table of top significant genes
 fit2 <- eBayes(fit2, 0.01)
 tT <- topTable(fit2, adjust = "fdr", sort.by = "B", number = 10000)
-tT <- subset(tT, select = c("ID", "adj.P.Val", "P.Value", "t", "B", "logFC", "Gene.symbol"))
-write.table(tT, file = file.path(working_dir, paste(file_name, "_features.csv", sep = "")),
+temp <- rownames(tT)
+rownames(tT) <- NULL
+tT <- cbind("ID" = temp, tT)
+write.table(tT, file = file.path(working_dir, paste(file_name, "_features.csv",
+                                                    sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # Visualize and quality control test results.
 # Build histogram of P-values for all genes. Normal test
 # assumption is that most genes are not differentially expressed.
 tT2 <- topTable(fit2, adjust = "fdr", sort.by = "B", number = Inf)
-hist(tT2$adj.P.Val, col = "grey", border = "white", xlab = "P-adj",
+hist(tT2$adj.P.Val, breaks = 100, col = "grey", border = "white", xlab = "P-adj",
      ylab = "Number of genes", main = "P-adj value distribution")
 
 # summarize test results as "up", "down" or "not expressed"
-dT <- decideTests(fit2, adjust.method = "fdr", p.value = 0.05)
+dT <- decideTests(fit2, adjust.method = "fdr", p.value = 0.01)
 
 # Venn diagram of results
 vennDiagram(dT, circle.col = palette())
@@ -94,36 +107,30 @@ plotMD(fit2, column = ct, status = dT[, ct], legend = F, pch = 20, cex = 1)
 abline(h = 0)
 
 ################################################################
-# General expression data analysis
-ex <- exprs(gset)
-
 # box-and-whisker plot
 dev.new(width = 3 + ncol(gset) / 6, height = 5)
 ord <- order(gs)  # order samples by group
 palette(c("#1B9E77", "#7570B3", "#E7298A", "#E6AB02", "#D95F02",
           "#66A61E", "#A6761D", "#B32424", "#B324B3", "#666666"))
 par(mar = c(7, 4, 2, 1))
-title <- paste("GSE25055", "/", annotation(gset), sep = "")
-boxplot(ex[, ord], boxwex = 0.6, notch = T, main = title, outline = FALSE, las = 2, col = gs[ord])
+title <- paste(toupper(file_name), sep = "")
+boxplot(gset[, ord], boxwex = 0.6, notch = T, main = title, outline = FALSE, las = 2, col = gs[ord])
 legend("topleft", groups, fill = palette(), bty = "n")
 dev.off()
 
 # expression value distribution
 par(mar = c(4, 4, 2, 1))
-title <- paste("GSE25055", "/", annotation(gset), " value distribution", sep = "")
-plotDensities(ex, group = gs, main = title, legend = "topright")
+title <- paste(toupper(file_name), " value distribution", sep = "")
+plotDensities(gset, group = gs, main = title, legend = "topright")
 
 # UMAP plot (dimensionality reduction)
-ex <- na.omit(ex) # eliminate rows with NAs
-ex <- ex[!duplicated(ex),]  # remove duplicates
-ump <- umap(t(ex), n_neighbors = 15, random_state = 123)
+gset <- na.omit(gset) # eliminate rows with NAs
+gset <- gset[!duplicated(gset),]  # remove duplicates
+ump <- umap(t(gset), n_neighbors = 5, random_state = 123)
 par(mar = c(3, 3, 2, 6), xpd = TRUE)
-plot(ump$layout, main = "UMAP plot, nbrs=15", xlab = "", ylab = "", col = gs, pch = 20, cex = 1.5)
+plot(ump$layout, main = "UMAP plot, nbrs=5", xlab = "", ylab = "", col = gs, pch = 20, cex = 1.5)
 legend("topright", inset = c(-0.15, 0), legend = levels(gs), pch = 20,
        col = 1:nlevels(gs), title = "Group", pt.cex = 1.5)
-library("maptools")  # point labels without overlaps
-pointLabel(ump$layout, labels = rownames(ump$layout), method = "SANN", cex = 0.6)
 
 # mean-variance trend, helps to see if precision weights are needed
-plotSA(fit2, main = "Mean variance trend, GSE25055")
-
+plotSA(fit2, main = paste("Mean variance trend,", toupper(file_name)))

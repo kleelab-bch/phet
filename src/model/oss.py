@@ -13,7 +13,7 @@ from scipy.stats import iqr
 
 class OutlierSumStatistic:
     def __init__(self, q: float = 0.75, iqr_range: int = (25, 75), two_sided_test: bool = True,
-                 direction: str = "both", calculate_pval: bool = True, num_iterations: int = 10000):
+                 direction: str = "both", calculate_pval: bool = False, num_iterations: int = 10000):
         self.q = q
         self.iqr_range = iqr_range
         self.two_sided_test = two_sided_test
@@ -57,6 +57,7 @@ class OutlierSumStatistic:
         else:
             os_neg = np.zeros_like(os_pos)
         results = np.c_[np.absolute(os_pos), np.absolute(os_neg)]
+        np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
         results = np.max(results, axis=1)
 
         if self.calculate_pval:

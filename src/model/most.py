@@ -11,7 +11,7 @@ from scipy.stats import norm
 
 
 class MOST:
-    def __init__(self, k: int = None, direction: str = "both", calculate_pval: bool = True,
+    def __init__(self, k: int = None, direction: str = "both", calculate_pval: bool = False,
                  num_iterations: int = 10000):
         self.k = k
         self.direction = direction  # up, down, both
@@ -55,12 +55,14 @@ class MOST:
                     scale = 1
                 X_temp = norm.cdf(X[:sample_idx, feature_idx], loc=loc, scale=scale)
                 loc, scale = norm.fit(X_temp)
+                if scale == 0:
+                    scale = 1
                 temp_idx = np.argsort(X_temp * -1)
                 M[feature_idx, sample_idx - 2] = np.sum(X[temp_idx, feature_idx] - control_med[feature_idx])
                 M[feature_idx, sample_idx - 2] /= med[feature_idx]
                 M[feature_idx, sample_idx - 2] -= loc
                 M[feature_idx, sample_idx - 2] /= scale
-
+        np.nan_to_num(M, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
         results = np.max(M, axis=1)
 
         if self.calculate_pval:

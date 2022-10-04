@@ -5,7 +5,7 @@ from scipy.stats import iqr
 
 class OutlierRobustStatistic:
     def __init__(self, q: float = 0.75, iqr_range: int = (25, 75), direction: str = "both",
-                 calculate_pval: bool = True, num_iterations: int = 10000):
+                 calculate_pval: bool = False, num_iterations: int = 10000):
         self.q = q
         self.iqr_range = iqr_range
         self.direction = direction  # up, down, both
@@ -53,6 +53,7 @@ class OutlierRobustStatistic:
                           control_med[feature_idx]) / med[feature_idx]
             results.append(temp)
         results = np.array(results)
+        np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
         if self.calculate_pval:
             # Permutation based p-value calculation using approximate method

@@ -12,7 +12,7 @@ from mlxtend.evaluate import permutation_test
 
 
 class LSOSS:
-    def __init__(self, k: int = None, direction: str = "both", calculate_pval: bool = True,
+    def __init__(self, k: int = None, direction: str = "both", calculate_pval: bool = False,
                  num_iterations: int = 10000):
         self.k = k
         self.direction = direction  # up, down, both
@@ -76,6 +76,7 @@ class LSOSS:
 
             if self.direction == "both":
                 results[feature_idx] += (m - k) * ((mean2 - mean_control[feature_idx]) / SE)
+        np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
         if self.calculate_pval:
             # Permutation based p-value calculation using approximate method

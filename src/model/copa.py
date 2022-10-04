@@ -10,7 +10,7 @@ from mlxtend.evaluate import permutation_test
 
 
 class COPA:
-    def __init__(self, q: float = 0.75, direction: str = "both", calculate_pval: bool = True,
+    def __init__(self, q: float = 0.75, direction: str = "both", calculate_pval: bool = False,
                  num_iterations: int = 10000):
         self.q = q
         self.direction = direction  # up, down, both
@@ -38,6 +38,7 @@ class COPA:
 
         # Calculate statistics
         results = (np.percentile(a=case_X, q=100 * self.q, axis=0) - med) / mad
+        np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
         if self.calculate_pval:
             # Permutation based p-value calculation using approximate method
@@ -60,5 +61,4 @@ class COPA:
             results = np.vstack((results, pvals)).T
         else:
             results = np.reshape(results, (results.shape[0], 1))
-
         return results

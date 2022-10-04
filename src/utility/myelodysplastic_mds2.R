@@ -65,6 +65,11 @@ sel <- which(sml != "X")
 sml <- sml[sel]
 gset <- gset[, sel]
 
+# collect subtypes 
+subtypes <- gset@phenoData@data[["leukemia class:ch1"]]
+write.table(as.data.frame(subtypes), file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
 # log2 transformation
 ex <- exprs(gset)
 df <- as.data.frame(t(ex))
@@ -80,7 +85,7 @@ if (LogC) { ex[which(ex <= 0)] <- NaN
 
 # assign samples to groups and set up design matrix
 gs <- factor(sml)
-groups <- make.names(c("Control", "Case"))
+groups <- make.names(c("No leukaemia ", "Low risk MDS"))
 levels(gs) <- groups
 gset$group <- gs
 design <- model.matrix(~group + 0, gset)
