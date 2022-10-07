@@ -17,46 +17,46 @@ source("R:/GeneAnalysis/uhet/src/utility/create_sce.R")
 #Visual cortex - BA17
 # Problems: duplicate row names
 # Human
-x1 = read.delim(file.path(working_dir, paste(file_name, ".dat", sep = "")), "\t", header=F, stringsAsFactors=FALSE)
-ann <- read.table(file.path(working_dir, paste(file_name, "_annotation.txt", sep = "")), header=T)
-gene_names <- x1[,1]
+x1 = read.delim(file.path(working_dir, paste(file_name, ".dat", sep = "")), "\t", header = F, stringsAsFactors = FALSE)
+ann <- read.table(file.path(working_dir, paste(file_name, "_annotation.txt", sep = "")), header = T)
+gene_names <- x1[, 1]
 cell_names <- x1[1,]
 cell_names <- as.character(unlist(cell_names))
 cell_names <- cell_names[-1]
 gene_names <- gene_names[-1]
-x1 <- x1[-1,-1]
+x1 <- x1[-1, -1]
 # not log-transformed tpms
 exclude = duplicated(gene_names)
-keep_cells = cell_names %in% ann[,2]
-x1 <- x1[,keep_cells]
+keep_cells = cell_names %in% ann[, 2]
+x1 <- x1[, keep_cells]
 cell_names <- cell_names[keep_cells]
 colnames(x1) <- cell_names;
 reorder <- order(colnames(x1))
-x1 <- x1[,reorder]
+x1 <- x1[, reorder]
 
 ### ANNOTATIONS
-ann <- ann[ann[,2] %in% colnames(x1),]
-ann <- ann[order(ann[,2]),]
-SOURCE <- as.character(unlist(ann[,4]))
-BATCH <- as.character(unlist(ann[,4]))
-SOURCE[SOURCE=="BA10"] = "Prefrontal cortex"
-SOURCE[SOURCE=="BA8"] = "Frontal cortex"
-SOURCE[SOURCE=="BA21"] = "Auditory cortex (speech)"
-SOURCE[SOURCE=="BA22"] = "Auditory cortex (Wernicke)"
-SOURCE[SOURCE=="BA41"] = "Auditory cortex"
-SOURCE[SOURCE=="BA17"] = "Visual cortex"
+ann <- ann[ann[, 2] %in% colnames(x1),]
+ann <- ann[order(ann[, 2]),]
+SOURCE <- as.character(unlist(ann[, 4]))
+BATCH <- as.character(unlist(ann[, 4]))
+SOURCE[SOURCE == "BA10"] = "Prefrontal cortex"
+SOURCE[SOURCE == "BA8"] = "Frontal cortex"
+SOURCE[SOURCE == "BA21"] = "Auditory cortex (speech)"
+SOURCE[SOURCE == "BA22"] = "Auditory cortex (Wernicke)"
+SOURCE[SOURCE == "BA41"] = "Auditory cortex"
+SOURCE[SOURCE == "BA17"] = "Visual cortex"
 TYPE <- as.character(unlist(ann[3]))
-AGE <- rep("51yo", times=length(BATCH))
-stuff <- sub( "_S.+","", colnames(x1));
-stuff <- matrix(unlist(strsplit(stuff, "_")), ncol=2, byrow=T)
-WELL <- stuff[,2]
-PLATE <- stuff[,1]
+AGE <- rep("51yo", times = length(BATCH))
+stuff <- sub("_S.+", "", colnames(x1));
+stuff <- matrix(unlist(strsplit(stuff, "_")), ncol = 2, byrow = T)
+WELL <- stuff[, 2]
+PLATE <- stuff[, 1]
 gset <- apply(x1, 1, as.numeric)
-gset<- t(gset)
+gset <- t(gset)
 colnames(gset) <- colnames(x1)
-gset <- gset[!exclude, ]
+gset <- gset[!exclude,]
 rownames(gset) <- gene_names[!exclude]
-classes <- data.frame(Species=rep("Homo sapiens", times=length(TYPE)), cell_type1=TYPE, Source=SOURCE, age=AGE, WellID=WELL, batch=BATCH, Plate=PLATE)
+classes <- data.frame(Species = rep("Homo sapiens", times = length(TYPE)), cell_type1 = TYPE, Source = SOURCE, age = AGE, WellID = WELL, batch = BATCH, Plate = PLATE)
 rownames(classes) <- colnames(x1)
 remove(x1, ann, gene_names, stuff, AGE, BATCH, SOURCE, TYPE, WELL, PLATE, keep_cells, exclude, cell_names)
 
@@ -67,7 +67,7 @@ classes <- gset@colData@listData[["Source"]]
 gset <- as.data.frame(t(gset@assays@data@listData[["logcounts"]]))
 
 # group membership for all samples
-# 0 (non auditory cortex): "Frontal cortex", "Visual cortex", and "Prefrontal cortex"       
+# 0 (non auditory cortex): "Frontal cortex", "Visual cortex", and "Prefrontal cortex"
 # 1 (auditory cortex): "Auditory cortex (speech)", "Auditory cortex (Wernicke)", and "Auditory cortex"
 gsms <- c(0, 0, 1, 1, 1, 0)
 names(gsms) <- unique(classes)

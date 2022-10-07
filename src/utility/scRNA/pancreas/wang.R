@@ -9,36 +9,36 @@ file_name <- "wang"
 source("R:/GeneAnalysis/uhet/src/utility/create_sce.R")
 
 ### DATA
-gset <- read.table(file.path(working_dir, paste(file_name, ".csv", sep = "")), header=T, stringsAsFactor=FALSE)
-fDat <- gset[,1:7]
-gset<-gset[,-1*c(1:7)]
+gset <- read.table(file.path(working_dir, paste(file_name, ".csv", sep = "")), header = T, stringsAsFactor = FALSE)
+fDat <- gset[, 1:7]
+gset <- gset[, -1 * c(1:7)]
 rownames(gset) <- fDat$transcript
 rownames(gset)[!is.na(fDat$gene)] <- fDat$gene[!is.na(fDat$gene)]
 rownames(fDat) <- rownames(gset)
 
 ### ANNOTATIONS
-ann1 <- read.delim(file.path(working_dir, paste(file_name, "_annotation.txt", sep = "")), sep="\n", header=F, stringsAsFactor=FALSE)
-ANN1 <- ann1[c(38,48:49),]
-ANN1 <- sapply(ANN1, function(y){strsplit(y, "\t")})
-ann2 <- read.delim(file.path(working_dir, "wang2_annotation.txt"), sep="\n", header=F, stringsAsFactor=FALSE)
-ANN2 <- ann2[c(38,48:49),]
-ANN2 <- sapply(ANN2, function(y){strsplit(y, "\t")})
+ann1 <- read.delim(file.path(working_dir, paste(file_name, "_annotation.txt", sep = "")), sep = "\n", header = F, stringsAsFactor = FALSE)
+ANN1 <- ann1[c(38, 48:49),]
+ANN1 <- sapply(ANN1, function(y) { strsplit(y, "\t") })
+ann2 <- read.delim(file.path(working_dir, "wang2_annotation.txt"), sep = "\n", header = F, stringsAsFactor = FALSE)
+ANN2 <- ann2[c(38, 48:49),]
+ANN2 <- sapply(ANN2, function(y) { strsplit(y, "\t") })
 # Extract metadata
 qualities <- list()
 for (i in 1:length(ANN1)) {
-        thing1 <- ANN1[[i]]
-        thing1 <- thing1[-1]
-        j <- 2
-        if (i == 1) {j <- 1}
-        thing1 <- matrix(unlist(strsplit(thing1, " ")), ncol=j, byrow=T)
-        thing2 <- ANN2[[i]]
-        thing2 <- thing2[-1]
-        thing2 <- matrix(unlist(strsplit(thing2, " ")), ncol=j, byrow=T)
-        qualities[[i]] = c(thing1[, j], thing2[, j])
+  thing1 <- ANN1[[i]]
+  thing1 <- thing1[-1]
+  j <- 2
+  if (i == 1) { j <- 1 }
+  thing1 <- matrix(unlist(strsplit(thing1, " ")), ncol = j, byrow = T)
+  thing2 <- ANN2[[i]]
+  thing2 <- thing2[-1]
+  thing2 <- matrix(unlist(strsplit(thing2, " ")), ncol = j, byrow = T)
+  qualities[[i]] = c(thing1[, j], thing2[, j])
 }
-classes <- data.frame(disease=qualities[[2]], cell_type1=qualities[[3]])
-rownames(classes) <- paste("reads.", qualities[[1]], sep="")
-colnames(gset) <- paste("reads.", qualities[[1]], sep="")
+classes <- data.frame(disease = qualities[[2]], cell_type1 = qualities[[3]])
+rownames(classes) <- paste("reads.", qualities[[1]], sep = "")
+colnames(gset) <- paste("reads.", qualities[[1]], sep = "")
 remove(ann1, ann2, ANN1, ANN2, qualities, fDat)
 
 # Check cell ordering

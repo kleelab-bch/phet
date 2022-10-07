@@ -1,36 +1,27 @@
-# Darmanis, S., Sloan, S.A., Zhang, Y., Enge, M., Caneda, C., Shuer, L.M., Hayden Gephart, M.G., Barres, B.A. and Quake, S.R., 2015. A survey of human brain transcriptome diversity at the single cell level. Proceedings of the National Academy of Sciences, 112(23), pp.7285-7290.
+# Shipp, M.A., Ross, K.N., Tamayo, P., Weng, A.P., Kutok, J.L., Aguiar, R.C., Gaasenbeek, M., Angelo, M., Reich, M., Pinkus, G.S. and Ray, T.S., 2002. Diffuse large B-cell lymphoma outcome prediction by gene-expression profiling and supervised machine learning. Nature medicine, 8(1), pp.68-74.
 
 # Differential expression analysis with limma
 require(limma)
 require(umap)
 
 working_dir <- file.path("R:/GeneAnalysis/data")
-file_name <- "darmanis"
-source("R:/GeneAnalysis/uhet/src/utility/create_sce.R")
+file_name <- "dlbcl"
 
-### DATA
-data1 <- read.table(file.path(working_dir, paste(file_name, "1.txt", sep = "")), header = T)
-ann1 <- read.table(file.path(working_dir, paste(file_name, "1_annotation.txt", sep = "")), header = T)
-data2 <- read.table(file.path(working_dir, paste(file_name, "2.txt", sep = "")), header = T)
-ann2 <- read.table(file.path(working_dir, paste(file_name, "2_annotation.txt", sep = "")), header = T)
-gset <- cbind(data1, data2)
-classes <- rbind(t(ann1), t(ann2))
-remove(data1, data2, ann1, ann2)
-
-### ANNOTATIONS
-rownames(classes) <- NULL
-colnames(classes) <- c("Source", "Species", "Tissue", "cell_type1", "age", "plate", "individual", "File")
-
-### SINGLECELLEXPERIMENT
-gset <- create_sce_from_counts(gset, classes)
-featureNames <- as.character(rownames(gset))
-classes <- gset@colData@listData[["cell_type1"]]
-gset <- as.data.frame(t(gset@assays@data@listData[["logcounts"]]))
+# load series and platform data from GEO
+gset <- read.delim(file.path(working_dir, paste(file_name, ".tab", sep = "")),
+                   header = TRUE, sep = "\t", check.names = FALSE,
+                   stringsAsFactors = FALSE)
+gset <- as.data.frame(as.matrix(gset)[3:nrow(gset),])
+drop_cols <- c("", "sample", "class")
+classes <- gset$class
+featureNames <- colnames(gset)[!(names(gset) %in% drop_cols)]
+gset <- gset[, featureNames]
+gset <- as.data.frame(lapply(gset, as.numeric))
 
 # group membership for all samples
-# 0 (non fetal): "astrocytes", "endothelial", "microglia", "neurons", "oligodendrocytes", "hybrid", and "OPC"         
-# 1 (fetal): "fetal_quiescent" and "fetal_replicating"
-gsms <- c(0, 0, 0, 0, 1, 1, 0, 0, 0)
+# 0: Diffuse large B-cell lymphoma (DLBCL): 58 examples (75.3%)
+# 1: Follicular lymphoma (FL): 19 examples (24.7%)
+gsms <- c(0, 1)
 names(gsms) <- unique(classes)
 gsms <- gsms[classes]
 gsms <- paste0(gsms, collapse = "")

@@ -13,7 +13,7 @@ gset <- read.csv(file.path(working_dir, paste(file_name, ".csv", sep = "")),
                  header = TRUE, sep = ",", check.names = FALSE,
                  stringsAsFactors = FALSE)
 rownames(gset) <- gset$Gene_ID
-gset <- gset[ , !(names(gset) %in% c("Gene_ID"))]
+gset <- gset[, !(names(gset) %in% c("Gene_ID"))]
 
 ### ANNOTATIONS
 cl <- colnames(gset)

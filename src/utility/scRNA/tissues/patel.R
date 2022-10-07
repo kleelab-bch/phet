@@ -11,12 +11,12 @@ source("R:/GeneAnalysis/uhet/src/utility/create_sce.R")
 ### DATA
 gset <- read.table(file.path(working_dir, paste(file_name, ".txt", sep = "")))
 # select 5 patients
-gset <- gset[,grepl("MGH26_", colnames(gset)) |
-       grepl("MGH264_", colnames(gset)) |
-       grepl("MGH28_", colnames(gset)) |
-       grepl("MGH29_", colnames(gset)) |
-       grepl("MGH30_", colnames(gset)) |
-       grepl("MGH31_", colnames(gset))]
+gset <- gset[, grepl("MGH26_", colnames(gset)) |
+                 grepl("MGH264_", colnames(gset)) |
+                 grepl("MGH28_", colnames(gset)) |
+                 grepl("MGH29_", colnames(gset)) |
+                 grepl("MGH30_", colnames(gset)) |
+                 grepl("MGH31_", colnames(gset))]
 
 ### ANNOTATIONS
 patients <- unlist(lapply(strsplit(colnames(gset), "_"), "[[", 1))

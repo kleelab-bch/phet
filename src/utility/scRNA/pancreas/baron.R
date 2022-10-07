@@ -11,44 +11,44 @@ source("R:/GeneAnalysis/uhet/src/utility/create_sce.R")
 ### DATA
 # human1
 h1 <- read.csv(file.path(working_dir, paste(file_name, "1.csv", sep = "")), header = T)
-rownames(h1) <- h1[,1]
+rownames(h1) <- h1[, 1]
 labels_h1 <- as.character(h1$assigned_cluster)
-h1 <- h1[,4:ncol(h1)]
+h1 <- h1[, 4:ncol(h1)]
 h1 <- t(h1)
 # human2
 h2 <- read.csv(file.path(working_dir, paste(file_name, "2.csv", sep = "")), header = T)
-rownames(h2) <- h2[,1]
+rownames(h2) <- h2[, 1]
 labels_h2 <- as.character(h2$assigned_cluster)
-h2 <- h2[,4:ncol(h2)]
+h2 <- h2[, 4:ncol(h2)]
 h2 <- t(h2)
 # human3
 h3 <- read.csv(file.path(working_dir, paste(file_name, "3.csv", sep = "")), header = T)
-rownames(h3) <- h3[,1]
+rownames(h3) <- h3[, 1]
 labels_h3 <- as.character(h3$assigned_cluster)
-h3 <- h3[,4:ncol(h3)]
+h3 <- h3[, 4:ncol(h3)]
 h3 <- t(h3)
 # human4
 h4 <- read.csv(file.path(working_dir, paste(file_name, "4.csv", sep = "")), header = T)
-rownames(h4) <- h4[,1]
+rownames(h4) <- h4[, 1]
 labels_h4 <- as.character(h4$assigned_cluster)
-h4 <- h4[,4:ncol(h4)]
+h4 <- h4[, 4:ncol(h4)]
 h4 <- t(h4)
 
 # merge data
 gset <- cbind(h1, h2, h3, h4)
 gset <- as.data.frame(gset)
-remove(h1,h2,h3,h4)
+remove(h1, h2, h3, h4)
 
 ### ANNOTATIONS
 # human
 classes <- data.frame(
-    human = c(
-        rep(1, length(labels_h1)), 
-        rep(2, length(labels_h2)), 
-        rep(3, length(labels_h3)), 
-        rep(4, length(labels_h4))
-    ),
-    cell_type1 = c(labels_h1, labels_h2, labels_h3, labels_h4))
+  human = c(
+    rep(1, length(labels_h1)),
+    rep(2, length(labels_h2)),
+    rep(3, length(labels_h3)),
+    rep(4, length(labels_h4))
+  ),
+  cell_type1 = c(labels_h1, labels_h2, labels_h3, labels_h4))
 rownames(classes) <- colnames(gset)
 remove(labels_h1, labels_h2, labels_h3, labels_h4)
 

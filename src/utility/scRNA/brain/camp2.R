@@ -1,4 +1,4 @@
-# Camp, J.G., Badsha, F., Florio, M., Kanton, S., Gerber, T., Wilsch-Bräuninger, M., Lewitus, E., Sykes, A., Hevers, W., Lancaster, M. and Knoblich, J.A., 2015. Human cerebral organoids recapitulate gene expression programs of fetal neocortex development. Proceedings of the National Academy of Sciences, 112(51), pp.15672-15677.
+# Camp, J.G., Badsha, F., Florio, M., Kanton, S., Gerber, T., Wilsch-Brï¿½uninger, M., Lewitus, E., Sykes, A., Hevers, W., Lancaster, M. and Knoblich, J.A., 2015. Human cerebral organoids recapitulate gene expression programs of fetal neocortex development. Proceedings of the National Academy of Sciences, 112(51), pp.15672-15677.
 
 # Differential expression analysis with limma
 require(limma)
@@ -13,60 +13,60 @@ source("R:/GeneAnalysis/uhet/src/utility/create_sce.R")
 # SMARTer
 # Camp JG, Badsha F, Florio M, Kanton S et al. Human cerebral organoids recapitulate gene expression programs of fetal neocortex development. Proc Natl Acad Sci U S A 2015 Dec 22;112(51):15672-7. PMID: 26644564
 # GSE75140
-gset <- read.table(file.path(working_dir, paste(file_name, ".txt", sep = "")), header=T)
-classes <- read.table(file.path(working_dir, paste(file_name, "_annotation.txt", sep = "")), header=T)
+gset <- read.table(file.path(working_dir, paste(file_name, ".txt", sep = "")), header = T)
+classes <- read.table(file.path(working_dir, paste(file_name, "_annotation.txt", sep = "")), header = T)
 
-dnames <- as.character(gset[,1]);
+dnames <- as.character(gset[, 1]);
 dnames <- strsplit(dnames, "_")
-dnames <- lapply(dnames, function(x) { paste(sort(x), collapse="_")})
+dnames <- lapply(dnames, function(x) { paste(sort(x), collapse = "_") })
 dnames <- unlist(dnames)
 
 rownames(gset) <- dnames;
-gset <- gset[,-1]
-gset <- gset[,-1*length(gset[1,])]
+gset <- gset[, -1]
+gset <- gset[, -1 * length(gset[1,])]
 
 ### ANNOTATIONS
 anames <- colnames(classes);
 anames <- strsplit(anames, "_")
-anames <- lapply(anames, function(x) { paste(sort(x[2:length(x)]), collapse="_")})
+anames <- lapply(anames, function(x) { paste(sort(x[2:length(x)]), collapse = "_") })
 anames <- unlist(anames)
 
-anames[anames=="13wpc_F5_fetal"] = "12wpc_c1_F5_fetal"
+anames[anames == "13wpc_F5_fetal"] = "12wpc_c1_F5_fetal"
 
 colnames(classes) <- anames
 
 gset <- t(gset)
-gset <- gset[,order(colnames(gset))]
-classes <- classes[,order(colnames(classes))]
+gset <- gset[, order(colnames(gset))]
+classes <- classes[, order(colnames(classes))]
 classes <- t(classes)
 # Using reported markers AUC > 0.85 from paper supplementary table
 
-Neuron_Score <- colSums(gset[rownames(gset) %in% c("DCX","MLLT11","STMN2","SOX4","MYT1L"),])-colSums(gset[rownames(gset) %in% c("ZFP36L1","VIM"),])
+Neuron_Score <- colSums(gset[rownames(gset) %in% c("DCX", "MLLT11", "STMN2", "SOX4", "MYT1L"),]) - colSums(gset[rownames(gset) %in% c("ZFP36L1", "VIM"),])
 is.neuron = Neuron_Score > 30
 
-Mesenchyme_Score <- colSums(gset[rownames(gset) %in% c("COL3A1","LUM","S100A11","DCN","IFITM3","COL1A2","SPARC","COL1A2","COL1A1","FTL", "ANXA2","LGALS1","MFAP4"),])
+Mesenchyme_Score <- colSums(gset[rownames(gset) %in% c("COL3A1", "LUM", "S100A11", "DCN", "IFITM3", "COL1A2", "SPARC", "COL1A2", "COL1A1", "FTL", "ANXA2", "LGALS1", "MFAP4"),])
 is.mesenchyme = Mesenchyme_Score > 90
 
-dorsal_cortex_progenitors_score <- colSums(gset[rownames(gset) %in% c("C1orf61", "FABP7","CREB5","GLI3"),])
+dorsal_cortex_progenitors_score <- colSums(gset[rownames(gset) %in% c("C1orf61", "FABP7", "CREB5", "GLI3"),])
 is.dcp <- dorsal_cortex_progenitors_score > 27
 
-dorsal_cortex_neuron_score <- colSums(gset[rownames(gset) %in% c("NFIA","NFIB","ABRACL","NEUROD6","CAP2"),])
+dorsal_cortex_neuron_score <- colSums(gset[rownames(gset) %in% c("NFIA", "NFIB", "ABRACL", "NEUROD6", "CAP2"),])
 is.dcn <- dorsal_cortex_neuron_score > 25
 
-ventral_progenitors_score <- colSums(gset[rownames(gset) %in% c("MTRNR2L12","MDK","BCAT1","PRTG","MGST1","DLK1","IGDCC3"),]) - colSums(gset[rownames(gset) %in% c("NFIB","NFIA","TUBB","IFI44L","PHLDA1","CREB5"),])
-is.vp <- ventral_progenitors_score >20
+ventral_progenitors_score <- colSums(gset[rownames(gset) %in% c("MTRNR2L12", "MDK", "BCAT1", "PRTG", "MGST1", "DLK1", "IGDCC3"),]) - colSums(gset[rownames(gset) %in% c("NFIB", "NFIA", "TUBB", "IFI44L", "PHLDA1", "CREB5"),])
+is.vp <- ventral_progenitors_score > 20
 
-RSPO_score <- colSums(gset[rownames(gset) %in% c("WLS","TPBG"),])
+RSPO_score <- colSums(gset[rownames(gset) %in% c("WLS", "TPBG"),])
 # indistinct
 
-Type = rep("Unknown", times=length(classes[,1]))
+Type = rep("Unknown", times = length(classes[, 1]))
 Type[is.neuron] <- "neuron"
 Type[is.mesenchyme] <- "mesenchyme"
 Type[is.dcn] <- "dosal cortex neuron"
 Type[is.dcp] <- "dosal cortex progenitor"
 Type[is.vp] <- "ventral progenitor"
 
-classes <- data.frame(Species=classes[,2], cell_type1=Type, Source=classes[,4], age=classes[,3], batch=classes[,1])
+classes <- data.frame(Species = classes[, 2], cell_type1 = Type, Source = classes[, 4], age = classes[, 3], batch = classes[, 1])
 rownames(classes) <- rownames(classes)
 
 ### SINGLECELLEXPERIMENT

@@ -20,8 +20,9 @@ SEED_VALUE = 0.001
 class HCLEANSE:
     def __init__(self, normalize: str = None, q: float = 0.75, iqr_range: int = (25, 75), num_subsamples: int = 100,
                  subsampling_size: int = 3, significant_p: float = 0.05, partition_by_anova: bool = False,
-                 num_components: int = 10, metric: str = "euclidean", num_subclusters: int = 10, binary_clustering: bool = True,
-                 feature_weight: list = [0.4, 0.3, 0.2, 0.1], max_features: int = 50,
+                 feature_weight: list = [0.4, 0.3, 0.2, 0.1], calculate_hstatistic: bool = True,
+                 num_components: int = 10, metric: str = "euclidean", num_subclusters: int = 10,
+                 binary_clustering: bool = True, max_features: int = 50,
                  max_depth: int = 2, min_samples_split: int = 3, num_estimators: int = 5, num_rounds: int = 50,
                  calculate_pval: bool = False, num_jobs: int = 2):
         """
@@ -91,7 +92,10 @@ class HCLEANSE:
         self.num_subclusters = num_subclusters
         self.binary_clustering = binary_clustering
         # Weighting four feature profiles
-        self.feature_weight = np.array(feature_weight)
+        if len(feature_weight) > 4 or len(feature_weight) == 0:
+            feature_weight = [0.4, 0.3, 0.2, 0.1]
+        self.feature_weight = np.array(feature_weight) / np.sum(feature_weight)
+        self.calculate_hstatistic = calculate_hstatistic
         # The following parameters are applied to detect subclasses
         self.max_features = max_features
         self.max_depth = max_depth
@@ -287,39 +291,41 @@ class HCLEANSE:
         # Step 1: Recurrent-sampling differential analysis to select and rank
         # significant features
         # Define frequency A and raw p-value P matrices
-        A = np.zeros((num_features, num_examples))
+        A = np.zeros((num_features, num_examples)) + SEED_VALUE
         P = np.zeros((num_features, num_subsamples))
         R = np.zeros((num_features,))
-
-        for feature_idx in range(num_features):
-            # Make transposed matrix with shape (feat per class, observation per class)
-            # find mean and iqr difference between genes
-            temp = np.zeros((num_subsamples, num_combinations))
-            combination_idx = 0
-            for i, j in combinations(range(num_classes), 2):
-                for sample_idx in range(num_subsamples):
-                    examples_i = np.where(y == i)[0]
-                    examples_i = np.random.choice(a=examples_i, size=subsampling_size, replace=False)
-                    examples_j = np.where(y == j)[0]
-                    examples_j = np.random.choice(a=examples_j, size=subsampling_size, replace=False)
-                    iq_range_i = iqr(X[examples_i, feature_idx], rng=self.iqr_range, scale=1.0)
-                    iq_range_j = iqr(X[examples_j, feature_idx], rng=self.iqr_range, scale=1.0)
-                    iq_range = iq_range_i - iq_range_j
-                    temp[sample_idx, combination_idx] = iq_range
-                    if subsampling_size < 30:
-                        _, pvalue = ttest_ind(X[examples_i, feature_idx], X[examples_j, feature_idx])
-                    else:
-                        _, pvalue = ztest(X[examples_i, feature_idx], X[examples_j, feature_idx])
-                    P[feature_idx, sample_idx] = pvalue
-                    if pvalue <= self.significant_p:
-                        if iq_range > 0:
-                            A[feature_idx, examples_i] += 1
-                        else:
-                            A[feature_idx, examples_j] += 1
-                combination_idx += 1
-            temp = np.max(np.absolute(temp), axis=1)
-            R[feature_idx] = np.median(temp)
-            del temp
+        # Make transposed matrix with shape (feat per class, observation per class)
+        # find mean and iqr difference between genes
+        temp = np.zeros((num_features, num_combinations))
+        combination_idx = 0
+        for i, j in combinations(range(num_classes), 2):
+            for sample_idx in range(num_subsamples):
+                examples_i = np.where(y == i)[0]
+                examples_j = np.where(y == j)[0]
+                examples_i = np.random.choice(a=examples_i, size=subsampling_size, replace=False)
+                examples_j = np.random.choice(a=examples_j, size=subsampling_size, replace=False)
+                iq_range_i = iqr(X[examples_i], axis=0, rng=self.iqr_range, scale=1.0)
+                iq_range_j = iqr(X[examples_j], axis=0, rng=self.iqr_range, scale=1.0)
+                iq_range = iq_range_i - iq_range_j
+                temp[:, combination_idx] += np.absolute(iq_range) / num_subsamples
+                if subsampling_size < 30:
+                    _, pvalue = ttest_ind(X[examples_i], X[examples_j])
+                else:
+                    _, pvalue = ztest(X[examples_i], X[examples_j])
+                P[:, sample_idx] += pvalue / num_combinations
+                feature_pvalue = np.where(pvalue <= self.significant_p)[0]
+                if len(feature_pvalue) > 0:
+                    up = feature_pvalue[np.where(iq_range[feature_pvalue] > 0)[0]]
+                    down = feature_pvalue[np.where(iq_range[feature_pvalue] <= 0)[0]]
+                    if len(up) > 0:
+                        for idx in examples_i:
+                            A[up, idx] += 1
+                    if len(down) > 0:
+                        for idx in examples_j:
+                            A[down, idx] += 1
+            combination_idx += 1
+        R = np.max(temp, axis=1)
+        del temp, feature_pvalue, up, down
 
         # Apply Fisher's method for combined probability
         I = -2 * np.log(P)

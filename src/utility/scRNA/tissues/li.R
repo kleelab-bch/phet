@@ -12,10 +12,10 @@ source("R:/GeneAnalysis/uhet/src/utility/create_sce.R")
 gset <- read.csv(file.path(working_dir, paste(file_name, ".csv", sep = "")))
 
 ### ANNOTATIONS
-genes <- unlist(lapply(strsplit(as.character(gset[,1]), "_"), "[[", 2))
-gset <- gset[!duplicated(genes), ]
+genes <- unlist(lapply(strsplit(as.character(gset[, 1]), "_"), "[[", 2))
+gset <- gset[!duplicated(genes),]
 rownames(gset) <- genes[!duplicated(genes)]
-gset <- gset[,2:ncol(gset)]
+gset <- gset[, 2:ncol(gset)]
 # metadata
 classes <- data.frame(cell_type1 = unlist(lapply(strsplit(colnames(gset), "__"), "[[", 2)))
 rownames(classes) <- colnames(gset)

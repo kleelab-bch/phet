@@ -7,9 +7,8 @@ from itertools import combinations
 import numpy as np
 from mlxtend.evaluate import permutation_test
 from prince import CA
+from scipy.stats import f_oneway, ks_2samp
 from scipy.stats import iqr, norm, zscore, ttest_ind
-from scipy.stats import pearsonr, f_oneway, ks_2samp
-from sklearn.metrics import silhouette_score
 from sklearn.metrics.pairwise import euclidean_distances
 from statsmodels.stats.weightstats import ztest
 from utility.utils import clustering
@@ -18,8 +17,9 @@ SEED_VALUE = 0.001
 
 
 class CLEANSE:
-    def __init__(self, normalize: str = None, q: float = 0.75, iqr_range: int = (25, 75), num_subsamples: int = 100,
+    def __init__(self, normalize: str = None, q: float = 0.75, iqr_range: int = (25, 75), num_subsamples: int = 1000,
                  subsampling_size: int = 3, significant_p: float = 0.05, partition_by_anova: bool = False,
+                 feature_weight: list = [0.4, 0.3, 0.2, 0.1], calculate_hstatistic: bool = True,
                  num_components: int = 10, num_subclusters: int = 10, binary_clustering: bool = True,
                  calculate_pval: bool = False, num_rounds: int = 50, num_jobs: int = 2):
         self.normalize = normalize  # robust or zscore (default: None)
@@ -29,6 +29,10 @@ class CLEANSE:
         self.subsampling_size = subsampling_size
         self.significant_p = significant_p
         self.partition_by_anova = partition_by_anova
+        if len(feature_weight) > 4 or len(feature_weight) == 0:
+            feature_weight = [0.4, 0.3, 0.2, 0.1]
+        self.feature_weight = np.array(feature_weight) / np.sum(feature_weight)
+        self.calculate_hstatistic = calculate_hstatistic
         self.num_components = num_components
         self.num_subclusters = num_subclusters
         self.binary_clustering = binary_clustering
@@ -116,7 +120,9 @@ class CLEANSE:
             X = zscore(X, axis=0)
 
         # Define the initial subsampling size for recurrent-sampling differential analysis
-        if self.subsampling_size is None:
+        num_subsamples = self.num_subsamples
+        subsampling_size = self.subsampling_size
+        if subsampling_size is None:
             if num_classes > 1:
                 temp = list()
                 for class_idx in range(num_classes):
@@ -125,7 +131,7 @@ class CLEANSE:
                 temp = int(np.sqrt(np.min(temp)))
             else:
                 temp = int(np.sqrt(num_examples))
-            self.subsampling_size = temp
+            subsampling_size = temp
         else:
             if num_classes > 1:
                 temp = list()
@@ -135,58 +141,58 @@ class CLEANSE:
                 temp = np.min(temp)
             else:
                 temp = num_examples
-            if self.subsampling_size > temp:
-                self.subsampling_size = temp
+            if subsampling_size > temp:
+                subsampling_size = temp
 
         # Step 1: Recurrent-sampling differential analysis to select and rank
         # significant features
         # Define frequency A and raw p-value P matrices
         A = np.zeros((num_features, num_examples)) + SEED_VALUE
-        P = np.zeros((num_features, self.num_subsamples))
+        P = np.zeros((num_features, num_subsamples))
         R = np.zeros((num_features,))
-        # TODO: find a way to cluster samples into several groups and then
-        #  iteratively partition samples (hierarchical partition)
         if num_classes > 1:
-            for feature_idx in range(num_features):
-                # Make transposed matrix with shape (feat per class, observation per class)
-                # find mean and iqr difference between genes
-                temp = np.zeros((self.num_subsamples, num_combinations))
-                combination_idx = 0
-                for i, j in combinations(range(num_classes), 2):
-                    for sample_idx in range(self.num_subsamples):
-                        examples_i = np.where(y == i)[0]
-                        examples_i = np.random.choice(a=examples_i, size=self.subsampling_size, replace=False)
-                        examples_j = np.where(y == j)[0]
-                        examples_j = np.random.choice(a=examples_j, size=self.subsampling_size, replace=False)
-                        iq_range_i = iqr(X[examples_i, feature_idx], rng=self.iqr_range, scale=1.0)
-                        iq_range_j = iqr(X[examples_j, feature_idx], rng=self.iqr_range, scale=1.0)
-                        iq_range = iq_range_i - iq_range_j
-                        temp[sample_idx, combination_idx] = iq_range
-                        if self.subsampling_size < 30:
-                            _, pvalue = ttest_ind(X[examples_i, feature_idx], X[examples_j, feature_idx])
-                        else:
-                            _, pvalue = ztest(X[examples_i, feature_idx], X[examples_j, feature_idx])
-                        P[feature_idx, sample_idx] = pvalue
-                        if pvalue <= self.significant_p:
-                            if iq_range > 0:
-                                A[feature_idx, examples_i] += 1
-                            else:
-                                A[feature_idx, examples_j] += 1
-                    combination_idx += 1
-                temp = np.max(np.absolute(temp), axis=1)
-                R[feature_idx] = np.mean(temp)
-                del temp
+            # Make transposed matrix with shape (feat per class, observation per class)
+            # find mean and iqr difference between genes
+            temp = np.zeros((num_features, num_combinations))
+            combination_idx = 0
+            for i, j in combinations(range(num_classes), 2):
+                for sample_idx in range(num_subsamples):
+                    examples_i = np.where(y == i)[0]
+                    examples_j = np.where(y == j)[0]
+                    examples_i = np.random.choice(a=examples_i, size=subsampling_size, replace=False)
+                    examples_j = np.random.choice(a=examples_j, size=subsampling_size, replace=False)
+                    iq_range_i = iqr(X[examples_i], axis=0, rng=self.iqr_range, scale=1.0)
+                    iq_range_j = iqr(X[examples_j], axis=0, rng=self.iqr_range, scale=1.0)
+                    iq_range = iq_range_i - iq_range_j
+                    temp[:, combination_idx] += np.absolute(iq_range) / num_subsamples
+                    if subsampling_size < 30:
+                        _, pvalue = ttest_ind(X[examples_i], X[examples_j])
+                    else:
+                        _, pvalue = ztest(X[examples_i], X[examples_j])
+                    P[:, sample_idx] += pvalue / num_combinations
+                    feature_pvalue = np.where(pvalue <= self.significant_p)[0]
+                    if len(feature_pvalue) > 0:
+                        up = feature_pvalue[np.where(iq_range[feature_pvalue] > 0)[0]]
+                        down = feature_pvalue[np.where(iq_range[feature_pvalue] <= 0)[0]]
+                        if len(up) > 0:
+                            for idx in examples_i:
+                                A[up, idx] += 1
+                        if len(down) > 0:
+                            for idx in examples_j:
+                                A[down, idx] += 1
+                combination_idx += 1
+            R = np.max(temp, axis=1)
+            del temp, feature_pvalue, up, down
         else:
-            sample2example = np.zeros((self.num_subsamples, num_examples), dtype=np.int16)
-            for feature_idx in range(num_features):
-                temp = np.zeros((self.num_subsamples, 1))
-                for sample_idx in range(self.num_subsamples):
-                    subset = np.random.choice(a=num_examples, size=self.subsampling_size, replace=False)
-                    iq_range = iqr(X[subset, feature_idx], rng=self.iqr_range, scale=1.0)
-                    P[feature_idx, sample_idx] = iq_range
-                    sample2example[sample_idx, subset] = 1
-                    temp[sample_idx] = np.absolute(iq_range)
-                R[feature_idx] = np.mean(temp)
+            sample2example = np.zeros((num_subsamples, num_examples), dtype=np.int16)
+            temp = np.zeros((num_features, num_subsamples))
+            for sample_idx in range(num_subsamples):
+                subset = np.random.choice(a=num_examples, size=subsampling_size, replace=False)
+                iq_range = iqr(X[subset], axis=0, rng=self.iqr_range, scale=1.0)
+                P[:, sample_idx] = pvalue
+                sample2example[sample_idx, subset] = 1
+                temp[:, sample_idx] = np.absolute(iq_range)
+            R = np.max(temp, axis=1)
 
         # Check if iqr statistics for each feature has high variances across samples
         if num_classes < 2:
@@ -204,7 +210,7 @@ class CLEANSE:
         I = np.sum(I, axis=1)
         # Standardize I to be used in the final ranking of features. This is useful 
         # to calculate p-values)
-        I = (I - 2 * self.num_subsamples) / np.sqrt(4 * self.num_subsamples)
+        I = (I - 2 * num_subsamples) / np.sqrt(4 * num_subsamples)
         # Keep only the highest Fisher's statisitcs
         I[I < 0] = SEED_VALUE
         I = np.absolute(I)
@@ -215,47 +221,7 @@ class CLEANSE:
         # _, P = fdrcorrection(pvals=P, alpha=0.05, is_sorted=False)
         del P
 
-        # Step 2: Correspondence analysis (CA) using frequency matrices
-        ca = CA(n_components=self.num_components, n_iter=self.num_rounds, benzecri=False)
-        ca.fit(X=A)
-
-        # Step 3: Mapping the CA data for features and samples in a multidimensional space 
-        E = euclidean_distances(X=ca.U_, Y=ca.V_.T)
-        # Estimate gene-wise dispersion
-        D = np.zeros((num_features, num_examples))
-        if num_classes > 1:
-            for class_idx in range(num_classes):
-                examples_idx = np.where(y == class_idx)[0]
-                temp = zscore(X[examples_idx])
-                # temp = (X[examples_idx] - np.mean(X[examples_idx], axis=0)) ** 2
-                D[:, examples_idx] = temp.T
-        else:
-            D = zscore(X, axis=0).T
-        # Compute the heterogeneity statistic of each profile
-        H = np.multiply(D, E) - np.mean(np.multiply(D, E), axis=1)[:, None]
-        del examples_idx, D, E
-
-        # TODO: Step 4: Finding all classes and groups in the sample set (optional)
-        discover_groups = False
-        if discover_groups:
-            C = np.zeros((num_examples, num_examples))
-            for i in range(num_examples):
-                for j in range(i + 1, num_examples):
-                    C[i, j] = pearsonr(x=H[:, i], y=H[:, j])[0]
-            C = C + C.T
-            # TODO: Find an optimal number of k clusters-subclasses using hierarchical approach
-            subclusters = self.num_subclusters
-            temp_scores = np.zeros((self.num_subclusters - 2))
-            for cluster_size in range(2, subclusters):
-                subclusters = clustering(X=C, cluster_type="agglomerative", affinity="euclidean", num_neighbors=5,
-                                         num_clusters=cluster_size, num_jobs=self.num_jobs, predict=True)
-                temp = silhouette_score(X=C, labels=subclusters)
-                temp_scores[cluster_size - 2] = temp
-            subclusters = np.argmax(temp_scores) + 2
-            subclusters = clustering(X=C, cluster_type="agglomerative", affinity="euclidean", num_neighbors=5,
-                                     num_clusters=subclusters, num_jobs=self.num_jobs, predict=True)
-
-        # Step 5: Identification of 4 feature profiles
+        # Step 2: Identification of 4 feature profiles
         O = np.zeros((num_features, 4))
         for feature_idx in range(num_features):
             if num_classes > 1:
@@ -294,25 +260,67 @@ class CLEANSE:
                 else:
                     O[feature_idx, 3] = 1
 
-        # Step 6: Calculate new H statistics based on absolute differences between 
-        # pairwise class of precomputed H-statistics
-        if num_classes > 1:
-            new_H = np.zeros((num_features, num_classes))
-            for class_idx in range(num_classes):
-                examples_idx = np.where(y == class_idx)[0]
-                temp = np.mean(np.absolute(H[:, examples_idx]), axis=1)
-                new_H[:, class_idx] = temp
-            for i, j in combinations(range(num_classes), 2):
-                new_H[:, 0] += np.absolute(new_H[:, i] - new_H[:, j])
-            H = new_H[:, 0]
-            del new_H
-        else:
-            H = np.mean(H, axis=1)
+        if self.calculate_hstatistic:
+            # Step 3: Correspondence analysis (CA) using frequency matrices
+            ca = CA(n_components=self.num_components, n_iter=self.num_rounds, benzecri=False)
+            ca.fit(X=A)
 
-        # Step 7: Feature ranking based on combined parameters (I, O, R, H)
-        change_weights = np.array([0.4, 0.3, 0.2, 0.1])
-        results = np.multiply(I, change_weights.dot(O.T)) + np.multiply(R, H)
+            # Step 4: Mapping the CA data for features and samples in a multidimensional space 
+            E = euclidean_distances(X=ca.U_, Y=ca.V_.T)
+            # Estimate gene-wise dispersion
+            D = np.zeros((num_features, num_examples))
+            if num_classes > 1:
+                for class_idx in range(num_classes):
+                    examples_idx = np.where(y == class_idx)[0]
+                    temp = zscore(X[examples_idx])
+                    # temp = (X[examples_idx] - np.mean(X[examples_idx], axis=0)) ** 2
+                    D[:, examples_idx] = temp.T
+            else:
+                D = zscore(X, axis=0).T
+            # Compute the heterogeneity statistic of each profile
+            H = np.multiply(D, E) - np.mean(np.multiply(D, E), axis=1)[:, None]
+            del examples_idx, D, E
+
+            # Step 5: Calculate new H statistics based on absolute differences between 
+            # pairwise class of precomputed H-statistics
+            if num_classes > 1:
+                new_H = np.zeros((num_features, num_classes))
+                for class_idx in range(num_classes):
+                    examples_idx = np.where(y == class_idx)[0]
+                    temp = np.mean(np.absolute(H[:, examples_idx]), axis=1)
+                    new_H[:, class_idx] = temp
+                for i, j in combinations(range(num_classes), 2):
+                    new_H[:, 0] += np.absolute(new_H[:, i] - new_H[:, j])
+                H = new_H[:, 0]
+                del new_H
+            else:
+                H = np.mean(H, axis=1)
+
+            R = np.multiply(R, H)
+
+        # Step 6: Feature ranking based on combined parameters (I, O, R, H)
+        results = np.multiply(I, self.feature_weight.dot(O.T)) + R
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+
+        # # TODO: Step 4: Finding all classes and groups in the sample set (optional)
+        # discover_groups = False
+        # if discover_groups:
+        #     C = np.zeros((num_examples, num_examples))
+        #     for i in range(num_examples):
+        #         for j in range(i + 1, num_examples):
+        #             C[i, j] = pearsonr(x=H[:, i], y=H[:, j])[0]
+        #     C = C + C.T
+        #     # TODO: Find an optimal number of k clusters-subclasses using hierarchical approach
+        #     subclusters = self.num_subclusters
+        #     temp_scores = np.zeros((self.num_subclusters - 2))
+        #     for cluster_size in range(2, subclusters):
+        #         subclusters = clustering(X=C, cluster_type="agglomerative", affinity="euclidean", num_neighbors=5,
+        #                                  num_clusters=cluster_size, num_jobs=self.num_jobs, predict=True)
+        #         temp = silhouette_score(X=C, labels=subclusters)
+        #         temp_scores[cluster_size - 2] = temp
+        #     subclusters = np.argmax(temp_scores) + 2
+        #     subclusters = clustering(X=C, cluster_type="agglomerative", affinity="euclidean", num_neighbors=5,
+        #                              num_clusters=subclusters, num_jobs=self.num_jobs, predict=True)
 
         if self.calculate_pval and num_classes > 1:
             # Permutation based p-value calculation using approximate method

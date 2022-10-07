@@ -19,49 +19,49 @@ source("R:/GeneAnalysis/uhet/src/utility/create_sce.R")
 # HUVEC = human umbilical vein endothelial cells
 # msc = mesenchymal stem cell
 
-x1 <- read.delim(file.path(working_dir, paste(file_name, "_lineage.csv", sep = "")), sep=",", stringsAsFactors=FALSE)
-rownames(x1) <- x1[,1]
-experiment1 <- x1[,2]
-x1 <- x1[,-c(1,2)]
+x1 <- read.delim(file.path(working_dir, paste(file_name, "_lineage.csv", sep = "")), sep = ",", stringsAsFactors = FALSE)
+rownames(x1) <- x1[, 1]
+experiment1 <- x1[, 2]
+x1 <- x1[, -c(1, 2)]
 x1 <- t(x1)
 
-x2 <- read.delim(file.path(working_dir, paste(file_name, "_liverbud.csv", sep = "")), sep=",", stringsAsFactors=FALSE)
-rownames(x2) <- x2[,1]
-experiment2 <- x2[,2]
-assignment2 <- x2[,3]
-x2 <- x2[,-c(1,2,3)]
+x2 <- read.delim(file.path(working_dir, paste(file_name, "_liverbud.csv", sep = "")), sep = ",", stringsAsFactors = FALSE)
+rownames(x2) <- x2[, 1]
+experiment2 <- x2[, 2]
+assignment2 <- x2[, 3]
+x2 <- x2[, -c(1, 2, 3)]
 x2 <- t(x2)
 
 ### ANNOTATIONS
-ann = read.table(file.path(working_dir, paste(file_name, "_annotation.txt", sep = "")), header=T, stringsAsFactors=FALSE)
+ann = read.table(file.path(working_dir, paste(file_name, "_annotation.txt", sep = "")), header = T, stringsAsFactors = FALSE)
 tmp <- colnames(ann)
-tmp <- matrix(unlist(strsplit(tmp, "_")), ncol=2, byrow=T)
-fixed_names <- paste(tmp[,2], tmp[,1], sep="_")
+tmp <- matrix(unlist(strsplit(tmp, "_")), ncol = 2, byrow = T)
+fixed_names <- paste(tmp[, 2], tmp[, 1], sep = "_")
 colnames(ann) <- fixed_names
 ann <- t(ann)
 # Check duplicate cells
 dups <- which(colnames(x1) %in% colnames(x2))
 for (i in colnames(x1)[dups]) {
-        if (sum(x2[,colnames(x2) == i] == x1[,colnames(x1) == i]) != 19020) {
-                print(i);
-        }
-} 
+  if (sum(x2[, colnames(x2) == i] == x1[, colnames(x1) == i]) != 19020) {
+    print(i);
+  }
+}
 
-x1 <- x1[,-dups]
+x1 <- x1[, -dups]
 experiment1 <- experiment1[-dups];
-gset <- cbind(x1,x2);
+gset <- cbind(x1, x2);
 
 Stage <- c(experiment1, experiment2)
 Type <- c(experiment1, assignment2);
-Type[grepl("ih",Type)] <- "immature hepatoblast"
-Type[grepl("mh",Type)] <- "mature hepatocyte"
-Type[grepl("de",Type)] <- "definitive endoderm"
-Type[grepl("EC",Type)] <- "endothelial"
-Type[grepl("HE",Type)] <- "hepatic endoderm"
-Type[grepl("MC",Type)] <- "mesenchymal stem cell"
+Type[grepl("ih", Type)] <- "immature hepatoblast"
+Type[grepl("mh", Type)] <- "mature hepatocyte"
+Type[grepl("de", Type)] <- "definitive endoderm"
+Type[grepl("EC", Type)] <- "endothelial"
+Type[grepl("HE", Type)] <- "hepatic endoderm"
+Type[grepl("MC", Type)] <- "mesenchymal stem cell"
 
-Source1 <- rep("iPSC line TkDA3-4", times=length(experiment1))
-Source2 <- rep("iPSC line TkDA3-4", times=length(experiment2));
+Source1 <- rep("iPSC line TkDA3-4", times = length(experiment1))
+Source2 <- rep("iPSC line TkDA3-4", times = length(experiment2));
 Source2[experiment2 == "huvec"] = "HUVEC"
 Source2[grepl("lb", experiment2)] = "liver bud"
 Source2[grepl("msc", experiment2)] = "Mesenchymal stem cell"
@@ -86,7 +86,7 @@ Batch[grepl("2", Batch)] = "2"
 Batch[grepl("de", Batch)] = "9"
 Batch[grepl("ipsc", Batch)] = "10"
 Batch[grepl("huvec", Batch)] = "11"
-classes <- data.frame(Species = rep("Homo sapiens", times=length(Stage)), cell_type1 = Type, Source = Source, age = Age, batch=Batch)
+classes <- data.frame(Species = rep("Homo sapiens", times = length(Stage)), cell_type1 = Type, Source = Source, age = Age, batch = Batch)
 rownames(classes) <- colnames(gset)
 
 ### SINGLECELLEXPERIMENT
@@ -96,7 +96,7 @@ selected.samples <- classes["Source"] == "iPSC line TkDA3-4"
 classes <- gset@colData@listData[["cell_type1"]]
 classes <- classes[selected.samples]
 gset <- as.data.frame(t(gset@assays@data@listData[["logcounts"]]))
-gset <- as.data.frame(gset[selected.samples, ])
+gset <- as.data.frame(gset[selected.samples,])
 
 # group membership for all samples
 # 0 (non hepatocytes): "definitive endoderm", "ipsc", and "mature hepatocyte"

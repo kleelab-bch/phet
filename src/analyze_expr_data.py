@@ -5,7 +5,6 @@ import pandas as pd
 import seaborn as sns
 
 from model.cleanse import CLEANSE
-from model.cleanse_hierarchical import HCLEANSE
 from model.copa import COPA
 from model.dids import DIDS
 from model.lsoss import LSOSS
@@ -25,14 +24,19 @@ def train(num_jobs: int = 4):
     # Arguments
     direction = "both"
     topKfeatures = 100
-    minimum_topfeatures = 50
+    minimum_samples = 5
     pvalue = 0.01
+    calculate_hstatistic = False
     sort_by_pvalue = True
     plot_topKfeatures = False
 
-    # 1. Microarray datasets: tnbc, pdac, colon, leukemia_golub, lung, bcca1, myelodysplastic_mds1, and myelodysplastic_mds2
+    # 1. Micro-array datasets: allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89,
+    # braintumor, cmlgse2535, colon, dlbcl, ewsgse967, gastricgse2685, glioblastoma, leukemia_golub, 
+    # ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, mll, myelodysplastic_mds1, 
+    # myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
     # 2. scRNA datasets: camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
-    file_name = "myelodysplastic_mds1"
+    # klein
+    file_name = "baron"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
@@ -40,20 +44,47 @@ def train(num_jobs: int = 4):
     # Load expression data
     X = pd.read_csv(os.path.join(DATASET_PATH, expression_file_name + ".csv"), sep=',').dropna(axis=1)
     y = X["class"].to_numpy()
-    features_name = X.drop(["class"], axis=1).columns.to_list()
+    feature_names = X.drop(["class"], axis=1).columns.to_list()
     X = X.drop(["class"], axis=1).to_numpy()
+
+    # Filter data based on counts (CPM)
+    temp = np.absolute(X)
+    example_sums = temp.sum(1)
+    examples_ids = np.where(example_sums >= 5)[0]
+    X = X[examples_ids]
+    y = y[examples_ids]
+    num_examples, num_features = X.shape
+    temp = np.absolute(X)
+    temp = (temp * 1e6) / temp.sum(axis=1).reshape((num_examples, 1))
+    temp[temp > 1] = 1
+    temp[temp != 1] = 0
+    feature_sums = temp.sum(0)
+    if num_examples <= minimum_samples or minimum_samples > num_examples // 2:
+        minimum_samples = num_examples // 2
+    feature_ids = np.where(feature_sums >= minimum_samples)[0]
+    feature_names = np.array(feature_names)[feature_ids].tolist()
+    X = X[:, feature_ids]
+    del temp, examples_ids, feature_ids, feature_sums
+
     # Load up/down regulated features
-    top_features_true = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file + ".csv"), sep=',')
+    top_features_true = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file + ".csv"), sep=',',
+                                    index_col="ID")
+    temp = [feature for feature in top_features_true.index.to_list() if feature in feature_names]
+    top_features_true = top_features_true.loc[temp]
     temp = top_features_true[top_features_true["adj.P.Val"] <= pvalue]
-    if len(temp["ID"]) < minimum_topfeatures:
-        temp = top_features_true.loc[:topKfeatures-1]
-    top_features_true = [str(feature_idx) for feature_idx in temp["ID"].to_list()[:topKfeatures]]
-    top_features_true = [1 if feature in top_features_true else 0 for idx, feature in enumerate(features_name)]
+    if temp.shape[0] < topKfeatures:
+        temp = top_features_true.loc[:topKfeatures - 1]
+        if sort_by_pvalue and temp.shape[0] == 0:
+            plot_topKfeatures = True
+    top_features_true = [str(feature_idx) for feature_idx in temp.index.to_list()[:topKfeatures]]
+    top_features_true = [1 if feature in top_features_true else 0 for idx, feature in enumerate(feature_names)]
     # Load subtypes file
     subtypes = pd.read_csv(os.path.join(DATASET_PATH, subtypes_file + ".csv"), sep=',').dropna(axis=1)
     subtypes = subtypes["subtypes"].to_list()
-    
+
     print("## Perform experimental studies using {0} data...".format(expression_file_name))
+    print("\t >> Sample size: {0}; Feature size: {1}; Subtype size: {2}".format(X.shape[0], X.shape[1],
+                                                                                len(np.unique(subtypes))))
     current_progress = 1
     total_progress = 10
 
@@ -107,26 +138,22 @@ def train(num_jobs: int = 4):
     df_uhet_r = estimator.fit_predict(X=X, y=y)
     current_progress += 1
 
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "CLEANSE (zscore)"), end="\r")
-    estimator = CLEANSE(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=100, subsampling_size=None,
-                        significant_p=0.05, partition_by_anova=False, num_components=10, num_subclusters=10,
+    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
+                                                            "CLEANSE (zscore)"), end="\r")
+    estimator = CLEANSE(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
+                        significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                        calculate_hstatistic=calculate_hstatistic, num_components=10, num_subclusters=10,
                         binary_clustering=True, calculate_pval=False, num_rounds=50, num_jobs=num_jobs)
     df_cleanse_z = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     current_progress += 1
 
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "CLEANSE (robust)"))
-    estimator = CLEANSE(normalize="robust", q=0.75, iqr_range=(25, 75), num_subsamples=100, subsampling_size=None,
-                        significant_p=0.05, partition_by_anova=False, num_components=10, num_subclusters=10,
+    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
+                                                            "CLEANSE (robust)"))
+    estimator = CLEANSE(normalize="robust", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
+                        significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                        calculate_hstatistic=calculate_hstatistic, num_components=10, num_subclusters=10,
                         binary_clustering=True, calculate_pval=False, num_rounds=50, num_jobs=num_jobs)
     df_cleanse_r = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    # df_cleanse = estimator.fit_predict(X=X, y=None, control_class=0, case_class=1)
-    # df_cleanse = estimator.fit_predict(X=X, y=None, partition_data=True, control_class=0, case_class=1)
-    # current_progress += 1
-
-    methods_df = dict({"COPA": df_copa, "OS": df_os, "ORT": df_ort, "MOST": df_most,
-                       "LSOSS": df_lsoss, "DIDS": df_dids, "UHet_zscore": df_uhet_z,
-                       "UHet_robust": df_uhet_r, "CLEANSE_zscore": df_cleanse_z,
-                       "CLEANSE_robust": df_cleanse_r})
 
     # print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "HCLEANSE"))
     # estimator = HCLEANSE(normalize="robust", q=0.75, iqr_range=(25, 75), num_subsamples=10, subsampling_size=None,
@@ -138,6 +165,10 @@ def train(num_jobs: int = 4):
     #                                    return_clusters=False)
     # df_hcleanse = df_hcleanse[0]
 
+    methods_df = dict({"COPA": df_copa, "OS": df_os, "ORT": df_ort, "MOST": df_most, "LSOSS": df_lsoss,
+                       "DIDS": df_dids, "UHet_zscore": df_uhet_z, "UHet_robust": df_uhet_r,
+                       "CLEANSE_zscore": df_cleanse_z, "CLEANSE_robust": df_cleanse_r})
+
     # methods_df = dict({"COPA": df_copa, "OS": df_os, "ORT": df_ort, "MOST": df_most,
     #                    "LSOSS": df_lsoss, "DIDS": df_dids, "UHet_zscore": df_uhet_z,
     #                    "UHet_robust": df_uhet_r, "CLEANSE": df_cleanse, "HCLEANSE": df_hcleanse})
@@ -145,13 +176,13 @@ def train(num_jobs: int = 4):
     if sort_by_pvalue:
         print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))
         for stat_name, df in methods_df.items():
-            temp = significant_features(X=df, features_name=features_name, pvalue=pvalue,
+            temp = significant_features(X=df, features_name=feature_names, pvalue=pvalue,
                                         X_map=None, map_genes=False, ttest=False)
             methods_df[stat_name] = temp
     else:
         print("## Sort features by the score statistic...".format())
         for stat_name, df in methods_df.items():
-            temp = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False)
+            temp = sort_features(X=df, features_name=feature_names, X_map=None, map_genes=False, ttest=False)
             methods_df[stat_name] = temp
     del df_copa, df_os, df_ort, df_most, df_lsoss, df_dids, df_uhet_z, df_uhet_r, df_cleanse_r
 
@@ -160,10 +191,10 @@ def train(num_jobs: int = 4):
     temp = np.sum(top_features_true)
     if selected_regulated_features > temp:
         selected_regulated_features = temp
-    print("\t\t>> Number of up/down regulated features: {0}".format(selected_regulated_features))
+    print("\t >> Number of up/down regulated features: {0}".format(selected_regulated_features))
     list_scores = list()
     for stat_name, df in methods_df.items():
-        temp = [idx for idx, feature in enumerate(features_name)
+        temp = [idx for idx, feature in enumerate(feature_names)
                 if feature in df['features'][:selected_regulated_features].tolist()]
         top_features_pred = np.zeros((len(top_features_true)))
         top_features_pred[temp] = 1
@@ -187,10 +218,10 @@ def train(num_jobs: int = 4):
             print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / total_progress) * 100,
                                                                     stat_name), end="\r")
         if plot_topKfeatures:
-            temp = [idx for idx, feature in enumerate(features_name) if
+            temp = [idx for idx, feature in enumerate(feature_names) if
                     feature in df['features'].tolist()[:topKfeatures]]
         else:
-            temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
+            temp = [idx for idx, feature in enumerate(feature_names) if feature in df['features'].tolist()]
         num_features = len(temp)
         plot_umap(X=X[:, temp], y=subtypes, num_features=num_features, standardize=True, num_jobs=num_jobs,
                   suptitle=stat_name.upper(), file_name=expression_file_name + "_" + stat_name.lower(),
@@ -204,4 +235,4 @@ if __name__ == "__main__":
     # for mac and linux(here, os.name is 'posix')
     else:
         _ = os.system('clear')
-    train(num_jobs=8)
+    train(num_jobs=6)

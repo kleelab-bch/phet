@@ -1,4 +1,4 @@
-# Segerstolpe, Å., Palasantza, A., Eliasson, P., Andersson, E.M., Andréasson, A.C., Sun, X., Picelli, S., Sabirsh, A., Clausen, M., Bjursell, M.K. and Smith, D.M., 2016. Single-cell transcriptome profiling of human pancreatic islets in health and type 2 diabetes. Cell metabolism, 24(4), pp.593-607.
+# Segerstolpe, ï¿½., Palasantza, A., Eliasson, P., Andersson, E.M., Andrï¿½asson, A.C., Sun, X., Picelli, S., Sabirsh, A., Clausen, M., Bjursell, M.K. and Smith, D.M., 2016. Single-cell transcriptome profiling of human pancreatic islets in health and type 2 diabetes. Cell metabolism, 24(4), pp.593-607.
 
 # Differential expression analysis with limma
 require(limma)
@@ -10,22 +10,22 @@ source("R:/GeneAnalysis/uhet/src/utility/create_sce.R")
 
 ### DATA
 gset <- read.table(file.path(working_dir, paste(file_name, ".txt", sep = "")), stringsAsFactors = F)
-gset <- gset[!duplicated(gset[,1]), ]
-rownames(gset) <- gset[,1]
-gset <- gset[,3:ncol(gset)]
-gset <- gset[,3515:7028]
+gset <- gset[!duplicated(gset[, 1]),]
+rownames(gset) <- gset[, 1]
+gset <- gset[, 3:ncol(gset)]
+gset <- gset[, 3515:7028]
 labs <- read.table(file.path(working_dir, paste(file_name, "_labels.txt", sep = "")), stringsAsFactors = F, header = F)
 labs <- as.character(labs)
 colnames(gset) <- labs
-gset <- gset[,order(colnames(gset))]
+gset <- gset[, order(colnames(gset))]
 # remove eGFP row
-gset <- gset[1:(nrow(gset) - 1), ]
+gset <- gset[1:(nrow(gset) - 1),]
 
 ### ANNOTATIONS
 classes <- read.table(file.path(working_dir, "segerstolpe_annotation.txt"), stringsAsFactors = F, header = T, sep = "\t")
 rownames(classes) <- classes$Extract.Name
-classes <- classes[order(rownames(classes)), ]
-classes <- classes[,7:11]
+classes <- classes[order(rownames(classes)),]
+classes <- classes[, 7:11]
 colnames(classes) <- c("cell_quality", "cell_type1", "disease", "sex", "age")
 # format cell type names
 classes$cell_type1 <- unlist(lapply(strsplit(classes$cell_type1, " cell"), "[[", 1))
