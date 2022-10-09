@@ -6,6 +6,7 @@ import pandas as pd
 import seaborn as sns
 from sklearn.preprocessing import LabelBinarizer
 
+from model.cleanse import CLEANSE
 from model.copa import COPA
 from model.dids import DIDS
 from model.lsoss import LSOSS
@@ -19,11 +20,12 @@ from utility.utils import sort_features, comparative_score
 sns.set_theme()
 
 
-def train():
+def train(num_jobs: int = 4):
     # Arguments
-    top_k_features = 100
     direction = "both"
-    num_batches = 100
+    topKfeatures = 100
+    calculate_hstatistic = False
+    num_batches = 1000
     subsample_size = 10
 
     # Load expression data
@@ -37,12 +39,15 @@ def train():
 
     # Load top k features that are differentially expressed
     top_features_true = pd.read_csv(os.path.join(DATASET_PATH, "her2_topfeatures.csv"), sep=',')
-    top_features_true = top_features_true["ID"].tolist()[:top_k_features]
+    top_features_true = top_features_true["ID"].tolist()[:topKfeatures]
     top_features_true = lb.transform(top_features_true).sum(axis=0).astype(int)
 
     print("## Perform simulation studies using HER2 data...")
-    methods = ["COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "U-Het (zscore)", "U-Het (robust)"]
+    print("\t >> Control size: {0}; Case size: {1} Feature size: {2}".format(X_control.shape[0], X_case.shape[1],
+                                                                             len(features_name)))
     list_scores = list()
+    methods = ["COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "UHet_zscore", "U-Het_robust", "CLEANSE_zscore",
+               "CLEANSE_robust"]
     current_progress = 0
     total_progress = num_batches * len(methods)
     for batch_idx in range(num_batches):
@@ -57,7 +62,7 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"][:top_k_features].to_list()
+        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
         top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
         temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
         list_scores.append(temp)
@@ -70,7 +75,7 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"][:top_k_features].to_list()
+        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
         top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
         temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
         list_scores.append(temp)
@@ -82,7 +87,7 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"][:top_k_features].to_list()
+        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
         top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
         temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
         list_scores.append(temp)
@@ -94,7 +99,7 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"][:top_k_features].to_list()
+        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
         top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
         temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
         list_scores.append(temp)
@@ -106,7 +111,7 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"][:top_k_features].to_list()
+        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
         top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
         temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
         list_scores.append(temp)
@@ -118,7 +123,7 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"][:top_k_features].to_list()
+        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
         top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
         temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
         list_scores.append(temp)
@@ -130,23 +135,51 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"][:top_k_features].to_list()
+        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
         top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
         temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
         list_scores.append(temp)
 
         current_progress += 1
-        if total_progress == current_progress:
-            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                    "U-Het (robust)"))
-        else:
-            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                    "U-Het (robust)"), end="\r")
+        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
+                                                                "U-Het (robust)"), end="\r")
         estimator = UHeT(normalize="robust", q=0.75, iqr_range=(25, 75), calculate_pval=False)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"][:top_k_features].to_list()
+        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
+        top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
+        temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
+        list_scores.append(temp)
+
+        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
+                                                                "CLEANSE (zscore)"), end="\r")
+        estimator = CLEANSE(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
+                            significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                            calculate_hstatistic=calculate_hstatistic, num_components=10, num_subclusters=10,
+                            binary_clustering=True, calculate_pval=False, num_rounds=50, num_jobs=num_jobs)
+        top_features_pred = estimator.fit_predict(X=X, y=y)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
+        top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
+        temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
+        list_scores.append(temp)
+
+        if total_progress == current_progress:
+            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
+                                                                    "CLEANSE (robust)"))
+        else:
+            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
+                                                                    "CLEANSE (robust)"), end="\r")
+        estimator = CLEANSE(normalize="robust", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
+                            significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                            calculate_hstatistic=calculate_hstatistic, num_components=10, num_subclusters=10,
+                            binary_clustering=True, calculate_pval=False, num_rounds=50, num_jobs=num_jobs)
+        top_features_pred = estimator.fit_predict(X=X, y=y)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
         top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
         temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
         list_scores.append(temp)
@@ -187,4 +220,4 @@ if __name__ == "__main__":
     # for mac and linux(here, os.name is 'posix')
     else:
         _ = os.system('clear')
-    train()
+    train(num_jobs=10)

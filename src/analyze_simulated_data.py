@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+from model.cleanse import CLEANSE
 from model.copa import COPA
 from model.dids import DIDS
 from model.lsoss import LSOSS
@@ -13,8 +14,9 @@ from model.oss import OutlierSumStatistic
 from model.uhet import UHeT
 from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.plot_utils import plot_umap, plot_barplot
+from utility.utils import comparative_score
 from utility.utils import outliers_analysis
-from utility.utils import sort_features, comparative_score
+from utility.utils import sort_features, significant_features
 
 sns.set_theme()
 
@@ -92,22 +94,27 @@ def train(num_jobs: int = 4):
     build_simulation = False
 
     # Arguments
-    top_k_features = 100
     direction = "both"
+    topKfeatures = 100
+    pvalue = 0.01
+    calculate_hstatistic = False
+    sort_by_pvalue = True
+    plot_topKfeatures = False
 
     # Datasets:
     # 1. simulated_normal, simulated_normal_minority, simulated_normal_minority_features, 
     # simulated_normal_mixed, simulated_normal_mixed_features
     # 2. simulated_weak, simulated_weak_minority, simulated_weak_minority_features, 
     # simulated_weak_mixed, simulated_weak_mixed_features
-    regulated_features_file = "simulated_normal_features.csv"
-    file_name = "simulated_normal"
+    file_name = "simulated_weak_mixed_features"
+    regulated_features_file = "simulated_weak_features.csv"
 
     # Load expression data
     X = pd.read_csv(os.path.join(DATASET_PATH, file_name + ".csv"), sep=',')
     y = X["class"].to_numpy()
     features_name = X.drop(["class"], axis=1).columns.to_list()
     X = X.drop(["class"], axis=1).to_numpy()
+
     # Load up/down regulated features
     top_features_true = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file), sep=',')
     top_features_true = top_features_true.to_numpy().squeeze()
@@ -122,15 +129,15 @@ def train(num_jobs: int = 4):
                        save_path=DATASET_PATH)
 
     print("## Perform simulation studies using {0} data...".format(file_name))
-    methods_name = ["COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "UHet_zscore", "UHet_robust"]
+    print(
+        "\t >> Sample size: {0}; Feature size: {1}; Class size: {2}".format(X.shape[0], X.shape[1], len(np.unique(y))))
     current_progress = 1
-    total_progress = len(methods_name)
+    total_progress = 10
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "COPA"), end="\r")
     estimator = COPA(q=0.75, direction=direction, calculate_pval=False)
     df_copa = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    df_copa = sort_features(X=df_copa, features_name=features_name, X_map=None, map_genes=False)
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
@@ -138,7 +145,6 @@ def train(num_jobs: int = 4):
     estimator = OutlierSumStatistic(q=0.75, iqr_range=(25, 75), two_sided_test=False, direction=direction,
                                     calculate_pval=False)
     df_os = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    df_os = sort_features(X=df_os, features_name=features_name, X_map=None, map_genes=False)
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
@@ -146,55 +152,79 @@ def train(num_jobs: int = 4):
     estimator = OutlierRobustStatistic(q=0.75, iqr_range=(25, 75), direction=direction,
                                        calculate_pval=False)
     df_ort = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    df_ort = sort_features(X=df_ort, features_name=features_name, X_map=False, map_genes=False)
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "MOST"), end="\r")
     estimator = MOST(direction=direction, calculate_pval=False)
     df_most = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    df_most = sort_features(X=df_most, features_name=features_name, X_map=False, map_genes=False)
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "LSOSS"), end="\r")
     estimator = LSOSS(direction=direction, calculate_pval=False)
     df_lsoss = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    df_lsoss = sort_features(X=df_lsoss, features_name=features_name, X_map=False, map_genes=False)
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "DIDS"), end="\r")
     estimator = DIDS(score_function="quad", direction=direction, calculate_pval=False)
     df_dids = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    df_dids = sort_features(X=df_dids, features_name=features_name, X_map=False, map_genes=False)
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "U-Het (zscore)"), end="\r")
     estimator = UHeT(normalize="zscore", q=0.75, iqr_range=(25, 75), calculate_pval=False)
     df_uhet_z = estimator.fit_predict(X=X, y=y)
-    df_uhet_z = sort_features(X=df_uhet_z, features_name=features_name, X_map=False, map_genes=False)
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            "U-Het (robust)"))
+                                                            "U-Het (robust)"), end="\r")
     estimator = UHeT(normalize="robust", q=0.75, iqr_range=(25, 75), calculate_pval=False)
     df_uhet_r = estimator.fit_predict(X=X, y=y)
-    df_uhet_r = sort_features(X=df_uhet_r, features_name=features_name, X_map=False, map_genes=False)
 
-    methods_df = [("COPA", df_copa), ("OS", df_os), ("ORT", df_ort), ("MOST", df_most),
-                  ("LSOSS", df_lsoss), ("DIDS", df_dids), ("U-Het (zscore)", df_uhet_z),
-                  ("U-Het (robust)", df_uhet_r)]
+    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
+                                                            "CLEANSE (zscore)"), end="\r")
+    estimator = CLEANSE(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
+                        significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                        calculate_hstatistic=calculate_hstatistic, num_components=10, num_subclusters=10,
+                        binary_clustering=True, calculate_pval=False, num_rounds=50, num_jobs=num_jobs)
+    df_cleanse_z = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+    current_progress += 1
+
+    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
+                                                            "CLEANSE (robust)"))
+    estimator = CLEANSE(normalize="robust", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
+                        significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                        calculate_hstatistic=calculate_hstatistic, num_components=10, num_subclusters=10,
+                        binary_clustering=True, calculate_pval=False, num_rounds=50, num_jobs=num_jobs)
+    df_cleanse_r = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+
+    methods_df = dict({"COPA": df_copa, "OS": df_os, "ORT": df_ort, "MOST": df_most, "LSOSS": df_lsoss,
+                       "DIDS": df_dids, "UHet_zscore": df_uhet_z, "UHet_robust": df_uhet_r,
+                       "CLEANSE_zscore": df_cleanse_z, "CLEANSE_robust": df_cleanse_r})
+
+    if sort_by_pvalue:
+        df_uhet_r = sort_features(X=df_uhet_r, features_name=features_name, X_map=False, map_genes=False)
+        print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))
+        for stat_name, df in methods_df.items():
+            temp = significant_features(X=df, features_name=features_name, pvalue=pvalue,
+                                        X_map=None, map_genes=False, ttest=False)
+            methods_df[stat_name] = temp
+    else:
+        print("## Sort features by the score statistic...".format())
+        for stat_name, df in methods_df.items():
+            temp = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False)
+            methods_df[stat_name] = temp
 
     print("## Scoring results using known regulated features...")
-    selected_regulated_features = top_k_features
-    temp = top_features_true.sum()
+    selected_regulated_features = topKfeatures
+    temp = np.sum(top_features_true)
     if selected_regulated_features > temp:
         selected_regulated_features = temp
-    print("\t\t>> Number of up/down regulated features: {0}".format(selected_regulated_features))
+    print("\t >> Number of up/down regulated features: {0}".format(selected_regulated_features))
     list_scores = list()
-    for stat_name, df in methods_df:
+    for stat_name, df in methods_df.items():
         temp = [idx for idx, feature in enumerate(features_name)
                 if feature in df['features'][:selected_regulated_features].tolist()]
         top_features_pred = np.zeros((len(top_features_true)))
@@ -202,28 +232,31 @@ def train(num_jobs: int = 4):
         score = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
         list_scores.append(score)
 
-    print("## Plot barplot using top k features...")
-    plot_barplot(X=list_scores, methods_name=methods_name, file_name=file_name,
+    print("## Plot barplot using the top {0} features...".format(topKfeatures))
+    plot_barplot(X=list_scores, methods_name=list(methods_df.keys()), file_name=file_name,
                  save_path=RESULT_PATH)
 
-    print("## Plot results using top k features...")
-    for idx, item in enumerate(methods_df):
+    if plot_topKfeatures:
+        print("## Plot results using the top {0} features...".format(topKfeatures))
+    else:
+        print("## Plot results using the top features for each method...")
+    for method_idx, item in enumerate(methods_df.items()):
         stat_name, df = item
-        if total_progress == idx + 1:
-            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((idx + 1) / total_progress) * 100,
+        if total_progress == method_idx + 1:
+            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / total_progress) * 100,
                                                                     stat_name))
         else:
-            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((idx + 1) / total_progress) * 100,
+            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / total_progress) * 100,
                                                                     stat_name), end="\r")
-        temp = [idx for idx, feature in enumerate(features_name)
-                if feature in df['features'][:top_k_features].tolist()]
-        plot_umap(X=X[:, temp], y=y, num_features=top_k_features, standardize=True, num_jobs=num_jobs,
-                  suptitle=stat_name.upper(), file_name=file_name + "_" + methods_name[idx].lower(),
+        if plot_topKfeatures:
+            temp = [idx for idx, feature in enumerate(features_name) if
+                    feature in df['features'].tolist()[:topKfeatures]]
+        else:
+            temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
+        num_features = len(temp)
+        plot_umap(X=X[:, temp], y=y, num_features=num_features, standardize=True, num_jobs=num_jobs,
+                  suptitle=stat_name.upper(), file_name=file_name + "_" + stat_name.lower(),
                   save_path=RESULT_PATH)
-        # plot_clusters(X=X[:, temp], y=y, features_name=features_name[:top_k_features], num_features=top_k_features,
-        #               standardize=True, cluster_type="spectral", num_clusters=0, num_neighbors=15, min_dist=0,
-        #               heatmap=True, proportion=True, show_umap=True, num_jobs=num_jobs, suptitle=stat_name.upper(),
-        #               file_name=stat_name.lower(), save_path=RESULT_PATH)
 
 
 if __name__ == "__main__":
@@ -233,4 +266,4 @@ if __name__ == "__main__":
     # for mac and linux(here, os.name is 'posix')
     else:
         _ = os.system('clear')
-    train(num_jobs=4)
+    train(num_jobs=10)
