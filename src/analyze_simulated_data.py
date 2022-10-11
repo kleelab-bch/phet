@@ -95,11 +95,13 @@ def train(num_jobs: int = 4):
 
     # Arguments
     direction = "both"
-    topKfeatures = 100
     pvalue = 0.01
     calculate_hstatistic = False
     sort_by_pvalue = True
+    topKfeatures = 100
     plot_topKfeatures = False
+    if not sort_by_pvalue:
+        plot_topKfeatures = True
 
     # Datasets:
     # 1. simulated_normal, simulated_normal_minority, simulated_normal_minority_features, 
@@ -132,7 +134,7 @@ def train(num_jobs: int = 4):
     print(
         "\t >> Sample size: {0}; Feature size: {1}; Class size: {2}".format(X.shape[0], X.shape[1], len(np.unique(y))))
     current_progress = 1
-    total_progress = 10
+    total_progress = 11
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "COPA"), end="\r")
@@ -173,6 +175,16 @@ def train(num_jobs: int = 4):
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
+                                                            "DECO"), end="\r")
+    df_deco = np.zeros((len(features_name), 1))
+    temp = pd.read_csv(os.path.join(DATASET_PATH, file_name + "_deco.csv"), sep=',')
+    for idx, feature_idx in enumerate(temp["ID"].to_list()):
+        df_deco[feature_idx] = temp.iloc[idx, 1]
+    np.nan_to_num(df_deco, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+    del temp
+    current_progress += 1
+
+    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "U-Het (zscore)"), end="\r")
     estimator = UHeT(normalize="zscore", q=0.75, iqr_range=(25, 75), calculate_pval=False)
     df_uhet_z = estimator.fit_predict(X=X, y=y)
@@ -201,7 +213,7 @@ def train(num_jobs: int = 4):
     df_cleanse_r = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
 
     methods_df = dict({"COPA": df_copa, "OS": df_os, "ORT": df_ort, "MOST": df_most, "LSOSS": df_lsoss,
-                       "DIDS": df_dids, "UHet_zscore": df_uhet_z, "UHet_robust": df_uhet_r,
+                       "DIDS": df_dids, "DECO": df_deco, "UHet_zscore": df_uhet_z, "UHet_robust": df_uhet_r,
                        "CLEANSE_zscore": df_cleanse_z, "CLEANSE_robust": df_cleanse_r})
 
     if sort_by_pvalue:

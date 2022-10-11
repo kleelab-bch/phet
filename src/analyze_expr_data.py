@@ -23,12 +23,14 @@ sns.set_theme()
 def train(num_jobs: int = 4):
     # Arguments
     direction = "both"
-    topKfeatures = 100
     minimum_samples = 5
     pvalue = 0.01
     calculate_hstatistic = False
-    sort_by_pvalue = True
+    sort_by_pvalue = False
+    topKfeatures = 100
     plot_topKfeatures = False
+    if not sort_by_pvalue:
+        plot_topKfeatures = True
 
     # 1. Micro-array datasets: allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89,
     # braintumor, cmlgse2535, colon, dlbcl, ewsgse967, gastricgse2685, glioblastoma, leukemia_golub, 
@@ -36,7 +38,7 @@ def train(num_jobs: int = 4):
     # myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
     # 2. scRNA datasets: camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
     # klein
-    file_name = "segerstolpe"
+    file_name = "mll"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
@@ -73,7 +75,7 @@ def train(num_jobs: int = 4):
     top_features_true = top_features_true.loc[temp]
     temp = top_features_true[top_features_true["adj.P.Val"] <= pvalue]
     if temp.shape[0] < topKfeatures:
-        temp = top_features_true.loc[:topKfeatures - 1]
+        temp = top_features_true[:topKfeatures - 1]
         if sort_by_pvalue and temp.shape[0] == 0:
             plot_topKfeatures = True
     top_features_true = [str(feature_idx) for feature_idx in temp.index.to_list()[:topKfeatures]]
@@ -86,7 +88,7 @@ def train(num_jobs: int = 4):
     print("\t >> Sample size: {0}; Feature size: {1}; Subtype size: {2}".format(X.shape[0], X.shape[1],
                                                                                 len(np.unique(subtypes))))
     current_progress = 1
-    total_progress = 10
+    total_progress = 11
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "COPA"), end="\r")
@@ -124,6 +126,16 @@ def train(num_jobs: int = 4):
                                                             "DIDS"), end="\r")
     estimator = DIDS(score_function="quad", direction=direction, calculate_pval=False)
     df_dids = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+    current_progress += 1
+
+    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
+                                                            "DECO"), end="\r")
+    df_deco = np.zeros((len(features_name), 1))
+    temp = pd.read_csv(os.path.join(DATASET_PATH, file_name + "_deco.csv"), sep=',')
+    for idx, feature_idx in enumerate(temp["ID"].to_list()):
+        df_deco[feature_idx] = temp.iloc[idx, 1]
+    np.nan_to_num(df_deco, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+    del temp
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
@@ -169,9 +181,9 @@ def train(num_jobs: int = 4):
                        "DIDS": df_dids, "UHet_zscore": df_uhet_z, "UHet_robust": df_uhet_r,
                        "CLEANSE_zscore": df_cleanse_z, "CLEANSE_robust": df_cleanse_r})
 
-    # methods_df = dict({"COPA": df_copa, "OS": df_os, "ORT": df_ort, "MOST": df_most,
-    #                    "LSOSS": df_lsoss, "DIDS": df_dids, "UHet_zscore": df_uhet_z,
-    #                    "UHet_robust": df_uhet_r, "CLEANSE": df_cleanse, "HCLEANSE": df_hcleanse})
+    methods_df = dict({"COPA": df_copa, "OS": df_os, "ORT": df_ort, "MOST": df_most, "LSOSS": df_lsoss,
+                       "DIDS": df_dids, "DECO": df_deco, "UHet_zscore": df_uhet_z, "UHet_robust": df_uhet_r,
+                       "CLEANSE_zscore": df_cleanse_z, "CLEANSE_robust": df_cleanse_r})
 
     if sort_by_pvalue:
         print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))

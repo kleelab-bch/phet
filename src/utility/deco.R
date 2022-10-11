@@ -1,37 +1,69 @@
 require(deco)
+require(dplyr)
 
-data(ALCLdata)
+working_dir <- file.path("R:/GeneAnalysis/data")
 
-## Classes vector to run a supervised analysis to compare both classes.
-classes.ALCL <- colData(ALCL)[, "Alk.positivity"]
-names(classes.ALCL) <- colnames(ALCL)
+# Simulated Datasets:
+# 1. simulated_normal, simulated_normal_minority, simulated_normal_minority_features,
+# simulated_normal_mixed, simulated_normal_mixed_features
+# 2. simulated_weak, simulated_weak_minority, simulated_weak_minority_features,
+# simulated_weak_mixed, simulated_weak_mixed_features
+
+# Micro-array datasets:
+# allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89, braintumor,
+# cmlgse2535, colon, dlbcl, ewsgse967, gastricgse2685, glioblastoma, leukemia_golub,
+# ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, mll, myelodysplastic_mds1,
+# myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
+
+# scRNA datasets: 
+# camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
+
+file_name <- "mll"
+iterations <- 1000
+q.val <- 0.01
+
+# load data
+gset <- read.csv(file.path(working_dir, paste(file_name, "_matrix.csv", sep = "")), header = T)
+classes <- gset$class
+featureNames <- colnames(gset)[!(names(gset) %in% c("class"))]
+featureIDs <- seq(0, length(featureNames) - 1)
+gset <- t(gset[, featureNames])
+names(classes) <- colnames(as.data.frame(gset))
+gset <- data.matrix(gset)
+colnames(gset) <- names(classes)
+rownames(gset) <- featureIDs
+gset <- SummarizedExperiment(assays = list(counts = gset))
+
 
 #######################################################################
 # RUNNING SUBSAMPLING OF DATA: BINARY design (two classes of samples) #
 #######################################################################
 
-sub.ma.3r.1K <- decoRDA(data = assay(ALCL), classes = classes.ALCL, q.val = 0.01,
-                        rm.xy = TRUE, r = NULL, control = "pos", annot = FALSE,
-                        id.type = "ENSEMBL", iterations = 5, pack.db = "Homo.sapiens")
-
+subSampling <- decoRDA(data = assay(gset), classes = classes, q.val = q.val,
+                       rm.xy = FALSE, r = NULL, control = "0", annot = FALSE,
+                       iterations = iterations, bpparam = MulticoreParam())
+StatFeature <- subSampling[["subStatFeature"]]
+StatFeature <- StatFeature[c("ID", "Standard.Chi.Square")]
+StatFeature <- StatFeature %>% slice(match(featureIDs, ID))
+write.table(as.data.frame(StatFeature),
+            file = file.path(working_dir, paste(file_name, "_deco.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE
+)
+remove(StatFeature, gset)
 
 #########################################################################################
 # RUNNING NSCA STEP: Looking for subclasses within a category/class of samples compared #
 #########################################################################################
-deco.results.ma <- decoNSCA(sub = sub.ma.3r.1K, v = 80, method = "ward.D", bpparam = bpparam,
-                            k.control = 3, k.case = 3, samp.perc = 0.05, rep.thr = 10)
 
-
-# Phenotypical data from TCGA RNAseq samples.
-colData(ALCL)
+# subClasses <- decoNSCA(sub = subSampling, v = 80, method = "ward.D", 
+#                        bpparam = MulticoreParam(), k.control = 2, k.case = 2, 
+#                        samp.perc = 0.05, rep.thr = 3)
 
 ########################################################
 # PDF report with feature-sample patterns or subgroups #
 ########################################################
-## Generate PDF report with relevant information and several plots.
 
-## Binary example (ALK+ vs ALK-) -not run as example-
-decoReport(deco.results.ma, sub.ma.3r.1K,
-           pdf.file = "report_example_microarray_binary.pdf",
-           info.sample = as.data.frame(colData(ALCL)[, 8:10]),
-           cex.names = 0.3, print.annot = TRUE)
+# working_dir <- file.path("R:/GeneAnalysis/result")
+# path = file.path(working_dir, paste(file_name, "_deco.pdf", sep = ""))
+# decoReport(subClasses, subSampling, pdf.file = path, cex.names = 0.3,
+#            print.annot = TRUE)
