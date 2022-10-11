@@ -66,7 +66,7 @@ def train(num_jobs: int = 4):
     feature_ids = np.where(feature_sums >= minimum_samples)[0]
     features_name = np.array(features_name)[feature_ids].tolist()
     X = X[:, feature_ids]
-    del temp, examples_ids, feature_ids, feature_sums
+    del temp, examples_ids, feature_sums
 
     # Load up/down regulated features
     top_features_true = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file + ".csv"), sep=',',
@@ -133,6 +133,8 @@ def train(num_jobs: int = 4):
     df_deco = np.zeros((num_features, 1))
     temp = pd.read_csv(os.path.join(DATASET_PATH, file_name + "_deco.csv"), sep=',')
     for idx, feature_idx in enumerate(temp["ID"].to_list()):
+        if not feature_idx in feature_ids:
+            continue
         df_deco[feature_idx] = temp.iloc[idx, 1]
     np.nan_to_num(df_deco, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
     del temp
