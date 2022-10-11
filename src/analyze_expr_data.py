@@ -37,8 +37,7 @@ def train(num_jobs: int = 4):
     # ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, mll, myelodysplastic_mds1, 
     # myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
     # 2. scRNA datasets: camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
-    # klein
-    file_name = "mll"
+    file_name = "leukemia_golub"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
@@ -48,6 +47,7 @@ def train(num_jobs: int = 4):
     y = X["class"].to_numpy()
     features_name = X.drop(["class"], axis=1).columns.to_list()
     X = X.drop(["class"], axis=1).to_numpy()
+    np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
     # Filter data based on counts (CPM)
     temp = np.absolute(X)
@@ -130,7 +130,7 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "DECO"), end="\r")
-    df_deco = np.zeros((len(features_name), 1))
+    df_deco = np.zeros((num_features, 1))
     temp = pd.read_csv(os.path.join(DATASET_PATH, file_name + "_deco.csv"), sep=',')
     for idx, feature_idx in enumerate(temp["ID"].to_list()):
         df_deco[feature_idx] = temp.iloc[idx, 1]

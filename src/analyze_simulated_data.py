@@ -176,7 +176,7 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "DECO"), end="\r")
-    df_deco = np.zeros((len(features_name), 1))
+    df_deco = np.zeros((num_features, 1))
     temp = pd.read_csv(os.path.join(DATASET_PATH, file_name + "_deco.csv"), sep=',')
     for idx, feature_idx in enumerate(temp["ID"].to_list()):
         df_deco[feature_idx] = temp.iloc[idx, 1]

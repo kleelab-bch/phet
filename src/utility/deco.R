@@ -15,22 +15,23 @@ working_dir <- file.path("R:/GeneAnalysis/data")
 # ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, mll, myelodysplastic_mds1,
 # myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
 
-# scRNA datasets: 
+# scRNA datasets:
 # camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
 
-file_name <- "mll"
+file_name <- "leukemia_golub"
 iterations <- 1000
 q.val <- 0.01
 
 # load data
 gset <- read.csv(file.path(working_dir, paste(file_name, "_matrix.csv", sep = "")), header = T)
 classes <- gset$class
-featureNames <- colnames(gset)[!(names(gset) %in% c("class"))]
-featureIDs <- seq(0, length(featureNames) - 1)
-gset <- t(gset[, featureNames])
-names(classes) <- colnames(as.data.frame(gset))
+gset <- gset[!(names(gset) %in% c("class"))]
+gset <- as.data.frame(t(gset))
+names(classes) <- colnames(gset)
 gset <- data.matrix(gset)
+gset <- gset[!rowSums(!is.finite(gset)),]
 colnames(gset) <- names(classes)
+featureIDs <- seq(0, nrow(gset) - 1)
 rownames(gset) <- featureIDs
 gset <- SummarizedExperiment(assays = list(counts = gset))
 
@@ -47,8 +48,7 @@ StatFeature <- StatFeature[c("ID", "Standard.Chi.Square")]
 StatFeature <- StatFeature %>% slice(match(featureIDs, ID))
 write.table(as.data.frame(StatFeature),
             file = file.path(working_dir, paste(file_name, "_deco.csv", sep = "")),
-            sep = ",", quote = FALSE, row.names = FALSE
-)
+            sep = ",", quote = FALSE, row.names = FALSE)
 remove(StatFeature, gset)
 
 #########################################################################################
