@@ -18,7 +18,7 @@ working_dir <- file.path("R:/GeneAnalysis/data")
 # scRNA datasets:
 # camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
 
-file_name <- "leukemia_golub"
+file_name <- "lake"
 iterations <- 1000
 q.val <- 0.01
 
@@ -45,7 +45,7 @@ subSampling <- decoRDA(data = assay(gset), classes = classes, q.val = q.val,
                        iterations = iterations, bpparam = MulticoreParam())
 StatFeature <- subSampling[["subStatFeature"]]
 StatFeature <- StatFeature[c("ID", "Standard.Chi.Square")]
-StatFeature <- StatFeature %>% slice(match(featureIDs, ID))
+colnames(StatFeature) <- c("features", "score")
 write.table(as.data.frame(StatFeature),
             file = file.path(working_dir, paste(file_name, "_deco.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)

@@ -176,11 +176,9 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "DECO"), end="\r")
-    df_deco = np.zeros((num_features, 1))
     temp = pd.read_csv(os.path.join(DATASET_PATH, file_name + "_deco.csv"), sep=',')
-    for idx, feature_idx in enumerate(temp["ID"].to_list()):
-        df_deco[feature_idx] = temp.iloc[idx, 1]
-    np.nan_to_num(df_deco, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+    df_deco = pd.DataFrame([(features_name[int(item[1][0])], item[1][1])
+                            for item in temp.iterrows()], columns=["features", "score"])
     del temp
     current_progress += 1
 
@@ -194,6 +192,7 @@ def train(num_jobs: int = 4):
                                                             "U-Het (robust)"), end="\r")
     estimator = UHeT(normalize="robust", q=0.75, iqr_range=(25, 75), calculate_pval=False)
     df_uhet_r = estimator.fit_predict(X=X, y=y)
+    current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "CLEANSE (zscore)"), end="\r")
@@ -217,17 +216,20 @@ def train(num_jobs: int = 4):
                        "CLEANSE_zscore": df_cleanse_z, "CLEANSE_robust": df_cleanse_r})
 
     if sort_by_pvalue:
-        df_uhet_r = sort_features(X=df_uhet_r, features_name=features_name, X_map=False, map_genes=False)
         print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))
-        for stat_name, df in methods_df.items():
-            temp = significant_features(X=df, features_name=features_name, pvalue=pvalue,
-                                        X_map=None, map_genes=False, ttest=False)
-            methods_df[stat_name] = temp
     else:
         print("## Sort features by the score statistic...".format())
-        for stat_name, df in methods_df.items():
-            temp = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False)
-            methods_df[stat_name] = temp
+    for stat_name, df in methods_df.items():
+        if stat_name == "DECO":
+            continue
+        if sort_by_pvalue:
+            temp = significant_features(X=df, features_name=features_name, pvalue=pvalue,
+                                            X_map=None, map_genes=False, ttest=False)
+        else:
+            temp = sort_features(X=df, features_name=features_name, X_map=None,
+                                 map_genes=False, ttest=False)
+        methods_df[stat_name] = temp
+    del df_copa, df_os, df_ort, df_most, df_lsoss, df_dids, df_uhet_z, df_uhet_r, df_cleanse_r
 
     print("## Scoring results using known regulated features...")
     selected_regulated_features = topKfeatures

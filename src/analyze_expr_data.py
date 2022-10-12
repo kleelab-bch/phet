@@ -26,7 +26,7 @@ def train(num_jobs: int = 4):
     minimum_samples = 5
     pvalue = 0.01
     calculate_hstatistic = False
-    sort_by_pvalue = False
+    sort_by_pvalue = True
     topKfeatures = 100
     plot_topKfeatures = False
     if not sort_by_pvalue:
@@ -37,7 +37,7 @@ def train(num_jobs: int = 4):
     # ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, mll, myelodysplastic_mds1, 
     # myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
     # 2. scRNA datasets: camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
-    file_name = "leukemia_golub"
+    file_name = "myelodysplastic_mds2"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
@@ -66,6 +66,7 @@ def train(num_jobs: int = 4):
     feature_ids = np.where(feature_sums >= minimum_samples)[0]
     features_name = np.array(features_name)[feature_ids].tolist()
     X = X[:, feature_ids]
+    feature_ids = dict([(feature_idx, idx) for idx, feature_idx in enumerate(feature_ids)])
     del temp, examples_ids, feature_sums
 
     # Load up/down regulated features
@@ -130,13 +131,9 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "DECO"), end="\r")
-    df_deco = np.zeros((num_features, 1))
     temp = pd.read_csv(os.path.join(DATASET_PATH, file_name + "_deco.csv"), sep=',')
-    for idx, feature_idx in enumerate(temp["ID"].to_list()):
-        if not feature_idx in feature_ids:
-            continue
-        df_deco[feature_idx] = temp.iloc[idx, 1]
-    np.nan_to_num(df_deco, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+    temp = [(features_name[feature_ids[int(item[1][0])]], item[1][1]) for item in temp.iterrows()]
+    df_deco = pd.DataFrame(temp, columns=["features", "score"])
     del temp
     current_progress += 1
 
@@ -178,10 +175,9 @@ def train(num_jobs: int = 4):
     # df_hcleanse = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1, return_best_features=True,
     #                                    return_clusters=False)
     # df_hcleanse = df_hcleanse[0]
-
-    methods_df = dict({"COPA": df_copa, "OS": df_os, "ORT": df_ort, "MOST": df_most, "LSOSS": df_lsoss,
-                       "DIDS": df_dids, "UHet_zscore": df_uhet_z, "UHet_robust": df_uhet_r,
-                       "CLEANSE_zscore": df_cleanse_z, "CLEANSE_robust": df_cleanse_r})
+    # methods_df = dict({"COPA": df_copa, "OS": df_os, "ORT": df_ort, "MOST": df_most, "LSOSS": df_lsoss,
+    #                    "DIDS": df_dids, "UHet_zscore": df_uhet_z, "UHet_robust": df_uhet_r,
+    #                    "CLEANSE_zscore": df_cleanse_z, "CLEANSE_robust": df_cleanse_r})
 
     methods_df = dict({"COPA": df_copa, "OS": df_os, "ORT": df_ort, "MOST": df_most, "LSOSS": df_lsoss,
                        "DIDS": df_dids, "DECO": df_deco, "UHet_zscore": df_uhet_z, "UHet_robust": df_uhet_r,
@@ -189,15 +185,18 @@ def train(num_jobs: int = 4):
 
     if sort_by_pvalue:
         print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))
-        for stat_name, df in methods_df.items():
-            temp = significant_features(X=df, features_name=features_name, pvalue=pvalue,
-                                        X_map=None, map_genes=False, ttest=False)
-            methods_df[stat_name] = temp
     else:
         print("## Sort features by the score statistic...".format())
-        for stat_name, df in methods_df.items():
-            temp = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False)
-            methods_df[stat_name] = temp
+    for stat_name, df in methods_df.items():
+        if stat_name == "DECO":
+            continue
+        if sort_by_pvalue:
+            temp = significant_features(X=df, features_name=features_name, pvalue=pvalue,
+                                            X_map=None, map_genes=False, ttest=False)
+        else:
+            temp = sort_features(X=df, features_name=features_name, X_map=None,
+                                 map_genes=False, ttest=False)
+        methods_df[stat_name] = temp
     del df_copa, df_os, df_ort, df_most, df_lsoss, df_dids, df_uhet_z, df_uhet_r, df_cleanse_r
 
     print("## Scoring results using known regulated features...")
