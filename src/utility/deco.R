@@ -1,5 +1,5 @@
-require(deco)
-require(dplyr)
+require(deco, quietly = TRUE)
+require(dplyr, quietly = TRUE)
 
 working_dir <- file.path("R:/GeneAnalysis/data")
 
@@ -18,7 +18,7 @@ working_dir <- file.path("R:/GeneAnalysis/data")
 # scRNA datasets:
 # camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
 
-file_name <- "lake"
+file_name <- "tnbc"
 iterations <- 1000
 q.val <- 0.01
 

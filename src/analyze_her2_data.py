@@ -25,7 +25,7 @@ def train(num_jobs: int = 4):
     direction = "both"
     topKfeatures = 100
     calculate_hstatistic = False
-    num_batches = 1000
+    num_batches = 50
     subsample_size = 10
 
     # Load expression data
@@ -41,21 +41,27 @@ def train(num_jobs: int = 4):
     top_features_true = pd.read_csv(os.path.join(DATASET_PATH, "her2_topfeatures.csv"), sep=',')
     top_features_true = top_features_true["ID"].tolist()[:topKfeatures]
     top_features_true = lb.transform(top_features_true).sum(axis=0).astype(int)
-
+    
+    # load DECO results    
+    df_deco = pd.read_csv(os.path.join(DATASET_PATH, "her2_deco.csv"), sep=',', header=None)
+    df_deco = df_deco.to_numpy()
+    if df_deco.shape[1] != num_batches:
+      temp = "The number of bacthes does not macth with DECO results"
+      raise Exception(temp)
+      
     print("## Perform simulation studies using HER2 data...")
     print("\t >> Control size: {0}; Case size: {1} Feature size: {2}".format(X_control.shape[0], X_case.shape[1],
                                                                              len(features_name)))
     list_scores = list()
-    methods = ["COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "UHet_zscore", "U-Het_robust", "CLEANSE_zscore",
-               "CLEANSE_robust"]
-    current_progress = 0
+    methods = ["COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "UHet_zscore", "U-Het_robust",
+               "CLEANSE_zscore", "CLEANSE_robust"]
+    current_progress = 1
     total_progress = num_batches * len(methods)
     for batch_idx in range(num_batches):
         temp = np.random.choice(a=X_case.shape[0], size=subsample_size, replace=False)
         X = np.vstack((X_control, X_case[temp]))
         y = np.array(X_control.shape[0] * [0] + subsample_size * [1])
 
-        current_progress += 1
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "COPA"),
               end="\r")
         estimator = COPA(q=0.75, direction=direction, calculate_pval=False)
@@ -66,8 +72,8 @@ def train(num_jobs: int = 4):
         top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
         temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
         list_scores.append(temp)
-
         current_progress += 1
+        
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "OS"),
               end="\r")
         estimator = OutlierSumStatistic(q=0.75, iqr_range=(25, 75), two_sided_test=False,
@@ -79,8 +85,8 @@ def train(num_jobs: int = 4):
         top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
         temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
         list_scores.append(temp)
-
         current_progress += 1
+        
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "ORT"),
               end="\r")
         estimator = OutlierRobustStatistic(q=0.75, iqr_range=(25, 75), direction=direction, calculate_pval=False)
@@ -91,8 +97,8 @@ def train(num_jobs: int = 4):
         top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
         temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
         list_scores.append(temp)
-
         current_progress += 1
+        
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "MOST"),
               end="\r")
         estimator = MOST(direction=direction, calculate_pval=False)
@@ -103,8 +109,8 @@ def train(num_jobs: int = 4):
         top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
         temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
         list_scores.append(temp)
-
         current_progress += 1
+        
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "LSOSS"),
               end="\r")
         estimator = LSOSS(direction=direction, calculate_pval=False)
@@ -115,8 +121,8 @@ def train(num_jobs: int = 4):
         top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
         temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
         list_scores.append(temp)
-
         current_progress += 1
+        
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "DIDS"),
               end="\r")
         estimator = DIDS(score_function="quad", direction=direction, calculate_pval=False)
@@ -127,8 +133,22 @@ def train(num_jobs: int = 4):
         top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
         temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
         list_scores.append(temp)
-
         current_progress += 1
+        
+        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "DECO"),
+              end="\r")
+        top_features_pred = df_deco[:, batch_idx]
+        temp = np.nonzero(top_features_pred)[0]
+        top_features_pred[temp] = np.max(top_features_pred) + 1 - top_features_pred[temp]
+        top_features_pred = top_features_pred.reshape(top_features_pred.shape[0], 1)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
+        top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
+        temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
+        list_scores.append(temp)
+        current_progress += 1
+        
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                 "U-Het (zscore)"), end="\r")
         estimator = UHeT(normalize="zcore", q=0.75, iqr_range=(25, 75), calculate_pval=False)
@@ -139,8 +159,8 @@ def train(num_jobs: int = 4):
         top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
         temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
         list_scores.append(temp)
-
         current_progress += 1
+        
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                 "U-Het (robust)"), end="\r")
         estimator = UHeT(normalize="robust", q=0.75, iqr_range=(25, 75), calculate_pval=False)
@@ -151,7 +171,8 @@ def train(num_jobs: int = 4):
         top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
         temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
         list_scores.append(temp)
-
+        current_progress += 1
+        
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                 "CLEANSE (zscore)"), end="\r")
         estimator = CLEANSE(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
@@ -165,7 +186,8 @@ def train(num_jobs: int = 4):
         top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
         temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
         list_scores.append(temp)
-
+        current_progress += 1
+        
         if total_progress == current_progress:
             print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                     "CLEANSE (robust)"))
@@ -183,6 +205,7 @@ def train(num_jobs: int = 4):
         top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
         temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
         list_scores.append(temp)
+        current_progress += 1
 
     list_scores = np.array(list_scores)
     list_scores = np.reshape(list_scores, (num_batches, len(methods)))
