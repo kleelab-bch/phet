@@ -25,7 +25,7 @@ def train(num_jobs: int = 4):
     direction = "both"
     topKfeatures = 100
     calculate_hstatistic = False
-    num_batches = 50
+    num_batches = 1000
     subsample_size = 10
 
     # Load expression data

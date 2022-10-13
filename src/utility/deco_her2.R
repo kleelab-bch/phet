@@ -4,9 +4,9 @@ require(dplyr, quietly = TRUE)
 working_dir <- file.path("R:/GeneAnalysis/data")
 
 file_name <- "her2"
-nBatches <- 50
+nBatches <- 1000
 subsampleSize <- 10
-iterations <- 1000
+iterations <- 10
 q.val <- 0.01
 
 # load positive and negative HER2 data
