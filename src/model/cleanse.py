@@ -299,28 +299,8 @@ class CLEANSE:
             R = np.multiply(R, H)
 
         # Step 6: Feature ranking based on combined parameters (I, O, R, H)
-        results = np.multiply(I, self.feature_weight.dot(O.T)) + R
+        results = np.multiply(zscore(I), self.feature_weight.dot(O.T)) + zscore(R)
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
-
-        # # TODO: Step 4: Finding all classes and groups in the sample set (optional)
-        # discover_groups = False
-        # if discover_groups:
-        #     C = np.zeros((num_examples, num_examples))
-        #     for i in range(num_examples):
-        #         for j in range(i + 1, num_examples):
-        #             C[i, j] = pearsonr(x=H[:, i], y=H[:, j])[0]
-        #     C = C + C.T
-        #     # TODO: Find an optimal number of k clusters-subclasses using hierarchical approach
-        #     subclusters = self.num_subclusters
-        #     temp_scores = np.zeros((self.num_subclusters - 2))
-        #     for cluster_size in range(2, subclusters):
-        #         subclusters = clustering(X=C, cluster_type="agglomerative", affinity="euclidean", num_neighbors=5,
-        #                                  num_clusters=cluster_size, num_jobs=self.num_jobs, predict=True)
-        #         temp = silhouette_score(X=C, labels=subclusters)
-        #         temp_scores[cluster_size - 2] = temp
-        #     subclusters = np.argmax(temp_scores) + 2
-        #     subclusters = clustering(X=C, cluster_type="agglomerative", affinity="euclidean", num_neighbors=5,
-        #                              num_clusters=subclusters, num_jobs=self.num_jobs, predict=True)
 
         if self.calculate_pval and num_classes > 1:
             # Permutation based p-value calculation using approximate method

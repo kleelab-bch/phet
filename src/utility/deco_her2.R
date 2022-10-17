@@ -45,10 +45,10 @@ for (batch_idx in 1:nBatches) {
   classes <- as.integer(classes)
   names(classes) <- colnames(gset)
   gset <- SummarizedExperiment(assays = list(counts = gset))
-  subSampling <- suppressMessages(decoRDA(data = assay(gset), classes = classes, 
-                                          q.val = q.val, rm.xy = FALSE, r = NULL, 
-                                          control = "0", annot = FALSE, 
-                                          iterations = iterations, 
+  subSampling <- suppressMessages(decoRDA(data = assay(gset), classes = classes,
+                                          q.val = q.val, rm.xy = FALSE, r = NULL,
+                                          control = "0", annot = FALSE,
+                                          iterations = iterations,
                                           bpparam = MulticoreParam()))
   remove(gset)
   subSampling <- subSampling[["subStatFeature"]]["ID"]
@@ -61,7 +61,7 @@ for (batch_idx in 1:nBatches) {
   setTxtProgressBar(pb, batch_idx)
 }
 close(pb) # Close the connection
-colnames(batch_matrix) <- seq(0, nBatches - 1) 
+colnames(batch_matrix) <- seq(0, nBatches - 1)
 write.table(batch_matrix,
             file = file.path(working_dir, paste(file_name, "_deco.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE, col.names = FALSE)

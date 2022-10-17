@@ -1,7 +1,7 @@
-normalize = "robust"
+normalize = "zcore"
 q = 0.75
 iqr_range = (25, 75)
-num_subsamples = 100
+num_subsamples = 1000
 subsampling_size = 3
 significant_p: float = 0.05
 partition_by_anova = False
@@ -20,6 +20,15 @@ num_jobs = 4
 partition_data = False
 control_class = 0
 case_class = 1
+
+standardize=True
+num_neighbors = 15
+min_dist = 0
+cluster_type = "spectral"
+num_clusters = 0
+suptitle=stat_name.upper()
+file_name=file_name + "_" + stat_name.lower()
+save_path=RESULT_PATH
 
 
 df = significant_features(X=df_cleanse[0], features_name=features_name, pvalue=pvalue, X_map=None, map_genes=False, ttest=False)

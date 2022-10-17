@@ -1,8 +1,6 @@
 '''
-TODO: 
-1. Borrow ideas from MOST wrt Order Statsitics
-2. Link those methods with Outliers detection
-3. Perform multiple permuation tests
+Unraveling cellular Heterogeneity by analyzing intra-cellular
+variation.
 '''
 
 import numpy as np
@@ -22,40 +20,6 @@ class UHeT:
         self.num_iterations = num_iterations
 
     def fit_predict(self, X, y):
-        """
-        Hetero-Net Function
-
-        Perform Deep Metric Learning with UMAP-based clustering to find subpopulations of classes
-
-        Read more in the USER GUIDE
-
-        Parameters
-        ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
-            The input samples
-
-        standardize : bool, default=True
-            Standardizes data using zscore (NOTE: test more?)
-
-        Attributes
-        ----------
-        features_ : list
-            The features found by the algorithm. Ranked in order of importance
-
-        score_ : list
-            The score found by the algorithm for each feature
-
-
-        References
-        ----------
-        NOTE: MINE
-
-
-        Examples
-        ----------
-        NOTE: TODO
-        """
-
         # Extract properties
         num_classes = len(np.unique(y))
         num_features = X.shape[1]
@@ -93,24 +57,6 @@ class UHeT:
                     mean1 = np.mean(X[examples_i, feature_idx])
                     mean2 = np.mean(X[examples_j, feature_idx])
                     statistic = stats.ttest_ind(X[examples_i, feature_idx], X[examples_j, feature_idx])[0]
-                    # # TODO: COMMENT if didnt work
-                    # if np.sign(mean1) < np.sign(iqr1):
-                    #     iqr_rng1 = np.mean(self.iqr_range).astype(int)
-                    #     percentile1 = np.percentile(X[examples_i, feature_idx], iqr_rng1)
-                    #     percentile2 = np.percentile(X[examples_i, feature_idx], self.iqr_range[1])
-                    #     picked_examples = np.where(np.logical_and(X[examples_i, feature_idx] >= percentile1,
-                    #                                               X[examples_i, feature_idx] <= percentile2))[0]
-                    #     iqr1 = iqr(X[examples_i, feature_idx], rng=(iqr_rng1, self.iqr_range[1]), scale=1.0)
-                    #     mean1 = np.mean(X[examples_i[picked_examples], feature_idx])
-                    # if np.sign(mean2) < np.sign(iqr2):
-                    #     iqr_rng1 = np.mean(self.iqr_range).astype(int)
-                    #     percentile1 = np.percentile(X[examples_j, feature_idx], iqr_rng1)
-                    #     percentile2 = np.percentile(X[examples_j, feature_idx], self.iqr_range[1])
-                    #     picked_examples = np.where(np.logical_and(X[examples_j, feature_idx] >= percentile1,
-                    #                                               X[examples_j, feature_idx] <= percentile2))[0]
-                    #     iqr2 = iqr(X[examples_j, feature_idx], rng=(iqr_rng1, self.iqr_range[1]), scale=1.0)
-                    #     mean2 = np.mean(X[examples_j[picked_examples], feature_idx])
-                    # #############################
                     iqrs.append(iqr1 - iqr2)
                     means.append(mean1 - mean2)
                     ttests.append(statistic)

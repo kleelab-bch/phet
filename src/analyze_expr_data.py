@@ -37,7 +37,7 @@ def train(num_jobs: int = 4):
     # ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, mll, myelodysplastic_mds1, 
     # myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
     # 2. scRNA datasets: camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
-    file_name = "myelodysplastic_mds2"
+    file_name = "leukemia_golub"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
@@ -72,7 +72,7 @@ def train(num_jobs: int = 4):
     # Load up/down regulated features
     top_features_true = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file + ".csv"), sep=',',
                                     index_col="ID")
-    temp = [feature for feature in top_features_true.index.to_list() if feature in features_name]
+    temp = [feature for feature in top_features_true.index.to_list() if str(feature) in features_name]
     top_features_true = top_features_true.loc[temp]
     temp = top_features_true[top_features_true["adj.P.Val"] <= pvalue]
     if temp.shape[0] < topKfeatures:
@@ -192,7 +192,7 @@ def train(num_jobs: int = 4):
             continue
         if sort_by_pvalue:
             temp = significant_features(X=df, features_name=features_name, pvalue=pvalue,
-                                            X_map=None, map_genes=False, ttest=False)
+                                        X_map=None, map_genes=False, ttest=False)
         else:
             temp = sort_features(X=df, features_name=features_name, X_map=None,
                                  map_genes=False, ttest=False)
@@ -233,11 +233,16 @@ def train(num_jobs: int = 4):
         if plot_topKfeatures:
             temp = [idx for idx, feature in enumerate(features_name) if
                     feature in df['features'].tolist()[:topKfeatures]]
+            temp_feature = [feature for idx, feature in enumerate(features_name) if
+                            feature in df['features'].tolist()[:topKfeatures]]
         else:
             temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
+            temp_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
         num_features = len(temp)
-        plot_umap(X=X[:, temp], y=subtypes, num_features=num_features, standardize=True, num_jobs=num_jobs,
-                  suptitle=stat_name.upper(), file_name=file_name + "_" + stat_name.lower(),
+
+        plot_umap(X=X[:, temp], y=subtypes, features_name=temp_feature, num_features=num_features, standardize=True,
+                  num_neighbors=5, min_dist=0, cluster_type="spectral", num_clusters=0, max_clusters=10,
+                  num_jobs=num_jobs, suptitle=stat_name.upper(), file_name=file_name + "_" + stat_name.lower(),
                   save_path=RESULT_PATH)
 
 
@@ -248,4 +253,4 @@ if __name__ == "__main__":
     # for mac and linux(here, os.name is 'posix')
     else:
         _ = os.system('clear')
-    train(num_jobs=6)
+    train(num_jobs=4)
