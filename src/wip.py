@@ -180,8 +180,7 @@ def train(num_jobs: int = 4):
     #                    "CLEANSE_zscore": df_cleanse_z, "CLEANSE_robust": df_cleanse_r})
 
     methods_df = dict({"COPA": df_copa, "OS": df_os, "ORT": df_ort, "MOST": df_most, "LSOSS": df_lsoss,
-                       "DIDS": df_dids, "DECO": df_deco, "UHet_zscore": df_uhet_z, "UHet_robust": df_uhet_r,
-                       "CLEANSE_zscore": df_cleanse_z, "CLEANSE_robust": df_cleanse_r})
+                       "DIDS": df_dids, "DECO": df_deco, "UHet": df_uhet_z, "CLEANSE": df_cleanse_z})
 
     if sort_by_pvalue:
         print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))

@@ -299,7 +299,7 @@ class CLEANSE:
             R = np.multiply(R, H)
 
         # Step 6: Feature ranking based on combined parameters (I, O, R, H)
-        results = np.multiply(zscore(I), self.feature_weight.dot(O.T)) + zscore(R)
+        results = np.multiply(I, self.feature_weight.dot(O.T)) + R
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
         if self.calculate_pval and num_classes > 1:
