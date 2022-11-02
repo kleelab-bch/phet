@@ -30,7 +30,45 @@ suptitle=stat_name.upper()
 file_name=file_name + "_" + stat_name.lower()
 save_path=RESULT_PATH
 
+# boxplot
+df = pd.DataFrame(features_name, columns = ["features"])
+X_map = pd.read_csv(os.path.join(DATASET_PATH, "HU6800.chip"), sep='\t')
+df = df.merge(X_map, left_on='features', right_on='Probe Set ID')
+df = df.drop(["features"], axis=1)
+df = df.set_index('Probe Set ID')
+top_features_true = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file + ".csv"), sep=',',
+                                    index_col="ID")
+temp = [feature for feature in top_features_true.index.to_list() if str(feature) in features_name]
+top_features_true = top_features_true.loc[temp]
+top_features_true = [str(feature_idx) for feature_idx in top_features_true.index.to_list()]
 
+idx = 17 # or 0, 2, 5 no significant among populations
+feature_idx = features_name.index(top_features_true[idx])
+feature_idx = [features_name.index(methods_df["V-ΔIQR"]["features"].to_list()[i]) for i in np.arange(idx)]
+my_pal = {"normal": "yellowgreen", "tumor": "salmon", "medulloblastoma":"cornflowerblue", "glioma":"khaki", "rhabdoidtu":"cyan", "pnet":"lightpink"}
+idx = 5
+feature_idx = features_name.index(methods_df["R-ΔIQR"]["features"].to_list()[idx])
+sns.boxplot(x=subtypes, y=X[:, feature_idx], palette=my_pal)
+sns.swarmplot(x=subtypes, y=X[:, feature_idx], color='black', alpha=0.8)
+plt.xlabel('Class')
+plt.xticks(fontsize=18, rotation=45)
+plt.ylabel("Expression values")
+plt.yticks(fontsize=18)
+plt.suptitle(df.loc[methods_df["R-ΔIQR"]["features"].to_list()[idx]][0], fontsize=18, fontweight="bold")
+sns.despine()
+
+colors = []
+for f in np.arange(tempX.shape[0]):
+    if f in selected_features:
+        colors.append('r')
+    else:
+        colors.append('b')
+plt.ylabel("Statistics")
+sns.scatterplot(np.arange(tempX.shape[0]), tempX, hue=colors)
+plt.legend().remove()
+sns.despine()
+
+# 
 df = significant_features(X=df_cleanse[0], features_name=features_name, pvalue=pvalue, X_map=None, map_genes=False, ttest=False)
 selected_regulated_features = topKfeatures
 temp = np.sum(top_features_true)
@@ -59,3 +97,29 @@ plt.ylabel("UMAP 2")
 plt.suptitle('Using top %s features from %s' % (str(len(df_cleanse[1])), expression_file_name), fontsize=18, fontweight="bold")
 plt.legend(title="Class")
 sns.despine()
+
+# KS test
+
+sample_size = 1000
+
+# complete change
+control = np.random.normal(loc=1, scale=1, size=sample_size)
+case = np.random.normal(loc=2, scale=1, size=sample_size)
+complete_change = ks_2samp(control, case)[1]
+
+# majority change
+control = np.random.normal(loc=1, scale=1, size=sample_size)
+case = np.random.normal(loc=1, scale=1, size=sample_size)
+majority_ids = np.random.choice(range(sample_size), size=int(sample_size * 0.7), replace=False)
+case[majority_ids] += np.random.normal(loc=0, scale=1, size=len(majority_ids))
+majority_change = ks_2samp(control, case)[1]
+
+# minority change
+control = np.random.normal(loc=1, scale=1, size=sample_size)
+case = np.random.normal(loc=1, scale=1, size=sample_size)
+minority_ids = np.random.choice(range(sample_size), size=int(sample_size * 0.3), replace=False)
+case[minority_ids] += np.random.normal(loc=0, scale=1, size=len(minority_ids))
+minority_change = ks_2samp(control, case)[1]
+
+# print
+complete_change, majority_change, minority_change

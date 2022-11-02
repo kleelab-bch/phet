@@ -193,6 +193,7 @@ class CLEANSE:
                 sample2example[sample_idx, subset] = 1
                 temp[:, sample_idx] = np.absolute(iq_range)
             R = np.max(temp, axis=1)
+        np.nan_to_num(R, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
         # Check if iqr statistics for each feature has high variances across samples
         if num_classes < 2:
@@ -214,6 +215,7 @@ class CLEANSE:
         # Keep only the highest Fisher's statisitcs
         I[I < 0] = SEED_VALUE
         I = np.absolute(I)
+        np.nan_to_num(I, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
         # Calculate p-values from the Chi-square distribution with
         #  2 x self.subsets degrees of freedom
         # P = 1 - chi2.cdf(x = I, df = 2 * self.num_subsamples)
@@ -234,13 +236,13 @@ class CLEANSE:
                     pvalue = ks_2samp(examples_i, examples_j)[1]
                     temp_lst.append(pvalue)
                 # Complete change
-                if 0.1 > np.mean(temp_lst):
+                if 0.1 > np.mean(temp_lst):  # or 0.1
                     O[feature_idx, 0] = 1
                 # Majority change
-                elif 0.4 > np.mean(temp_lst) >= 0.1:
+                elif 0.2 > np.mean(temp_lst) >= 0.1:  # or [0.4, 0.1]
                     O[feature_idx, 1] = 1
                 # Minority change
-                elif 0.8 > np.mean(temp_lst) >= 0.4:
+                elif 0.5 > np.mean(temp_lst) >= 0.2:  # or [0.8, 0.4]
                     O[feature_idx, 2] = 1
                 # Mixed change
                 else:
@@ -248,13 +250,13 @@ class CLEANSE:
             else:
                 temp_lst = 1 - norm.cdf(zscore(X[:, feature_idx]))
                 # Complete change
-                if 0.2 > np.mean(temp_lst):
+                if 0.1 > np.mean(temp_lst):  # or 0.1
                     O[feature_idx, 0] = 1
                 # Majority change
-                elif 0.4 > np.mean(temp_lst) >= 0.2:
+                elif 0.3 > np.mean(temp_lst) >= 0.1:  # or [0.4, 0.1]
                     O[feature_idx, 1] = 1
                 # Minority change
-                elif 0.8 > np.mean(temp_lst) >= 0.4:
+                elif 0.5 > np.mean(temp_lst) >= 0.3:  # or [0.8, 0.4]
                     O[feature_idx, 2] = 1
                 # Mixed change
                 else:
@@ -295,11 +297,14 @@ class CLEANSE:
                 del new_H
             else:
                 H = np.mean(H, axis=1)
-
+            np.nan_to_num(H, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
             R = np.multiply(R, H)
 
         # Step 6: Feature ranking based on combined parameters (I, O, R, H)
-        results = np.multiply(I, self.feature_weight.dot(O.T)) + R
+        R /= R.sum()
+        I = np.multiply(I, self.feature_weight.dot(O.T))
+        I /= I.sum()
+        results = R + I
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
         if self.calculate_pval and num_classes > 1:

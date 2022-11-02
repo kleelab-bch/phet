@@ -1,3 +1,5 @@
+# Hatzis C, Pusztai L, Valero V, Booser DJ et al. A genomic predictor of response and survival following taxane-anthracycline chemotherapy for invasive breast cancer. JAMA 2011 May 11;305(18):1873-81.
+
 # Differential expression analysis with limma
 require(GEOquery)
 require(limma)

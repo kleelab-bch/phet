@@ -1,6 +1,5 @@
 import os
 import warnings
-from symbol import yield_arg
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -29,8 +28,8 @@ def plot_barplot(X, methods_name, file_name: str = "temp", save_path: str = ".")
     plt.yticks(fontsize=18)
     plt.xlabel('Method', fontsize=20, fontweight="bold")
     plt.ylabel("Jaccard scores", fontsize=20, fontweight="bold")
-    plt.suptitle("Results using {0} data".format(file_name.capitalize()), fontsize=22, fontweight="bold")
-    file_path = os.path.join(save_path, file_name + "_jaccard.png")
+    plt.suptitle("Results using {0} data".format(file_name), fontsize=22, fontweight="bold")
+    file_path = os.path.join(save_path, file_name + ".png")
     plt.tight_layout()
     plt.savefig(file_path)
     plt.clf()
@@ -42,14 +41,12 @@ def plot_scatter(X, y, num_features: int = 100, legend_title: str = "Class", sup
                  file_name: str = "temp", save_path: str = "."):
     # plot figure
     plt.figure(figsize=(12, 8))
-    sns.scatterplot(x=X[:, 0], y=X[:, 1], hue=y, palette='tab10', s=80, alpha=0.6)
+    sns.scatterplot(X[:, 0], X[:, 1], hue=y, palette='tab10', s=80, alpha=0.6)
     plt.xlabel("UMAP 1")
     plt.ylabel("UMAP 2")
-    if suptitle is None:
-        plt.suptitle('UMAP of all (%s) features' % str(num_features), fontsize=20, fontweight="bold")
-    else:
-        plt.suptitle('%s (%s features)' % (suptitle, str(num_features)), fontsize=20, fontweight="bold")
-    plt.legend(title=legend_title, fontsize=16, title_fontsize=20)
+    plt.suptitle('Representation of samples using %s features from %s' % (str(num_features), suptitle), fontsize=18,
+                 fontweight="bold")
+    plt.legend(title=legend_title)
     sns.despine()
     file_path = os.path.join(save_path, file_name)
     plt.tight_layout()
@@ -81,10 +78,9 @@ def plot_heatmap(df, file_name: str = "temp", save_path: str = "."):
     plt.close(fig="all")
 
 
-def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardize: bool = True, num_neighbors: int = 15,
+def plot_umap(X, y, features_name: list, num_features: int, standardize: bool = True, num_neighbors: int = 15,
               min_dist: float = 0, cluster_type: str = "spectral", num_clusters: int = 0, max_clusters: int = 10,
-              heatmap_plot: bool = True, num_jobs: int = 2, suptitle: str = "temp", file_name: str = "temp",
-              save_path: str = "."):
+              num_jobs: int = 2, suptitle: str = "temp", file_name: str = "temp", save_path: str = "."):
     # Standardize if needed
     if standardize:
         X = zscore(X)
@@ -94,11 +90,8 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
     X_reducer = dimensionality_reduction(X, num_neighbors=num_neighbors, num_components=2, min_dist=min_dist,
                                          reduction_method="umap", num_epochs=2000, num_jobs=num_jobs)
 
-    plot_scatter(X=X_reducer, y=y, num_features=num_features, legend_title="Class",
-                 suptitle=suptitle, file_name=file_name + "_umap.png", save_path=save_path)
-
-    plot_scatter(X=X_reducer, y=subtypes, num_features=num_features, suptitle=suptitle,
-                 file_name=file_name + "_subtypes_umap.png", save_path=save_path)
+    plot_scatter(X=X_reducer, y=y, num_features=num_features, suptitle=suptitle,
+                 file_name=file_name + "_umap.png", save_path=save_path)
 
     # Perform Silhoette Analysis
     silhouette_avg_n_clusters = []
@@ -116,22 +109,19 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
     else:
         cluster_labels = clustering(X=X_reducer, cluster_type=cluster_type, num_clusters=num_clusters,
                                     num_jobs=num_jobs, predict=True)
-    df = pd.DataFrame(cluster_labels, columns=["Cluster"])
-    df.to_csv(os.path.join(save_path, file_name + "_clusters.csv"), sep=',')
 
     plot_scatter(X=X_reducer, y=cluster_labels, num_features=num_features, legend_title="Cluster",
-                 suptitle=suptitle, file_name=file_name + "_clusters_umap.png", save_path=save_path)
+                 suptitle=suptitle, file_name=file_name + "_umap_clusters.png", save_path=save_path)
 
-    if heatmap_plot:
-        # print heatmap if true
-        scaler = MinMaxScaler()
-        scaler.fit(X)
-        df = pd.DataFrame(scaler.transform(X))
-        df.columns = features_name
-        df['cluster'] = cluster_labels
-        df = df.groupby('cluster').mean()
-        if df.shape[1] > 2:
-            plot_heatmap(df, file_name=file_name + "_heatmap.png", save_path=save_path)
+    # print heatmap if true
+    scaler = MinMaxScaler()
+    scaler.fit(X)
+    df = pd.DataFrame(scaler.transform(X))
+    df.columns = features_name
+    df['cluster'] = cluster_labels
+    df = df.groupby('cluster').mean()
+    if df.shape[1] > 2:
+        plot_heatmap(df, file_name=file_name + "_heatmap.png", save_path=save_path)
 
 
 def plot_boxplot(X, y, features_name, num_features: int, standardize: bool = False, swarmplot: bool = False):

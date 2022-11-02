@@ -19,8 +19,8 @@ gset <- gset[, featureNames]
 gset <- as.data.frame(lapply(gset, as.numeric))
 
 # group membership for all samples
-# 0: normal cerebellum (Normal): 4 examples (10.0%)
-# 1: medulloblastoma (medulloblastoma), malignant glioma (glioma), Rhabdoid tumor (RhabdoidTu), and primitive neuroectodermal tumor (PNET): 36 examples (90.0%)
+# 0 (normal): normal cerebellum (mormal): 4 examples (10.0%)
+# 1 (tumor): medulloblastoma (medulloblastoma), malignant glioma (glioma), Rhabdoid tumor (RhabdoidTu), and primitive neuroectodermal tumor (PNET): 36 examples (90.0%)
 gsms <- c(1, 1, 1, 0, 1)
 names(gsms) <- unique(classes)
 gsms <- gsms[classes]

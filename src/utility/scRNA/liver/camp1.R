@@ -99,8 +99,8 @@ gset <- as.data.frame(t(gset@assays@data@listData[["logcounts"]]))
 gset <- as.data.frame(gset[selected.samples,])
 
 # group membership for all samples
-# 0 (non hepatocytes): "definitive endoderm", "ipsc", and "mature hepatocyte"
-# 1 (hepatocytes): "immature hepatoblast" and "mature hepatocyte"
+# 0 (hepatic endoderm lineage): "ipsc", "definitive endoderm", and "mature hepatocyte"
+# 1 (post hepatic endoderm): "immature hepatoblast" and "mature hepatocyte"
 gsms <- c(0, 1, 0, 1, 0)
 names(gsms) <- unique(classes)
 gsms <- gsms[classes]

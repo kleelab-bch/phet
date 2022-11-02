@@ -31,8 +31,8 @@ classes <- gset@colData@listData[["cell_type1"]]
 gset <- as.data.frame(t(gset@assays@data@listData[["logcounts"]]))
 
 # group membership for all samples
-# 0 (proneural (and classical)): "MGH26" and "MGH30"
-# 1 (non proneural) : "MGH28", "MGH29", and "MGH31"
+# 0 (proneural and classical): "MGH26" and "MGH30"
+# 1 (mesenchymal) : "MGH28", "MGH29", and "MGH31"
 gsms <- c(0, 1, 1, 0, 1)
 names(gsms) <- unique(classes)
 gsms <- gsms[classes]

@@ -18,7 +18,7 @@ working_dir <- file.path("R:/GeneAnalysis/data")
 # scRNA datasets:
 # camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
 
-file_name <- "tnbc"
+file_name <- "segerstolpe"
 iterations <- 1000
 q.val <- 0.01
 
