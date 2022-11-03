@@ -1,6 +1,5 @@
 import os
 import warnings
-from symbol import yield_arg
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -82,9 +81,9 @@ def plot_heatmap(df, file_name: str = "temp", save_path: str = "."):
 
 
 def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardize: bool = True, num_neighbors: int = 15,
-              min_dist: float = 0, cluster_type: str = "spectral", num_clusters: int = 0, max_clusters: int = 10,
-              heatmap_plot: bool = True, num_jobs: int = 2, suptitle: str = "temp", file_name: str = "temp",
-              save_path: str = "."):
+              min_dist: float = 0, perform_cluster: bool = False, cluster_type: str = "spectral", num_clusters: int = 0,
+              max_clusters: int = 10, heatmap_plot: bool = True, num_jobs: int = 2, suptitle: str = "temp",
+              file_name: str = "temp", save_path: str = "."):
     # Standardize if needed
     if standardize:
         X = zscore(X)
@@ -93,36 +92,36 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
     # Make umap and umap data
     X_reducer = dimensionality_reduction(X, num_neighbors=num_neighbors, num_components=2, min_dist=min_dist,
                                          reduction_method="umap", num_epochs=2000, num_jobs=num_jobs)
-
     plot_scatter(X=X_reducer, y=y, num_features=num_features, legend_title="Class",
                  suptitle=suptitle, file_name=file_name + "_umap.png", save_path=save_path)
+    if subtypes is not None:
+        plot_scatter(X=X_reducer, y=subtypes, num_features=num_features, suptitle=suptitle,
+                    file_name=file_name + "_subtypes_umap.png", save_path=save_path)
 
-    plot_scatter(X=X_reducer, y=subtypes, num_features=num_features, suptitle=suptitle,
-                 file_name=file_name + "_subtypes_umap.png", save_path=save_path)
+    if perform_cluster:
+        # Perform Silhoette Analysis
+        silhouette_avg_n_clusters = []
+        if num_clusters == 0:
+            for i in range(2, max_clusters):
+                cluster_labels = clustering(X=X_reducer, cluster_type=cluster_type, num_clusters=i, num_jobs=num_jobs,
+                                            predict=True)
+                silhouette_avg = silhouette_score(X_reducer, cluster_labels)
+                silhouette_avg_n_clusters.append(silhouette_avg)
+            # use highest silhoette score for clusters
+            temp = max(silhouette_avg_n_clusters)
+            num_clusters = silhouette_avg_n_clusters.index(temp) + 2
+            cluster_labels = clustering(X=X_reducer, cluster_type=cluster_type, num_clusters=num_clusters,
+                                        num_jobs=num_jobs, predict=True)
+        else:
+            cluster_labels = clustering(X=X_reducer, cluster_type=cluster_type, num_clusters=num_clusters,
+                                        num_jobs=num_jobs, predict=True)
+        df = pd.DataFrame(cluster_labels, columns=["Cluster"])
+        df.to_csv(os.path.join(save_path, file_name + "_clusters.csv"), sep=',')
 
-    # Perform Silhoette Analysis
-    silhouette_avg_n_clusters = []
-    if num_clusters == 0:
-        for i in range(2, max_clusters):
-            cluster_labels = clustering(X=X_reducer, cluster_type=cluster_type, num_clusters=i, num_jobs=num_jobs,
-                                        predict=True)
-            silhouette_avg = silhouette_score(X_reducer, cluster_labels)
-            silhouette_avg_n_clusters.append(silhouette_avg)
-        # use highest silhoette score for clusters
-        temp = max(silhouette_avg_n_clusters)
-        num_clusters = silhouette_avg_n_clusters.index(temp) + 2
-        cluster_labels = clustering(X=X_reducer, cluster_type=cluster_type, num_clusters=num_clusters,
-                                    num_jobs=num_jobs, predict=True)
-    else:
-        cluster_labels = clustering(X=X_reducer, cluster_type=cluster_type, num_clusters=num_clusters,
-                                    num_jobs=num_jobs, predict=True)
-    df = pd.DataFrame(cluster_labels, columns=["Cluster"])
-    df.to_csv(os.path.join(save_path, file_name + "_clusters.csv"), sep=',')
+        plot_scatter(X=X_reducer, y=cluster_labels, num_features=num_features, legend_title="Cluster",
+                    suptitle=suptitle, file_name=file_name + "_clusters_umap.png", save_path=save_path)
 
-    plot_scatter(X=X_reducer, y=cluster_labels, num_features=num_features, legend_title="Cluster",
-                 suptitle=suptitle, file_name=file_name + "_clusters_umap.png", save_path=save_path)
-
-    if heatmap_plot:
+    if heatmap_plot and perform_cluster:
         # print heatmap if true
         scaler = MinMaxScaler()
         scaler.fit(X)

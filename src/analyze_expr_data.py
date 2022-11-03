@@ -149,8 +149,9 @@ def train(num_jobs: int = 4):
                                                             "R-ΔIQR"))
     estimator = CLEANSE(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
                         significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                        calculate_hstatistic=calculate_hstatistic, num_components=10, num_subclusters=10,
-                        binary_clustering=True, calculate_pval=False, num_rounds=50, num_jobs=num_jobs)
+                        weight_range = [0.1, 0.3, 0.5], calculate_hstatistic=calculate_hstatistic, num_components=10, 
+                        num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50, 
+                        num_jobs=num_jobs)
     df_cleanse_z = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
 
     methods_df = dict({"COPA": df_copa, "OS": df_os, "ORT": df_ort, "MOST": df_most, "LSOSS": df_lsoss,
@@ -160,8 +161,10 @@ def train(num_jobs: int = 4):
         print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))
     else:
         print("## Sort features by the score statistic...".format())
-    for stat_name, df in methods_df.items():
-        if stat_name == "DECO":
+    for method_idx, item in enumerate(methods_df.items()):
+        stat_name, df = item
+        method_name = methods_name[method_idx]
+        if method_name == "DECO":
             continue
         if sort_by_pvalue:
             temp = significant_features(X=df, features_name=features_name, pvalue=pvalue,
@@ -169,6 +172,9 @@ def train(num_jobs: int = 4):
         else:
             temp = sort_features(X=df, features_name=features_name, X_map=None,
                                  map_genes=False, ttest=False)
+        df = pd.DataFrame(temp["features"].tolist(), columns=["features"])
+        df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + method_name.lower() + "_features.csv"),
+                  sep=',', index=False)
         methods_df[stat_name] = temp
     del df_copa, df_os, df_ort, df_most, df_lsoss, df_dids, df_uhet_z, df_cleanse_z
 
@@ -191,19 +197,18 @@ def train(num_jobs: int = 4):
     plot_barplot(X=list_scores, methods_name=list(methods_df.keys()), file_name=file_name,
                  save_path=RESULT_PATH)
 
+    print("## Plot UMAP using all features ({0})...".format(num_features))
     plot_umap(X=X, y=y, subtypes=subtypes, features_name=features_name, num_features=num_features, standardize=True,
               num_neighbors=5, min_dist=0, cluster_type="spectral", num_clusters=0, max_clusters=10, heatmap_plot=False,
               num_jobs=num_jobs, suptitle=None, file_name=file_name + "_all", save_path=RESULT_PATH)
 
     if plot_topKfeatures:
-        print("## Plot results using the top {0} features...".format(topKfeatures))
+        print("## Plot UMAP using the top {0} features...".format(topKfeatures))
     else:
-        print("## Plot results using the top features for each method...")
-
+        print("## Plot UMAP using the top features for each method...")
     for method_idx, item in enumerate(methods_df.items()):
         stat_name, df = item
         method_name = methods_name[method_idx]
-
         if total_progress == method_idx + 1:
             print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / total_progress) * 100,
                                                                     stat_name))
@@ -219,14 +224,10 @@ def train(num_jobs: int = 4):
             temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
             temp_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
         num_features = len(temp)
-
         plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
-                  standardize=True, num_neighbors=5, min_dist=0, cluster_type="spectral", num_clusters=0,
-                  max_clusters=10,
-                  heatmap_plot=False, num_jobs=num_jobs, suptitle=stat_name.upper(),
-                  file_name=file_name + "_" + method_name.lower(),
-                  save_path=RESULT_PATH)
-
+                  standardize=True, num_neighbors=5, min_dist=0.0, perform_cluster=True, cluster_type="spectral", 
+                  num_clusters=0, max_clusters=10, heatmap_plot=False, num_jobs=num_jobs, suptitle=stat_name.upper(),
+                  file_name=file_name + "_" + method_name.lower(), save_path=RESULT_PATH)
 
 if __name__ == "__main__":
     # for windows

@@ -19,9 +19,10 @@ SEED_VALUE = 0.001
 class CLEANSE:
     def __init__(self, normalize: str = None, q: float = 0.75, iqr_range: int = (25, 75), num_subsamples: int = 1000,
                  subsampling_size: int = 3, significant_p: float = 0.05, partition_by_anova: bool = False,
-                 feature_weight: list = [0.4, 0.3, 0.2, 0.1], calculate_hstatistic: bool = True,
-                 num_components: int = 10, num_subclusters: int = 10, binary_clustering: bool = True,
-                 calculate_pval: bool = False, num_rounds: int = 50, num_jobs: int = 2):
+                 feature_weight: list = [0.4, 0.3, 0.2, 0.1], weight_range: list = [0.1, 0.3, 0.5],
+                 calculate_hstatistic: bool = True, num_components: int = 10, num_subclusters: int = 10, 
+                 binary_clustering: bool = True, calculate_pval: bool = False, num_rounds: int = 50, 
+                 num_jobs: int = 2):
         self.normalize = normalize  # robust or zscore (default: None)
         self.q = q
         self.iqr_range = iqr_range
@@ -32,6 +33,7 @@ class CLEANSE:
         if len(feature_weight) > 4 or len(feature_weight) == 0:
             feature_weight = [0.4, 0.3, 0.2, 0.1]
         self.feature_weight = np.array(feature_weight) / np.sum(feature_weight)
+        self.weight_range = weight_range
         self.calculate_hstatistic = calculate_hstatistic
         self.num_components = num_components
         self.num_subclusters = num_subclusters
@@ -225,6 +227,7 @@ class CLEANSE:
 
         # Step 2: Identification of 4 feature profiles
         O = np.zeros((num_features, 4))
+        weight_range = self.weight_range
         for feature_idx in range(num_features):
             if num_classes > 1:
                 temp_lst = list()
@@ -236,13 +239,13 @@ class CLEANSE:
                     pvalue = ks_2samp(examples_i, examples_j)[1]
                     temp_lst.append(pvalue)
                 # Complete change
-                if 0.1 > np.mean(temp_lst):  # or 0.1
+                if weight_range[0] > np.mean(temp_lst):  # or 0.1
                     O[feature_idx, 0] = 1
                 # Majority change
-                elif 0.2 > np.mean(temp_lst) >= 0.1:  # or [0.4, 0.1]
+                elif weight_range[1] > np.mean(temp_lst) >= weight_range[0]:  # or [0.4, 0.1]
                     O[feature_idx, 1] = 1
                 # Minority change
-                elif 0.5 > np.mean(temp_lst) >= 0.2:  # or [0.8, 0.4]
+                elif weight_range[2] > np.mean(temp_lst) >= weight_range[1]:  # or [0.8, 0.4]
                     O[feature_idx, 2] = 1
                 # Mixed change
                 else:
@@ -299,6 +302,8 @@ class CLEANSE:
                 H = np.mean(H, axis=1)
             np.nan_to_num(H, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
             R = np.multiply(R, H)
+            del H
+        del A
 
         # Step 6: Feature ranking based on combined parameters (I, O, R, H)
         R /= R.sum()

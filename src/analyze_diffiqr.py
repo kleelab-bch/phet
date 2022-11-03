@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from scipy.io import mmread
-from scipy.sparse import csr_matrix
 
 from model.cleanse import CLEANSE
 from model.uhet import UHeT
@@ -33,7 +32,7 @@ def train(num_jobs: int = 4):
     # ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, mll, myelodysplastic_mds1, 
     # myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
     # 2. scRNA datasets: camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
-    file_name = "pulseseq"
+    file_name = "pulseseq" # pulseseq, pulseseq_club, pulseseq_club_lineage
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
@@ -41,14 +40,16 @@ def train(num_jobs: int = 4):
     # Load expression data
     if not is_mtx:
         X = pd.read_csv(os.path.join(DATASET_PATH, expression_file_name + ".csv"), sep=',').dropna(axis=1)
+        y = X["class"].to_numpy()
+        features_name = X.drop(["class"], axis=1).columns.to_list()
+        X = X.drop(["class"], axis=1).to_numpy()
     else:
         features = pd.read_csv(os.path.join(DATASET_PATH, file_name + "_feature_names.csv"), sep=',')
+        features_name = features["features"].to_list()
         X = mmread(os.path.join(DATASET_PATH, file_name + "_matrix.mtx"))
-        X = X.tocsr().T
-        X = pd.DataFrame.sparse.from_spmatrix(X, columns=features["features"].to_list())
-    y = X["class"].to_numpy()
-    features_name = X.drop(["class"], axis=1).columns.to_list()
-    X = X.drop(["class"], axis=1).to_numpy()
+        X = X.tocsr().T.toarray()
+        y = pd.read_csv(os.path.join(DATASET_PATH, file_name + "_classes.csv"), sep=',')
+        y = y["classes"].to_numpy()
     np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
     # Filter data based on counts (CPM)
@@ -58,11 +59,12 @@ def train(num_jobs: int = 4):
     y = y[examples_ids]
     num_examples, num_features = X.shape
     del example_sums, examples_ids
-    temp = csr_matrix(np.absolute(X))
+    temp = np.absolute(X)
     temp = (temp * 1e6) / temp.sum(axis=1).reshape((num_examples, 1))
     temp[temp > 1] = 1
     temp[temp != 1] = 0
     feature_sums = temp.sum(0)
+    del temp
     if num_examples <= minimum_samples or minimum_samples > num_examples // 2:
         minimum_samples = num_examples // 2
     feature_ids = np.where(feature_sums >= minimum_samples)[0]
@@ -70,7 +72,7 @@ def train(num_jobs: int = 4):
     X = X[:, feature_ids]
     feature_ids = dict([(feature_idx, idx) for idx, feature_idx in enumerate(feature_ids)])
     num_examples, num_features = X.shape
-    del temp, feature_sums
+    del feature_sums
 
     # Load up/down regulated features
     if not is_mtx:
@@ -106,8 +108,9 @@ def train(num_jobs: int = 4):
                                                             "R-ΔIQR"))
     estimator = CLEANSE(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
                         significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                        calculate_hstatistic=calculate_hstatistic, num_components=10, num_subclusters=10,
-                        binary_clustering=True, calculate_pval=False, num_rounds=50, num_jobs=num_jobs)
+                        weight_range = [0.1, 0.3, 0.5], calculate_hstatistic=calculate_hstatistic, num_components=10, 
+                        num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50, 
+                        num_jobs=num_jobs)
     df_riqr = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
 
     methods_df = dict({"V-ΔIQR": df_viqr, "R-ΔIQR": df_riqr})
@@ -116,13 +119,18 @@ def train(num_jobs: int = 4):
         print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))
     else:
         print("## Sort features by the score statistic...".format())
-    for stat_name, df in methods_df.items():
+    for method_idx, item in enumerate(methods_df.items()):
+        stat_name, df = item
+        method_name = methods_name[method_idx]
         if sort_by_pvalue:
             temp = significant_features(X=df, features_name=features_name, pvalue=pvalue,
                                         X_map=None, map_genes=False, ttest=False)
         else:
             temp = sort_features(X=df, features_name=features_name, X_map=None,
                                  map_genes=False, ttest=False)
+        df = pd.DataFrame(temp["features"].tolist(), columns=["features"])
+        df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + method_name.lower() + "_features.csv"),
+                  sep=',', index=False)
         methods_df[stat_name] = temp
     del df_viqr, df_riqr
 
@@ -148,20 +156,21 @@ def train(num_jobs: int = 4):
 
     temp = np.copy(y)
     temp = temp.astype(str)
-    temp[np.where(y == 0)[0]] = "Basal"
-    temp[np.where(y == 1)[0]] = "Differentiated cells"
+    temp[np.where(y == 0)[0]] = "Basal cells"
+    temp[np.where(y == 1)[0]] = "non Basal cells"
     y = temp
+    print("## Plot UMAP using all features ({0})...".format(num_features))
     plot_umap(X=X, y=y, subtypes=subtypes, features_name=features_name, num_features=num_features, standardize=True,
-              num_neighbors=5, min_dist=0, cluster_type="spectral", num_clusters=0, max_clusters=10, heatmap_plot=False,
+              num_neighbors=5, min_dist=0, cluster_type="kmeans", num_clusters=0, max_clusters=10, heatmap_plot=False,
               num_jobs=num_jobs, suptitle=None, file_name=file_name + "_all", save_path=RESULT_PATH)
+
     if plot_topKfeatures:
-        print("## Plot results using the top {0} features...".format(topKfeatures))
+        print("## Plot UMAP using the top {0} features...".format(topKfeatures))
     else:
-        print("## Plot results using the top features for each method...")
+        print("## Plot UMAP using the top features for each method...")
     for method_idx, item in enumerate(methods_df.items()):
         stat_name, df = item
         method_name = methods_name[method_idx]
-
         if total_progress == method_idx + 1:
             print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / total_progress) * 100,
                                                                     stat_name))
@@ -177,13 +186,10 @@ def train(num_jobs: int = 4):
             temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
             temp_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
         num_features = len(temp)
-
         plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
-                  standardize=True, num_neighbors=3, min_dist=0.1, cluster_type="spectral", num_clusters=0,
-                  max_clusters=10,
-                  heatmap_plot=False, num_jobs=num_jobs, suptitle=stat_name.upper(),
-                  file_name=file_name + "_" + method_name.lower(),
-                  save_path=RESULT_PATH)
+                  standardize=True, num_neighbors=5, min_dist=0.1, perform_cluster=True, cluster_type="kmeans", 
+                  num_clusters=6, max_clusters=10, heatmap_plot=False, num_jobs=num_jobs, suptitle=stat_name.upper(),
+                  file_name=file_name + "_" + method_name.lower(), save_path=RESULT_PATH)
 
 
 if __name__ == "__main__":
@@ -193,4 +199,4 @@ if __name__ == "__main__":
     # for mac and linux(here, os.name is 'posix')
     else:
         _ = os.system('clear')
-    train(num_jobs=10)
+    train(num_jobs=4)

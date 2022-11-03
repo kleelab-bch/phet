@@ -25,7 +25,7 @@ def train(num_jobs: int = 4):
     direction = "both"
     topKfeatures = 100
     calculate_hstatistic = False
-    num_batches = 1000
+    num_batches = 50
     subsample_size = 10
 
     # Load expression data
@@ -50,11 +50,10 @@ def train(num_jobs: int = 4):
         raise Exception(temp)
 
     print("## Perform simulation studies using HER2 data...")
-    print("\t >> Control size: {0}; Case size: {1} Feature size: {2}".format(X_control.shape[0], X_case.shape[1],
+    print("\t >> Control size: {0}; Case size: {1}; Feature size: {2}".format(X_control.shape[0], X_case.shape[1],
                                                                              len(features_name)))
     list_scores = list()
-    methods = ["COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "UHet_zscore", "U-Het_robust",
-               "CLEANSE_zscore", "CLEANSE_robust"]
+    methods = ["COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "V-ΔIQR", "R-ΔIQR"]
     current_progress = 1
     total_progress = num_batches * len(methods)
     for batch_idx in range(num_batches):
@@ -150,35 +149,8 @@ def train(num_jobs: int = 4):
         current_progress += 1
 
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                "U-Het (zscore)"), end="\r")
+                                                                "V-ΔIQR"), end="\r")
         estimator = UHeT(normalize="zcore", q=0.75, iqr_range=(25, 75), calculate_pval=False)
-        top_features_pred = estimator.fit_predict(X=X, y=y)
-        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
-                                          X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
-        top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
-        temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
-        list_scores.append(temp)
-        current_progress += 1
-
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                "U-Het (robust)"), end="\r")
-        estimator = UHeT(normalize="robust", q=0.75, iqr_range=(25, 75), calculate_pval=False)
-        top_features_pred = estimator.fit_predict(X=X, y=y)
-        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
-                                          X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
-        top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
-        temp = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
-        list_scores.append(temp)
-        current_progress += 1
-
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                "CLEANSE (zscore)"), end="\r")
-        estimator = CLEANSE(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
-                            significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                            calculate_hstatistic=calculate_hstatistic, num_components=10, num_subclusters=10,
-                            binary_clustering=True, calculate_pval=False, num_rounds=50, num_jobs=num_jobs)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -190,14 +162,15 @@ def train(num_jobs: int = 4):
 
         if total_progress == current_progress:
             print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                    "CLEANSE (robust)"))
+                                                                    "R-ΔIQR"))
         else:
             print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                    "CLEANSE (robust)"), end="\r")
-        estimator = CLEANSE(normalize="robust", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
-                            significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                            calculate_hstatistic=calculate_hstatistic, num_components=10, num_subclusters=10,
-                            binary_clustering=True, calculate_pval=False, num_rounds=50, num_jobs=num_jobs)
+                                                                    "R-ΔIQR"), end="\r")
+            estimator = CLEANSE(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
+                                significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                                weight_range=[0.1, 0.3, 0.5], calculate_hstatistic=calculate_hstatistic, num_components=10,
+                                num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50,
+                                num_jobs=num_jobs)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -209,13 +182,14 @@ def train(num_jobs: int = 4):
 
     list_scores = np.array(list_scores)
     list_scores = np.reshape(list_scores, (num_batches, len(methods)))
-
+    
     # Plot boxplot
     print("## Plot boxplot using top k features...")
     df = pd.DataFrame(list_scores, index=range(num_batches), columns=methods)
     df.index.name = 'Batch'
     df = pd.melt(df.reset_index(), id_vars='Batch', value_vars=methods, var_name="Methods",
                  value_name="Jaccard scores")
+    df.to_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',', index=False)
     plt.figure(figsize=(12, 8))
     bplot = sns.boxplot(y='Jaccard scores', x='Methods', data=df, width=0.5,
                         palette="tab10")
@@ -228,7 +202,7 @@ def train(num_jobs: int = 4):
     plt.suptitle("Results using Her2 data for {0} batches".format(num_batches),
                  fontsize=22, fontweight="bold")
     sns.despine()
-    file_path = os.path.join(RESULT_PATH, "her2.png")
+    file_path = os.path.join(RESULT_PATH, "her2_boxplot.png")
     plt.tight_layout()
     plt.savefig(file_path)
     plt.clf()
@@ -243,4 +217,4 @@ if __name__ == "__main__":
     # for mac and linux(here, os.name is 'posix')
     else:
         _ = os.system('clear')
-    train(num_jobs=10)
+    train(num_jobs=4)
