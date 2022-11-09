@@ -25,7 +25,7 @@ def train(num_jobs: int = 4):
     plot_topKfeatures = False
     if not sort_by_pvalue:
         plot_topKfeatures = True
-    is_mtx = True
+    is_mtx = False
 
     # 1. Micro-array datasets: allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89,
                             # braintumor, cmlgse2535, colon, dlbcl, ewsgse967, gastricgse2685, glioblastoma, leukemia_golub, 
@@ -35,9 +35,9 @@ def train(num_jobs: int = 4):
     # 3. Lung scRNA datasets (mtx): pulseseq, pulseseq_club, pulseseq_club_lineage, pulseseq_goblet, pulseseq_tuft
     # 4. Lung scRNA datasets (csv): plasschaert_human, plasschaert_human_basal_vs_secretory, plasschaert_human_secretory_vs_ciliated, 
                             # plasschaert_human_secretory_vs_rare, plasschaert_mouse, plasschaert_mouse_secretory_vs_rare
-    file_name = "pulseseq_tuft"
-    control_name = "PNEC and Ionocyte cells"
-    case_name = "Tuft cells"
+    file_name = "plasschaert_human"
+    control_name = "Basal cells"
+    case_name = "non Basal cells"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
