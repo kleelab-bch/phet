@@ -30,73 +30,9 @@ suptitle=stat_name.upper()
 file_name=file_name + "_" + stat_name.lower()
 save_path=RESULT_PATH
 
-# boxplot
-df = pd.DataFrame(features_name, columns = ["features"])
-X_map = pd.read_csv(os.path.join(DATASET_PATH, "HU6800.chip"), sep='\t')
-df = df.merge(X_map, left_on='features', right_on='Probe Set ID')
-df = df.drop(["features"], axis=1)
-df = df.set_index('Probe Set ID')
-top_features_true = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file + ".csv"), sep=',',
-                                    index_col="ID")
-temp = [feature for feature in top_features_true.index.to_list() if str(feature) in features_name]
-top_features_true = top_features_true.loc[temp]
-top_features_true = [str(feature_idx) for feature_idx in top_features_true.index.to_list()]
-
-idx = 17 # or 0, 2, 5 no significant among populations
-feature_idx = features_name.index(top_features_true[idx])
-feature_idx = [features_name.index(methods_df["V-ΔIQR"]["features"].to_list()[i]) for i in np.arange(idx)]
-my_pal = {"normal": "yellowgreen", "tumor": "salmon", "medulloblastoma":"cornflowerblue", "glioma":"khaki", "rhabdoidtu":"cyan", "pnet":"lightpink"}
-idx = 5
-feature_idx = features_name.index(methods_df["R-ΔIQR"]["features"].to_list()[idx])
-sns.boxplot(x=subtypes, y=X[:, feature_idx], palette=my_pal)
-sns.swarmplot(x=subtypes, y=X[:, feature_idx], color='black', alpha=0.8)
-plt.xlabel('Class')
-plt.xticks(fontsize=18, rotation=45)
-plt.ylabel("Expression values")
-plt.yticks(fontsize=18)
-plt.suptitle(df.loc[methods_df["R-ΔIQR"]["features"].to_list()[idx]][0], fontsize=18, fontweight="bold")
-sns.despine()
-
-colors = []
-for f in np.arange(tempX.shape[0]):
-    if f in selected_features:
-        colors.append('r')
-    else:
-        colors.append('b')
-plt.ylabel("Statistics")
-sns.scatterplot(np.arange(tempX.shape[0]), tempX, hue=colors)
-plt.legend().remove()
-sns.despine()
-
-# 
-df = significant_features(X=df_cleanse[0], features_name=features_name, pvalue=pvalue, X_map=None, map_genes=False, ttest=False)
-selected_regulated_features = topKfeatures
-temp = np.sum(top_features_true)
-if selected_regulated_features > temp:
-    selected_regulated_features = temp
-temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'][:selected_regulated_features].tolist()]
-top_features_pred = np.zeros((len(top_features_true)))
-top_features_pred[temp] = 1
-score = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
-
-reducer = umap.UMAP(n_neighbors=5, n_components=2, n_epochs=2000, init="random", min_dist=0.1, n_jobs=num_jobs)
-temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()[:topKfeatures]]
-X_reducer = reducer.fit_transform(X[:, temp])
-sns.scatterplot(X_reducer[:, 0], X_reducer[:, 1], hue=subtypes, palette='tab10')
-plt.xlabel("UMAP 1")
-plt.ylabel("UMAP 2")
-plt.suptitle('Using top %s features from %s' % (str(len(temp)), expression_file_name), fontsize=18, fontweight="bold")
-plt.legend(title="Class")
-sns.despine()
-
-reducer = umap.UMAP(n_neighbors=5, n_components=2, n_epochs=2000, init="random", min_dist=0.1, n_jobs=num_jobs)
-X_reducer = reducer.fit_transform(X[:, df_cleanse[1]])
-sns.scatterplot(X_reducer[:, 0], X_reducer[:, 1], hue=subtypes, palette='tab10')
-plt.xlabel("UMAP 1")
-plt.ylabel("UMAP 2")
-plt.suptitle('Using top %s features from %s' % (str(len(df_cleanse[1])), expression_file_name), fontsize=18, fontweight="bold")
-plt.legend(title="Class")
-sns.despine()
+df = pd.read_excel(os.path.join(DATASET_PATH, "SupTab3_Consensus_Sigs.xlsx")).replace(np.nan, -1)
+marker_genes = list(set([item for item in df.to_numpy().flatten() if item != -1]))
+df[["Basal"]].replace(-1, np.nan).dropna(axis=0)
 
 # KS test
 

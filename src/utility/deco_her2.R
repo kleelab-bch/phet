@@ -4,7 +4,7 @@ require(dplyr, quietly = TRUE)
 working_dir <- file.path("R:/GeneAnalysis/data")
 
 file_name <- "her2"
-nBatches <- 1000
+num_batches <- 1000
 subsampleSize <- 10
 iterations <- 1000
 q.val <- 0.01
@@ -33,12 +33,12 @@ X_case <- SummarizedExperiment(assays = list(counts = X_case))
 #######################################################################
 
 pb <- txtProgressBar(min = 0,      # Minimum value of the progress bar
-                     max = nBatches, # Maximum value of the progress bar
+                     max = num_batches, # Maximum value of the progress bar
                      style = 3,    # Progress bar style (also available style = 1 and style = 2)
                      width = 80,   # Progress bar width. Defaults to getOption("width")
                      char = "=")   # Character used to create the bar
-batch_matrix <- matrix(0, nrow = length(featureIDs), ncol = nBatches)
-for (batch_idx in 1:nBatches) {
+batch_matrix <- matrix(0, nrow = length(featureIDs), ncol = num_batches)
+for (batch_idx in 1:num_batches) {
   temp <- sample(ncol(assay(X_case)), size = subsampleSize, replace = FALSE, prob = NULL)
   gset <- cbind(assay(X_control), assay(X_case)[, temp])
   classes <- rep(c(0, 1), c(ncol(assay(X_control)), subsampleSize))
@@ -61,7 +61,7 @@ for (batch_idx in 1:nBatches) {
   setTxtProgressBar(pb, batch_idx)
 }
 close(pb) # Close the connection
-colnames(batch_matrix) <- seq(0, nBatches - 1)
+colnames(batch_matrix) <- seq(0, num_batches - 1)
 write.table(batch_matrix,
             file = file.path(working_dir, paste(file_name, "_deco.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE, col.names = FALSE)

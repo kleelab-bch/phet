@@ -20,8 +20,8 @@ class CLEANSE:
     def __init__(self, normalize: str = None, q: float = 0.75, iqr_range: int = (25, 75), num_subsamples: int = 1000,
                  subsampling_size: int = 3, significant_p: float = 0.05, partition_by_anova: bool = False,
                  feature_weight: list = [0.4, 0.3, 0.2, 0.1], weight_range: list = [0.1, 0.3, 0.5],
-                 calculate_hstatistic: bool = True, num_components: int = 10, num_subclusters: int = 10, 
-                 binary_clustering: bool = True, calculate_pval: bool = False, num_rounds: int = 50, 
+                 calculate_hstatistic: bool = True, num_components: int = 10, num_subclusters: int = 10,
+                 binary_clustering: bool = True, calculate_pval: bool = False, num_rounds: int = 50,
                  num_jobs: int = 2):
         self.normalize = normalize  # robust or zscore (default: None)
         self.q = q

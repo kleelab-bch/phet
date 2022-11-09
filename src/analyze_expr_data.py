@@ -149,8 +149,8 @@ def train(num_jobs: int = 4):
                                                             "R-ΔIQR"))
     estimator = CLEANSE(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
                         significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                        weight_range = [0.1, 0.3, 0.5], calculate_hstatistic=calculate_hstatistic, num_components=10, 
-                        num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50, 
+                        weight_range=[0.1, 0.3, 0.5], calculate_hstatistic=calculate_hstatistic, num_components=10,
+                        num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50,
                         num_jobs=num_jobs)
     df_cleanse_z = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
 
@@ -225,9 +225,10 @@ def train(num_jobs: int = 4):
             temp_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
         num_features = len(temp)
         plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
-                  standardize=True, num_neighbors=5, min_dist=0.0, perform_cluster=True, cluster_type="spectral", 
+                  standardize=True, num_neighbors=5, min_dist=0.0, perform_cluster=True, cluster_type="spectral",
                   num_clusters=0, max_clusters=10, heatmap_plot=False, num_jobs=num_jobs, suptitle=stat_name.upper(),
                   file_name=file_name + "_" + method_name.lower(), save_path=RESULT_PATH)
+
 
 if __name__ == "__main__":
     # for windows

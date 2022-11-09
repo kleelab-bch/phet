@@ -28,11 +28,16 @@ def train(num_jobs: int = 4):
     is_mtx = True
 
     # 1. Micro-array datasets: allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89,
-    # braintumor, cmlgse2535, colon, dlbcl, ewsgse967, gastricgse2685, glioblastoma, leukemia_golub, 
-    # ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, mll, myelodysplastic_mds1, 
-    # myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
+                            # braintumor, cmlgse2535, colon, dlbcl, ewsgse967, gastricgse2685, glioblastoma, leukemia_golub, 
+                            # ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, mll, myelodysplastic_mds1, 
+                            # myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
     # 2. scRNA datasets: camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
-    file_name = "pulseseq" # pulseseq, pulseseq_club, pulseseq_club_lineage
+    # 3. Lung scRNA datasets (mtx): pulseseq, pulseseq_club, pulseseq_club_lineage, pulseseq_goblet, pulseseq_tuft
+    # 4. Lung scRNA datasets (csv): plasschaert_human, plasschaert_human_basal_vs_secretory, plasschaert_human_secretory_vs_ciliated, 
+                            # plasschaert_human_secretory_vs_rare, plasschaert_mouse, plasschaert_mouse_secretory_vs_rare
+    file_name = "pulseseq_tuft"
+    control_name = "PNEC and Ionocyte cells"
+    case_name = "Tuft cells"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
@@ -79,14 +84,23 @@ def train(num_jobs: int = 4):
         top_features_true = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file + ".csv"), sep=',',
                                         index_col="ID")
         temp = [feature for feature in top_features_true.index.to_list() if str(feature) in features_name]
-        top_features_true = top_features_true.loc[temp]
-        temp = top_features_true[top_features_true["adj.P.Val"] <= pvalue]
-        if temp.shape[0] < topKfeatures:
-            temp = top_features_true[:topKfeatures - 1]
-            if sort_by_pvalue and temp.shape[0] == 0:
-                plot_topKfeatures = True
-        top_features_true = [str(feature_idx) for feature_idx in temp.index.to_list()[:topKfeatures]]
+        if top_features_true.shape[1] > 0:
+            top_features_true = top_features_true.loc[temp]
+            temp = top_features_true[top_features_true["adj.P.Val"] <= pvalue]
+            if temp.shape[0] < topKfeatures:
+                temp = top_features_true[:topKfeatures - 1]
+                if sort_by_pvalue and temp.shape[0] == 0:
+                    plot_topKfeatures = True
+            top_features_true = [str(feature_idx) for feature_idx in temp.index.to_list()[:topKfeatures]]
+        else:
+            top_features_true = temp
+            topKfeatures = len(top_features_true)
         top_features_true = [1 if feature in top_features_true else 0 for idx, feature in enumerate(features_name)]
+    else:
+        top_features_true = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file + ".csv")).replace(np.nan, -1)
+        top_features_true = list(set([item for item in top_features_true.to_numpy().flatten() if item != -1]))
+        top_features_true = [1 if feature in top_features_true else 0 for idx, feature in enumerate(features_name)]
+        topKfeatures = sum(top_features_true)
 
     # Load subtypes file
     subtypes = pd.read_csv(os.path.join(DATASET_PATH, subtypes_file + ".csv"), sep=',').dropna(axis=1)
@@ -106,10 +120,10 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "R-ΔIQR"))
-    estimator = CLEANSE(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
+    estimator = CLEANSE(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=5000, subsampling_size=None,
                         significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                        weight_range = [0.1, 0.3, 0.5], calculate_hstatistic=calculate_hstatistic, num_components=10, 
-                        num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50, 
+                        weight_range=[0.1, 0.3, 0.5], calculate_hstatistic=calculate_hstatistic, num_components=10,
+                        num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50,
                         num_jobs=num_jobs)
     df_riqr = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
 
@@ -134,35 +148,39 @@ def train(num_jobs: int = 4):
         methods_df[stat_name] = temp
     del df_viqr, df_riqr
 
-    if not is_mtx:
-        print("## Scoring results using known regulated features...")
-        selected_regulated_features = topKfeatures
-        temp = np.sum(top_features_true)
-        if selected_regulated_features > temp:
-            selected_regulated_features = temp
-        print("\t >> Number of up/down regulated features: {0}".format(selected_regulated_features))
-        list_scores = list()
-        for stat_name, df in methods_df.items():
-            temp = [idx for idx, feature in enumerate(features_name)
-                    if feature in df['features'][:selected_regulated_features].tolist()]
-            top_features_pred = np.zeros((len(top_features_true)))
-            top_features_pred[temp] = 1
-            score = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
-            list_scores.append(score)
-
-        print("## Plot barplot using the top {0} features...".format(topKfeatures))
-        plot_barplot(X=list_scores, methods_name=list(methods_df.keys()), file_name=file_name,
-                     save_path=RESULT_PATH)
+    print("## Scoring results using known regulated features...")
+    selected_regulated_features = topKfeatures
+    temp = np.sum(top_features_true)
+    if selected_regulated_features > temp:
+        selected_regulated_features = temp
+    print("\t >> Number of up/down regulated features: {0}".format(selected_regulated_features))
+    list_scores = list()
+    for stat_name, df in methods_df.items():
+        temp = [idx for idx, feature in enumerate(features_name)
+                if feature in df['features'][:selected_regulated_features].tolist()]
+        top_features_pred = np.zeros((len(top_features_true)))
+        top_features_pred[temp] = 1
+        score = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
+        list_scores.append(score)
+    print("## Plot barplot using the top {0} features...".format(topKfeatures))
+    plot_barplot(X=list_scores, methods_name=list(methods_df.keys()), file_name=file_name,
+                 save_path=RESULT_PATH)
 
     temp = np.copy(y)
     temp = temp.astype(str)
-    temp[np.where(y == 0)[0]] = "Basal cells"
-    temp[np.where(y == 1)[0]] = "non Basal cells"
+    temp[np.where(y == 0)[0]] = control_name
+    temp[np.where(y == 1)[0]] = case_name
     y = temp
     print("## Plot UMAP using all features ({0})...".format(num_features))
     plot_umap(X=X, y=y, subtypes=subtypes, features_name=features_name, num_features=num_features, standardize=True,
               num_neighbors=5, min_dist=0, cluster_type="kmeans", num_clusters=0, max_clusters=10, heatmap_plot=False,
               num_jobs=num_jobs, suptitle=None, file_name=file_name + "_all", save_path=RESULT_PATH)
+    print("## Plot UMAP using marker features ({0})...".format(sum(top_features_true)))
+    temp = np.where(np.array(top_features_true) == 1)[0]
+    plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=features_name, num_features=temp.shape[0],
+              standardize=True, num_neighbors=5, min_dist=0, cluster_type="kmeans", num_clusters=0, max_clusters=10, 
+              heatmap_plot=False, num_jobs=num_jobs, suptitle="UMAP of markers", file_name=file_name + "_markers", 
+              save_path=RESULT_PATH)
 
     if plot_topKfeatures:
         print("## Plot UMAP using the top {0} features...".format(topKfeatures))
@@ -187,7 +205,7 @@ def train(num_jobs: int = 4):
             temp_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
         num_features = len(temp)
         plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
-                  standardize=True, num_neighbors=5, min_dist=0.1, perform_cluster=True, cluster_type="kmeans", 
+                  standardize=True, num_neighbors=5, min_dist=0.1, perform_cluster=True, cluster_type="kmeans",
                   num_clusters=6, max_clusters=10, heatmap_plot=False, num_jobs=num_jobs, suptitle=stat_name.upper(),
                   file_name=file_name + "_" + method_name.lower(), save_path=RESULT_PATH)
 

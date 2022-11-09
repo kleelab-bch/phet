@@ -96,7 +96,7 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
                  suptitle=suptitle, file_name=file_name + "_umap.png", save_path=save_path)
     if subtypes is not None:
         plot_scatter(X=X_reducer, y=subtypes, num_features=num_features, suptitle=suptitle,
-                    file_name=file_name + "_subtypes_umap.png", save_path=save_path)
+                     file_name=file_name + "_subtypes_umap.png", save_path=save_path)
 
     if perform_cluster:
         # Perform Silhoette Analysis
@@ -119,7 +119,7 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
         df.to_csv(os.path.join(save_path, file_name + "_clusters.csv"), sep=',')
 
         plot_scatter(X=X_reducer, y=cluster_labels, num_features=num_features, legend_title="Cluster",
-                    suptitle=suptitle, file_name=file_name + "_clusters_umap.png", save_path=save_path)
+                     suptitle=suptitle, file_name=file_name + "_clusters_umap.png", save_path=save_path)
 
     if heatmap_plot and perform_cluster:
         # print heatmap if true

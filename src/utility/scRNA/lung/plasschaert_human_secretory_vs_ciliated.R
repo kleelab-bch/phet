@@ -1,43 +1,70 @@
+# Plasschaert, L.W., Zilionis, R., Choo-Wing, R., Savova, V., Knehr, J., Roma, G., Klein, A.M. and Jaffe, A.B., 2018. A single-cell atlas of the airway epithelium reveals the CFTR-rich pulmonary ionocyte. Nature, 560(7718), pp.377-381.
+
 # Differential expression analysis with limma
 require(limma)
 require(umap)
+require(Seurat)
+require(Matrix)
+source("R:/GeneAnalysis/uhet/src/utility/create_sce.R")
 
 working_dir <- file.path("R:/GeneAnalysis/data")
-file_name <- "leukemia_golub"
+file_name <- "plasschaert_human_secretory_vs_ciliated"
 
-# load series and platform data from GEO
-gset <- read.table(file.path(working_dir, paste(file_name, ".csv", sep = "")),
-                   header = TRUE, sep = ",", check.names = FALSE,
-                   stringsAsFactors = FALSE)
-drop_cols <- c("", "Samples", "BM.PB", "Gender", "Source", "tissue.mf",
-               "cancer")
-classes <- gset$cancer
-featureNames <- colnames(gset)[!(names(gset) %in% drop_cols)]
-gset <- gset[, featureNames]
+### Load data
+metadata <- read.table(file.path(working_dir, 
+                                 paste("GSE102580_meta_human.tsv", sep = "")),
+                       header = TRUE, sep = "\t", row.names = 1, 
+                       check.names = FALSE, stringsAsFactors = FALSE)
+metadata$cell_type1 <- metadata$clusters_Fig1
+metadata <- metadata$cell_type1
+metadata[metadata == "Interm. basal>secr."] <- "Basal>Secretory"
+metadata[metadata == "Interm. secr.>cil."] <- "Secretory>Ciliated"
+# keep Basal cells 
+condition <- metadata %in% c("Secretory", "Secretory>Ciliated", "Ciliated")
+metadata <- metadata[condition]
+# markers
+df <- read.table(file.path(working_dir, 
+                           paste("plasschaert_human_all_features.csv", sep = "")),
+                 header = TRUE, sep = ",", row.names = 1, check.names = FALSE,
+                 stringsAsFactors = FALSE)
+df[df == "Interm. basal>secr."] <- "Basal>Secretory"
+df[df == "Interm. secr.>cil."] <- "Secretory>Ciliated"
+enriched_features <- df$EnrichedIn %in% c("Secretory", "Secretory>Ciliated", "Ciliated")
+ID <- rownames(df)[enriched_features]
+write.table(as.data.frame(ID), file = file.path(working_dir, paste(file_name, "_features.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+# already normalized
+gset <- read.table(file.path(working_dir, 
+                             paste("GSE102580_normalized_counts_human.tsv", sep = "")),
+                   header = TRUE, sep = "\t", row.names = 1, 
+                   check.names = FALSE, stringsAsFactors = FALSE)
+features <- rownames(gset)
+gset <- gset[, condition]
+gset <- as.data.frame(t(gset))
 
 # group membership for all samples
-gsms <- c(0, 1, 1)
-names(gsms) <- c("aml", "allB", "allT")
-gsms <- gsms[classes]
+# 0 (Secretory cells): "Secretory" and "Secretory>Ciliated"
+# 1 (Ciliated cells): "Ciliated"
+gsms <- c(0, 1, 0)
+names(gsms) <- unique(metadata)
+gsms <- gsms[metadata]
 gsms <- paste0(gsms, collapse = "")
 sml <- strsplit(gsms, split = "")[[1]]
 
-# collect subtypes 
-subtypes <- classes
+# save subtypes 
+subtypes <- metadata
 write.table(as.data.frame(subtypes), file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
-# log2 transformation
-ex <- gset
-df <- gset
-df$class <- sml
-write.table(df, file = file.path(working_dir, paste(file_name, "_matrix.csv", sep = "")),
+# save features data
+gset$class <- sml
+write.table(gset, file = file.path(working_dir, paste(file_name, "_matrix.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
-remove(df)
+gset$class <- NULL
 
 # assign samples to groups and set up design matrix
 gs <- factor(sml)
-groups <- make.names(c("AML", "ALL"))
+groups <- make.names(c("Control", "Case"))
 levels(gs) <- groups
 gset$group <- gs
 design <- model.matrix(~group + 0, gset)
@@ -90,34 +117,19 @@ volcanoplot(fit2, coef = ct, main = colnames(fit2)[ct], pch = 20,
 plotMD(fit2, column = ct, status = dT[, ct], legend = F, pch = 20, cex = 1)
 abline(h = 0)
 
-################################################################
-# General expression data analysis
-ex <- gset
-
-# box-and-whisker plot
-dev.new(width = 3 + ncol(gset) / 6, height = 5)
-ord <- order(gs)  # order samples by group
-palette(c("#1B9E77", "#7570B3", "#E7298A", "#E6AB02", "#D95F02",
-          "#66A61E", "#A6761D", "#B32424", "#B324B3", "#666666"))
-par(mar = c(7, 4, 2, 1))
-title <- paste("Leukemia", sep = "")
-boxplot(ex[, ord], boxwex = 0.6, notch = T, main = title, outline = FALSE, las = 2, col = gs[ord])
-legend("topleft", groups, fill = palette(), bty = "n")
-dev.off()
-
 # expression value distribution
 par(mar = c(4, 4, 2, 1))
-title <- paste("Leukemia value distribution", sep = "")
-plotDensities(ex, group = gs, main = title, legend = "topright")
+title <- paste(toupper(file_name), " value distribution", sep = "")
+plotDensities(gset, group = gs, main = title, legend = "topright")
 
 # UMAP plot (dimensionality reduction)
-ex <- na.omit(ex) # eliminate rows with NAs
-ex <- ex[!duplicated(ex),]  # remove duplicates
-ump <- umap(t(ex), n_neighbors = 5, random_state = 123)
+gset <- na.omit(gset) # eliminate rows with NAs
+gset <- gset[!duplicated(gset),]  # remove duplicates
+ump <- umap(t(gset), n_neighbors = 5, random_state = 123)
 par(mar = c(3, 3, 2, 6), xpd = TRUE)
 plot(ump$layout, main = "UMAP plot, nbrs=5", xlab = "", ylab = "", col = gs, pch = 20, cex = 1.5)
 legend("topright", inset = c(-0.15, 0), legend = levels(gs), pch = 20,
        col = 1:nlevels(gs), title = "Group", pt.cex = 1.5)
 
 # mean-variance trend, helps to see if precision weights are needed
-plotSA(fit2, main = "Mean variance trend, Leukemia")
+plotSA(fit2, main = paste("Mean variance trend,", toupper(file_name)))

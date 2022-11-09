@@ -25,7 +25,7 @@ def train(num_jobs: int = 4):
     direction = "both"
     topKfeatures = 100
     calculate_hstatistic = False
-    num_batches = 50
+    num_batches = 1000
     subsample_size = 10
 
     # Load expression data
@@ -51,7 +51,7 @@ def train(num_jobs: int = 4):
 
     print("## Perform simulation studies using HER2 data...")
     print("\t >> Control size: {0}; Case size: {1}; Feature size: {2}".format(X_control.shape[0], X_case.shape[1],
-                                                                             len(features_name)))
+                                                                              len(features_name)))
     list_scores = list()
     methods = ["COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "V-ΔIQR", "R-ΔIQR"]
     current_progress = 1
@@ -166,9 +166,11 @@ def train(num_jobs: int = 4):
         else:
             print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                     "R-ΔIQR"), end="\r")
-            estimator = CLEANSE(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
+            estimator = CLEANSE(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000,
+                                subsampling_size=None,
                                 significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                                weight_range=[0.1, 0.3, 0.5], calculate_hstatistic=calculate_hstatistic, num_components=10,
+                                weight_range=[0.1, 0.3, 0.5], calculate_hstatistic=calculate_hstatistic,
+                                num_components=10,
                                 num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50,
                                 num_jobs=num_jobs)
         top_features_pred = estimator.fit_predict(X=X, y=y)
@@ -182,7 +184,7 @@ def train(num_jobs: int = 4):
 
     list_scores = np.array(list_scores)
     list_scores = np.reshape(list_scores, (num_batches, len(methods)))
-    
+
     # Plot boxplot
     print("## Plot boxplot using top k features...")
     df = pd.DataFrame(list_scores, index=range(num_batches), columns=methods)
