@@ -11,9 +11,9 @@ working_dir <- file.path("R:/GeneAnalysis/data")
 file_name <- "plasschaert_human_secretory_vs_rare"
 
 ### Load data
-metadata <- read.table(file.path(working_dir, 
+metadata <- read.table(file.path(working_dir,
                                  paste("GSE102580_meta_human.tsv", sep = "")),
-                       header = TRUE, sep = "\t", row.names = 1, 
+                       header = TRUE, sep = "\t", row.names = 1,
                        check.names = FALSE, stringsAsFactors = FALSE)
 metadata$cell_type1 <- metadata$clusters_Fig1
 metadata <- metadata$cell_type1
@@ -23,7 +23,7 @@ metadata[metadata == "Interm. secr.>cil."] <- "Secretory>Ciliated"
 condition <- !metadata %in% c("Basal", "Basal>Secretory")
 metadata <- metadata[condition]
 # markers
-df <- read.table(file.path(working_dir, 
+df <- read.table(file.path(working_dir,
                            paste("plasschaert_human_all_features.csv", sep = "")),
                  header = TRUE, sep = ",", row.names = 1, check.names = FALSE,
                  stringsAsFactors = FALSE)
@@ -34,9 +34,9 @@ ID <- rownames(df)[enriched_features]
 write.table(as.data.frame(ID), file = file.path(working_dir, paste(file_name, "_features.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 # already normalized
-gset <- read.table(file.path(working_dir, 
+gset <- read.table(file.path(working_dir,
                              paste("GSE102580_normalized_counts_human.tsv", sep = "")),
-                   header = TRUE, sep = "\t", row.names = 1, 
+                   header = TRUE, sep = "\t", row.names = 1,
                    check.names = FALSE, stringsAsFactors = FALSE)
 features <- rownames(gset)
 gset <- gset[, condition]

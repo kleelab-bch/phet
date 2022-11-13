@@ -49,6 +49,10 @@ def train(num_jobs: int = 4):
     X = X.drop(["class"], axis=1).to_numpy()
     np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
+    # Load subtypes file
+    subtypes = pd.read_csv(os.path.join(DATASET_PATH, subtypes_file + ".csv"), sep=',').dropna(axis=1)
+    subtypes = subtypes["subtypes"].to_list()
+
     # Filter data based on counts (CPM)
     example_sums = np.absolute(X).sum(1)
     examples_ids = np.where(example_sums >= 5)[0]
@@ -82,10 +86,6 @@ def train(num_jobs: int = 4):
             plot_topKfeatures = True
     top_features_true = [str(feature_idx) for feature_idx in temp.index.to_list()[:topKfeatures]]
     top_features_true = [1 if feature in top_features_true else 0 for idx, feature in enumerate(features_name)]
-
-    # Load subtypes file
-    subtypes = pd.read_csv(os.path.join(DATASET_PATH, subtypes_file + ".csv"), sep=',').dropna(axis=1)
-    subtypes = subtypes["subtypes"].to_list()
 
     print("## Perform experimental studies using {0} data...".format(file_name))
     print("\t >> Sample size: {0}; Feature size: {1}; Subtype size: {2}".format(X.shape[0], X.shape[1],

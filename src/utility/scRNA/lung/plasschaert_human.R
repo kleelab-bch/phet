@@ -12,16 +12,16 @@ file_name <- "plasschaert_human"
 
 ### Load data
 # metadata
-metadata <- read.table(file.path(working_dir, 
-                             paste("GSE102580_meta_human.tsv", sep = "")),
-                   header = TRUE, sep = "\t", row.names = 1, 
-                   check.names = FALSE, stringsAsFactors = FALSE)
+metadata <- read.table(file.path(working_dir,
+                                 paste("GSE102580_meta_human.tsv", sep = "")),
+                       header = TRUE, sep = "\t", row.names = 1,
+                       check.names = FALSE, stringsAsFactors = FALSE)
 metadata$cell_type1 <- metadata$clusters_Fig1
 metadata <- metadata$cell_type1
 metadata[metadata == "Interm. basal>secr."] <- "Basal>Secretory"
 metadata[metadata == "Interm. secr.>cil."] <- "Secretory>Ciliated"
 # markers
-df <- read.table(file.path(working_dir, 
+df <- read.table(file.path(working_dir,
                            paste("plasschaert_human_all_features.csv", sep = "")),
                  header = TRUE, sep = ",", row.names = 1, check.names = FALSE,
                  stringsAsFactors = FALSE)
@@ -31,13 +31,13 @@ ID <- rownames(df)
 write.table(as.data.frame(ID), file = file.path(working_dir, paste(file_name, "_features.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 # already normalized
-gset <- read.table(file.path(working_dir, 
+gset <- read.table(file.path(working_dir,
                              paste("GSE102580_normalized_counts_human.tsv", sep = "")),
-                   header = TRUE, sep = "\t", row.names = 1, 
+                   header = TRUE, sep = "\t", row.names = 1,
                    check.names = FALSE, stringsAsFactors = FALSE)
 features <- rownames(gset)
 gset <- as.data.frame(t(gset))
-  
+
 # group membership for all samples
 # 0 (Basal cells): "Basal" and "Basal>Secretory"
 # 1 (non Basal cells): "Secretory", "Secretory>Ciliated", "Ciliated", "FOXN4+",  "SLC16A7+", "Ionocyte", and "Brush+PNEC"

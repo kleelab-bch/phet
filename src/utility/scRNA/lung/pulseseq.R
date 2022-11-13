@@ -28,8 +28,8 @@ metadata <- metadata$cell_type1
 #########################################################
 # The population of proliferating cells are predominantly basal cells
 # group membership for all samples
-# 0 (Basal cells): "Basal" and "Proliferating"
-# 1 (non Basal cells): "Club", "Neuroendocrine", "Ciliated", "Goblet", "Ionocyte", and "Tuft"   
+# 0 (Basal): "Basal" and "Proliferating"
+# 1 (non Basal): "Club", "Neuroendocrine", "Ciliated", "Goblet", "Ionocyte", and "Tuft"   
 gsms <- c(0, 0, 1, 1, 1, 1, 1, 1)
 names(gsms) <- unique(metadata)
 gsms <- gsms[metadata]
@@ -64,9 +64,9 @@ metadata <- metadata[condition]
 file_name <- "pulseseq_club"
 
 # group membership for all samples
-# 0 (Club cells): "Club", "Ciliated", and "Goblet"
-# 1 (non Club cells): "Proliferating", Neuroendocrine", "Ionocyte", and "Tuft"   
-gsms <- c(1, 0, 1, 0, 0, 1, 1)
+# 0 (Club): "Club", "Ciliated", and "Goblet"
+# 1 (non Club): Neuroendocrine", "Ionocyte", and "Tuft"
+gsms <- c(0, 1, 0, 0, 1, 1)
 names(gsms) <- unique(metadata)
 gsms <- gsms[metadata]
 gsms <- paste0(gsms, collapse = "")
@@ -101,15 +101,15 @@ metadata <- metadata[condition]
 file_name <- "pulseseq_club_lineage"
 
 # group membership for all samples
-# 0 (Club cells lineage): "Goblet" and "Ciliated"
-# 1 (non Club cells lineage): Neuroendocrine", "Ionocyte", and "Tuft"
+# 0 (Club lineage): "Goblet" and "Ciliated"
+# 1 (non Club lineage): Neuroendocrine", "Ionocyte", and "Tuft"
 gsms <- c(1, 0, 0, 1, 1)
 names(gsms) <- unique(metadata)
 gsms <- gsms[metadata]
 gsms <- paste0(gsms, collapse = "")
 sml <- strsplit(gsms, split = "")[[1]]
 
-# save subtypes 
+# save subtypes
 subtypes <- metadata
 write.table(as.data.frame(subtypes), file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
@@ -137,8 +137,8 @@ temp_metadata <- metadata[condition]
 file_name <- "pulseseq_goblet"
 
 # group membership for all samples
-# 0 (Ciliated cells): "Ciliated"
-# 1 (Goblet cells): "Goblet"
+# 0 (Ciliated): "Ciliated"
+# 1 (Goblet): "Goblet"
 gsms <- c(0, 1)
 names(gsms) <- unique(temp_metadata)
 gsms <- gsms[temp_metadata]
@@ -172,8 +172,8 @@ metadata <- metadata[condition]
 file_name <- "pulseseq_tuft"
 
 # group membership for all samples
-# 0 (PNEC and Ionocyte cells): "Neuroendocrine" and "Ionocyte"
-# 1 (Tuft cells): "Tuft"
+# 0 (PNEC and Ionocyte): "Neuroendocrine" and "Ionocyte"
+# 1 (Tuft): "Tuft"
 gsms <- c(0, 0, 1)
 names(gsms) <- unique(metadata)
 gsms <- gsms[metadata]
@@ -196,4 +196,5 @@ write.table(as.data.frame(features), file = file.path(working_dir, paste(file_na
 
 # save features data
 rownames(gset) <- features
-writeMM(gset[, condition], file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
+gset <- gset[, condition]
+writeMM(gset, file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))

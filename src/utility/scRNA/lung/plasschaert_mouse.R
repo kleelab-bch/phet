@@ -11,14 +11,14 @@ working_dir <- file.path("R:/GeneAnalysis/data")
 file_name <- "plasschaert_mouse"
 
 ### Load data
-metadata <- read.table(file.path(working_dir, 
+metadata <- read.table(file.path(working_dir,
                                  paste("GSE102580_meta_mouse.tsv", sep = "")),
-                       header = TRUE, sep = "\t", row.names = 1, 
+                       header = TRUE, sep = "\t", row.names = 1,
                        check.names = FALSE, stringsAsFactors = FALSE)
 metadata$cell_type1 <- metadata$clusters_Fig2
 metadata <- metadata$cell_type1
 # markers
-df <- read.table(file.path(working_dir, 
+df <- read.table(file.path(working_dir,
                            paste("plasschaert_mouse_all_features.csv", sep = "")),
                  header = TRUE, sep = ",", row.names = 1, check.names = FALSE,
                  stringsAsFactors = FALSE)
@@ -26,9 +26,9 @@ ID <- rownames(df)
 write.table(as.data.frame(ID), file = file.path(working_dir, paste(file_name, "_features.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 # already normalized
-gset <- read.table(file.path(working_dir, 
+gset <- read.table(file.path(working_dir,
                              paste("GSE102580_normalized_counts_mouse.tsv", sep = "")),
-                   header = TRUE, sep = "\t", row.names = 1, 
+                   header = TRUE, sep = "\t", row.names = 1,
                    check.names = FALSE, stringsAsFactors = FALSE)
 features <- rownames(gset)
 gset <- as.data.frame(t(gset))

@@ -28,19 +28,19 @@ def train(num_jobs: int = 4):
     is_mtx = False
 
     # 1. Micro-array datasets: allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89,
-                            # braintumor, cmlgse2535, colon, dlbcl, ewsgse967, gastricgse2685, glioblastoma, leukemia_golub, 
-                            # ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, mll, myelodysplastic_mds1, 
-                            # myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
+    # braintumor, cmlgse2535, colon, dlbcl, ewsgse967, gastricgse2685, glioblastoma, leukemia_golub,
+    # ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, mll, myelodysplastic_mds1,
+    # myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
     # 2. scRNA datasets: camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
     # 3. Lung scRNA datasets (mtx): pulseseq, pulseseq_club, pulseseq_club_lineage, pulseseq_goblet, pulseseq_tuft
     # 4. Lung scRNA datasets (csv): plasschaert_human, plasschaert_human_basal_vs_secretory, plasschaert_human_secretory_vs_ciliated, 
-                            # plasschaert_human_secretory_vs_rare, plasschaert_mouse, plasschaert_mouse_secretory_vs_rare
-    file_name = "plasschaert_human"
-    control_name = "Basal cells"
-    case_name = "non Basal cells"
+    # plasschaert_human_secretory_vs_rare, plasschaert_mouse, plasschaert_mouse_secretory_vs_rare
+    file_name = "plasschaert_human_basal_vs_secretory"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
+    control_name = "Basal>Secretory"
+    case_name = "Basal and Secretory"
 
     # Load expression data
     if not is_mtx:
@@ -56,6 +56,10 @@ def train(num_jobs: int = 4):
         y = pd.read_csv(os.path.join(DATASET_PATH, file_name + "_classes.csv"), sep=',')
         y = y["classes"].to_numpy()
     np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+
+    # Load subtypes file
+    subtypes = pd.read_csv(os.path.join(DATASET_PATH, subtypes_file + ".csv"), sep=',').dropna(axis=1)
+    subtypes = [str(idx).lower() for idx in subtypes["subtypes"].to_list()]
 
     # Filter data based on counts (CPM)
     example_sums = np.absolute(X).sum(1)
@@ -97,14 +101,11 @@ def train(num_jobs: int = 4):
             topKfeatures = len(top_features_true)
         top_features_true = [1 if feature in top_features_true else 0 for idx, feature in enumerate(features_name)]
     else:
-        top_features_true = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file + ".csv")).replace(np.nan, -1)
+        top_features_true = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file + ".csv")).replace(np.nan,
+                                                                                                              -1)
         top_features_true = list(set([item for item in top_features_true.to_numpy().flatten() if item != -1]))
         top_features_true = [1 if feature in top_features_true else 0 for idx, feature in enumerate(features_name)]
         topKfeatures = sum(top_features_true)
-
-    # Load subtypes file
-    subtypes = pd.read_csv(os.path.join(DATASET_PATH, subtypes_file + ".csv"), sep=',').dropna(axis=1)
-    subtypes = [str(idx).lower() for idx in subtypes["subtypes"].to_list()]
 
     print("## Perform experimental studies using {0} data...".format(file_name))
     print("\t >> Sample size: {0}; Feature size: {1}; Subtype size: {2}".format(X.shape[0], X.shape[1],
@@ -121,7 +122,7 @@ def train(num_jobs: int = 4):
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "R-ΔIQR"))
     estimator = CLEANSE(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=5000, subsampling_size=None,
-                        significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                        significant_p=0.05, partition_by_anova=False, feature_weight=[0.5, 0.25, 0.15, 0.05],
                         weight_range=[0.1, 0.3, 0.5], calculate_hstatistic=calculate_hstatistic, num_components=10,
                         num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50,
                         num_jobs=num_jobs)
@@ -178,8 +179,8 @@ def train(num_jobs: int = 4):
     print("## Plot UMAP using marker features ({0})...".format(sum(top_features_true)))
     temp = np.where(np.array(top_features_true) == 1)[0]
     plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=features_name, num_features=temp.shape[0],
-              standardize=True, num_neighbors=5, min_dist=0, cluster_type="kmeans", num_clusters=0, max_clusters=10, 
-              heatmap_plot=False, num_jobs=num_jobs, suptitle="UMAP of markers", file_name=file_name + "_markers", 
+              standardize=True, num_neighbors=5, min_dist=0, cluster_type="kmeans", num_clusters=0, max_clusters=10,
+              heatmap_plot=False, num_jobs=num_jobs, suptitle="UMAP of markers", file_name=file_name + "_markers",
               save_path=RESULT_PATH)
 
     if plot_topKfeatures:
@@ -206,7 +207,7 @@ def train(num_jobs: int = 4):
         num_features = len(temp)
         plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
                   standardize=True, num_neighbors=5, min_dist=0.1, perform_cluster=True, cluster_type="kmeans",
-                  num_clusters=6, max_clusters=10, heatmap_plot=False, num_jobs=num_jobs, suptitle=stat_name.upper(),
+                  num_clusters=4, max_clusters=10, heatmap_plot=False, num_jobs=num_jobs, suptitle=stat_name.upper(),
                   file_name=file_name + "_" + method_name.lower(), save_path=RESULT_PATH)
 
 
