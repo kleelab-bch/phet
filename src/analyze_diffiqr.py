@@ -17,7 +17,6 @@ sns.set_theme(style="white")
 
 def train(num_jobs: int = 4):
     # Arguments
-    minimum_samples = 5
     pvalue = 0.01
     calculate_hstatistic = False
     sort_by_pvalue = True
@@ -25,22 +24,22 @@ def train(num_jobs: int = 4):
     plot_topKfeatures = False
     if not sort_by_pvalue:
         plot_topKfeatures = True
-    is_mtx = False
+    is_mtx = True
 
     # 1. Micro-array datasets: allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89,
     # braintumor, cmlgse2535, colon, dlbcl, ewsgse967, gastricgse2685, glioblastoma, leukemia_golub,
     # ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, mll, myelodysplastic_mds1,
     # myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
     # 2. scRNA datasets: camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
-    # 3. Lung scRNA datasets (mtx): pulseseq, pulseseq_club, pulseseq_club_lineage, pulseseq_goblet, pulseseq_tuft
+    # 3. Lung scRNA datasets (mtx): pulseseq, pulseseq_club, pulseseq_club_lineage, pulseseq_goblet, pulseseq_tuft, pulseseq_ionocyte
     # 4. Lung scRNA datasets (csv): plasschaert_human, plasschaert_human_basal_vs_secretory, plasschaert_human_secretory_vs_ciliated, 
     # plasschaert_human_secretory_vs_rare, plasschaert_mouse, plasschaert_mouse_secretory_vs_rare
-    file_name = "plasschaert_human_basal_vs_secretory"
+    file_name = "pulseseq_ionocyte"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
-    control_name = "Basal>Secretory"
-    case_name = "Basal and Secretory"
+    control_name = "Ionocyte"
+    case_name = "Tuft"
 
     # Load expression data
     if not is_mtx:
@@ -61,9 +60,10 @@ def train(num_jobs: int = 4):
     subtypes = pd.read_csv(os.path.join(DATASET_PATH, subtypes_file + ".csv"), sep=',').dropna(axis=1)
     subtypes = [str(idx).lower() for idx in subtypes["subtypes"].to_list()]
 
-    # Filter data based on counts (CPM)
+    # Filter data based on counts
+    num_examples, num_features = X.shape
     example_sums = np.absolute(X).sum(1)
-    examples_ids = np.where(example_sums >= 5)[0]
+    examples_ids = np.where(example_sums > int(0.01 * num_features))[0]
     X = X[examples_ids]
     y = y[examples_ids]
     num_examples, num_features = X.shape
@@ -74,9 +74,9 @@ def train(num_jobs: int = 4):
     temp[temp != 1] = 0
     feature_sums = temp.sum(0)
     del temp
-    if num_examples <= minimum_samples or minimum_samples > num_examples // 2:
-        minimum_samples = num_examples // 2
-    feature_ids = np.where(feature_sums >= minimum_samples)[0]
+    # if num_examples <= minimum_samples or minimum_samples > num_examples // 2:
+    #     minimum_samples = num_examples // 2
+    feature_ids = np.where(feature_sums > int(0.01 * num_examples))[0]
     features_name = np.array(features_name)[feature_ids].tolist()
     X = X[:, feature_ids]
     feature_ids = dict([(feature_idx, idx) for idx, feature_idx in enumerate(feature_ids)])
@@ -122,7 +122,7 @@ def train(num_jobs: int = 4):
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "R-ΔIQR"))
     estimator = CLEANSE(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=5000, subsampling_size=None,
-                        significant_p=0.05, partition_by_anova=False, feature_weight=[0.5, 0.25, 0.15, 0.05],
+                        significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
                         weight_range=[0.1, 0.3, 0.5], calculate_hstatistic=calculate_hstatistic, num_components=10,
                         num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50,
                         num_jobs=num_jobs)
@@ -182,6 +182,10 @@ def train(num_jobs: int = 4):
               standardize=True, num_neighbors=5, min_dist=0, cluster_type="kmeans", num_clusters=0, max_clusters=10,
               heatmap_plot=False, num_jobs=num_jobs, suptitle="UMAP of markers", file_name=file_name + "_markers",
               save_path=RESULT_PATH)
+    plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=features_name, num_features=temp.shape[0],
+              standardize=True, num_neighbors=5, min_dist=0, perform_cluster=True, cluster_type="kmeans",
+              num_clusters=3, max_clusters=10, heatmap_plot=False, num_jobs=num_jobs, suptitle="UMAP of markers",
+              file_name=file_name + "_markers", save_path=RESULT_PATH)
 
     if plot_topKfeatures:
         print("## Plot UMAP using the top {0} features...".format(topKfeatures))
@@ -206,8 +210,8 @@ def train(num_jobs: int = 4):
             temp_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
         num_features = len(temp)
         plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
-                  standardize=True, num_neighbors=5, min_dist=0.1, perform_cluster=True, cluster_type="kmeans",
-                  num_clusters=4, max_clusters=10, heatmap_plot=False, num_jobs=num_jobs, suptitle=stat_name.upper(),
+                  standardize=True, num_neighbors=5, min_dist=0.0, perform_cluster=True, cluster_type="kmeans",
+                  num_clusters=3, max_clusters=10, heatmap_plot=False, num_jobs=num_jobs, suptitle=stat_name.upper(),
                   file_name=file_name + "_" + method_name.lower(), save_path=RESULT_PATH)
 
 
