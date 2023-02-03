@@ -4,7 +4,7 @@ from model.lsoss import LSOSS
 from model.most import MOST
 from model.ors import OutlierRobustStatistic
 from model.oss import OutlierSumStatistic
-from model.uhet import UHeT
+from model.uhet import DiffIQR
 from utility.file_path import DATASET_PATH
 from utility.plot_utils import *
 from utility.utils import sort_features
@@ -32,8 +32,8 @@ def train(num_jobs: int = 4):
     count = 1
 
     print("\t{0})- Unraveling cellular heterogeneity by analyzing intra-cellular variation (U-Het)...".format(count))
-    estimator = UHeT(normalize="robust", q=0.75, iqr_range=(25, 75),
-                     calculate_pval=calculate_pval, num_iterations=num_iterations)
+    estimator = DiffIQR(normalize="robust", q=0.75, iqr_range=(25, 75),
+                        calculate_pval=calculate_pval, num_iterations=num_iterations)
     df_uhet = estimator.fit_predict(X=X, y=y)
     df_uhet = sort_features(X=df_uhet, features_name=features_name, X_map=X_map,
                             map_genes=map_genes)

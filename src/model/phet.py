@@ -2,9 +2,8 @@
 DeteCtion of celluLar hEterogeneity by anAlyzing variatioNs of cElls.
 '''
 
-from itertools import combinations
-
 import numpy as np
+from itertools import combinations
 from mlxtend.evaluate import permutation_test
 from prince import CA
 from scipy.stats import f_oneway, ks_2samp
@@ -16,7 +15,7 @@ from utility.utils import clustering
 SEED_VALUE = 0.001
 
 
-class CLEANSE:
+class PHeT:
     def __init__(self, normalize: str = None, q: float = 0.75, iqr_range: int = (25, 75), num_subsamples: int = 1000,
                  subsampling_size: int = 3, significant_p: float = 0.05, partition_by_anova: bool = False,
                  feature_weight: list = [0.4, 0.3, 0.2, 0.1], weight_range: list = [0.1, 0.3, 0.5],
@@ -33,7 +32,7 @@ class CLEANSE:
         if len(feature_weight) > 4 or len(feature_weight) == 0:
             feature_weight = [0.4, 0.3, 0.2, 0.1]
         self.feature_weight = np.array(feature_weight) / np.sum(feature_weight)
-        self.weight_range = weight_range
+        self.weight_range = weight_range  # [0.1, 0.4, 0.8]
         self.calculate_hstatistic = calculate_hstatistic
         self.num_components = num_components
         self.num_subclusters = num_subclusters
@@ -207,7 +206,8 @@ class CLEANSE:
                 for sample_idx in samples_idx:
                     examples_idx = np.nonzero(sample2example[sample_idx])[0]
                     A[feature_idx, examples_idx] += 1
-        # Apply Fisher's method for combined probability
+
+        # Step 2: Apply Fisher's method for combined probability
         I = -2 * np.log(P)
         I[I == np.inf] = 0
         I = np.sum(I, axis=1)
@@ -225,7 +225,7 @@ class CLEANSE:
         # _, P = fdrcorrection(pvals=P, alpha=0.05, is_sorted=False)
         del P
 
-        # Step 2: Identification of 4 feature profiles
+        # Step 3: Identification of 4 feature profiles
         O = np.zeros((num_features, 4))
         weight_range = self.weight_range
         for feature_idx in range(num_features):
@@ -266,11 +266,11 @@ class CLEANSE:
                     O[feature_idx, 3] = 1
 
         if self.calculate_hstatistic:
-            # Step 3: Correspondence analysis (CA) using frequency matrices
+            # Step 3.1: Correspondence analysis (CA) using frequency matrices
             ca = CA(n_components=self.num_components, n_iter=self.num_rounds, benzecri=False)
             ca.fit(X=A)
 
-            # Step 4: Mapping the CA data for features and samples in a multidimensional space 
+            # Step 3.2: Mapping the CA data for features and samples in a multidimensional space 
             E = euclidean_distances(X=ca.U_, Y=ca.V_.T)
             # Estimate gene-wise dispersion
             D = np.zeros((num_features, num_examples))
@@ -286,7 +286,7 @@ class CLEANSE:
             H = np.multiply(D, E) - np.mean(np.multiply(D, E), axis=1)[:, None]
             del examples_idx, D, E
 
-            # Step 5: Calculate new H statistics based on absolute differences between 
+            # Step 3.3: Calculate new H statistics based on absolute differences between 
             # pairwise class of precomputed H-statistics
             if num_classes > 1:
                 new_H = np.zeros((num_features, num_classes))
@@ -305,12 +305,12 @@ class CLEANSE:
             del H
         del A
 
-        # Step 6: Feature ranking based on combined parameters (I, O, R, H)
+        # Step 4: Estimating features statistics based on combined parameters (I, O, R, H)
         R /= R.sum()
         I = np.multiply(I, self.feature_weight.dot(O.T))
         I /= I.sum()
-        results = R + I
-        np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+        H = R + I
+        np.nan_to_num(H, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
         if self.calculate_pval and num_classes > 1:
             # Permutation based p-value calculation using approximate method
@@ -331,8 +331,9 @@ class CLEANSE:
                         temp = permutation_test(x=examples_i, y=examples_j, func="x_mean != y_mean",
                                                 method="approximate", num_rounds=self.num_rounds)
                     pvals[feature_idx] += temp / num_combinations
-            results = np.vstack((results, pvals)).T
+            H = np.vstack((H, pvals)).T
         else:
-            results = np.reshape(results, (results.shape[0], 1))
+            H = np.reshape(H, (H.shape[0], 1))
 
+        results = H
         return results

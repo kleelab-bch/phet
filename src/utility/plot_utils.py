@@ -1,11 +1,10 @@
-import os
-import warnings
-
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pandas as pd
 import pyCompare
 import seaborn as sns
+import warnings
 from scipy.stats import zscore
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import MinMaxScaler
@@ -21,15 +20,21 @@ plt.rc('ytick', labelsize=15)
 plt.rc('axes', labelsize=16)
 
 
-def plot_barplot(X, methods_name, file_name: str = "temp", save_path: str = "."):
+def plot_barplot(X, methods_name, metric: str = "f1", file_name: str = "temp", save_path: str = "."):
     plt.figure(figsize=(12, 8))
     plt.bar(x=methods_name, height=X)
     plt.xticks(fontsize=18, rotation=45)
     plt.yticks(fontsize=18)
     plt.xlabel('Method', fontsize=20, fontweight="bold")
-    plt.ylabel("Jaccard scores", fontsize=20, fontweight="bold")
+    if metric == "f1":
+        temp = "F1"
+    elif metric == "auc":
+        temp = "AUC"
+    else:
+        temp = "Jaccard"
+    plt.ylabel(temp + " score", fontsize=20, fontweight="bold")
     plt.suptitle("Results using {0} data".format(file_name.capitalize()), fontsize=22, fontweight="bold")
-    file_path = os.path.join(save_path, file_name + "_jaccard.png")
+    file_path = os.path.join(save_path, file_name + "_" + temp.lower() + ".png")
     plt.tight_layout()
     plt.savefig(file_path)
     plt.clf()

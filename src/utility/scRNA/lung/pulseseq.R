@@ -88,8 +88,7 @@ write.table(as.data.frame(features), file = file.path(working_dir, paste(file_na
 
 # save features data
 rownames(gset) <- features
-gset <- gset[, condition]
-writeMM(gset, file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
+writeMM(gset[, condition], file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 
 
 #########################################################
@@ -125,8 +124,7 @@ write.table(as.data.frame(features), file = file.path(working_dir, paste(file_na
 
 # save features data
 rownames(gset) <- features
-gset <- gset[, condition]
-writeMM(gset, file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
+writeMM(gset[, condition], file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 
 
 #########################################################
@@ -168,13 +166,47 @@ writeMM(gset[, condition], file = file.path(working_dir, paste(file_name, "_matr
 #########################################################
 condition <- metadata %in% c("Neuroendocrine", "Ionocyte",
                              "Tuft")
-metadata <- metadata[condition]
+temp_metadata <- metadata[condition]
 file_name <- "pulseseq_tuft"
 
 # group membership for all samples
 # 0 (PNEC and Ionocyte): "Neuroendocrine" and "Ionocyte"
 # 1 (Tuft): "Tuft"
 gsms <- c(0, 0, 1)
+names(gsms) <- unique(temp_metadata)
+gsms <- gsms[temp_metadata]
+gsms <- paste0(gsms, collapse = "")
+sml <- strsplit(gsms, split = "")[[1]]
+
+# save subtypes 
+subtypes <- temp_metadata
+write.table(as.data.frame(subtypes), file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save metadata
+classes <- as.numeric(sml)
+write.table(as.data.frame(classes), file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save feature names
+write.table(as.data.frame(features), file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save features data
+rownames(gset) <- features
+writeMM(gset[, condition], file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
+
+#########################################################
+############ Include Ionocyte and Tuft cells ############
+#########################################################
+condition <- metadata %in% c("Ionocyte", "Tuft")
+metadata <- metadata[condition]
+file_name <- "pulseseq_ionocyte"
+
+# group membership for all samples
+# 0 (Ionocyte): "Ionocyte"
+# 1 (Tuft): "Tuft"
+gsms <- c(0, 1)
 names(gsms) <- unique(metadata)
 gsms <- gsms[metadata]
 gsms <- paste0(gsms, collapse = "")
@@ -196,5 +228,4 @@ write.table(as.data.frame(features), file = file.path(working_dir, paste(file_na
 
 # save features data
 rownames(gset) <- features
-gset <- gset[, condition]
-writeMM(gset, file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
+writeMM(gset[, condition], file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))

@@ -4,6 +4,7 @@ require(dplyr, quietly = TRUE)
 working_dir <- file.path("R:/GeneAnalysis/data")
 
 # Simulated Datasets:
+# remove _matrix in 27
 # 1. simulated_normal, simulated_normal_minority, simulated_normal_minority_features,
 # simulated_normal_mixed, simulated_normal_mixed_features
 # 2. simulated_weak, simulated_weak_minority, simulated_weak_minority_features,

@@ -5,11 +5,10 @@ Test new method
 Environment: uclid
 """
 
-import time
-
 # import packages
 import numpy as np
 import pandas as pd
+import time
 from scipy import stats
 from scipy.stats import iqr
 # from umap_eucl import umap_eucl

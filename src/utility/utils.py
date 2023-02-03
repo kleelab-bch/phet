@@ -1,5 +1,3 @@
-import warnings
-
 import hdbscan
 import numpy as npimport warnings
 
@@ -7,13 +5,14 @@ import hdbscan
 import numpy as np
 import pandas as pd
 import umap
+import warnings
 from scipy.stats import zscore, gamma
 from sklearn.cluster import AffinityPropagation, AgglomerativeClustering
 from sklearn.cluster import SpectralClustering, MiniBatchKMeans
 from sklearn.cluster import SpectralCoclustering
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
-from sklearn.metrics import jaccard_score
+from sklearn.metrics import jaccard_score, f1_score, roc_auc_score
 from sklearn.mixture import GaussianMixture
 
 np.seterr(divide='ignore', invalid='ignore')
@@ -118,11 +117,16 @@ def sort_features(X, features_name, X_map=None, map_genes: bool = True, ttest: b
     return df
 
 
-def comparative_score(top_features_pred, top_features_true):
+def comparative_score(top_features_pred, top_features_true, metric: str = "f1"):
     if len(top_features_pred) != len(top_features_true):
         temp = "The number of samples must be same for both lists."
         raise Exception(temp)
-    score = jaccard_score(y_true=top_features_true, y_pred=top_features_pred)
+    if metric == "f1":
+        score = f1_score(y_true=top_features_true, y_pred=top_features_pred)
+    elif metric == "auc":
+        score = roc_auc_score(y_true == top_features_true, y_score=top_features_pred)
+    else:
+        score = jaccard_score(y_true=top_features_true, y_pred=top_features_pred)
     return score
 
 

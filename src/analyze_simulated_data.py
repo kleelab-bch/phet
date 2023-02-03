@@ -1,17 +1,16 @@
-import os
-
 import numpy as np
+import os
 import pandas as pd
 import seaborn as sns
 
-from model.cleanse import CLEANSE
 from model.copa import COPA
 from model.dids import DIDS
 from model.lsoss import LSOSS
 from model.most import MOST
 from model.ors import OutlierRobustStatistic
 from model.oss import OutlierSumStatistic
-from model.uhet import UHeT
+from model.phet import PHeT
+from model.uhet import DiffIQR
 from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.plot_utils import plot_umap, plot_barplot
 from utility.utils import comparative_score
@@ -26,7 +25,7 @@ def construct_data(X, y, features_name: list, regulated_features: list, control_
     y = np.reshape(y, (y.shape[0], 1))
     regulated_features_idx = np.where(regulated_features != 0)[0]
 
-    # Minority change wrt to case samples
+    # Minority change w.r.t. to case samples
     X_temp = np.copy(X)
     for class_idx in np.unique(y):
         if class_idx == control_class:
@@ -36,17 +35,23 @@ def construct_data(X, y, features_name: list, regulated_features: list, control_
         X_temp[choice_idx] = X_temp[choice_idx] * variance
     df = pd.DataFrame(np.hstack((y, X_temp)), columns=["class"] + features_name)
     df.to_csv(path_or_buf=os.path.join(save_path, file_name + "_minority.csv"), sep=",", index=False)
+    df = pd.DataFrame(choice_idx, columns=["samples"])
+    df.to_csv(path_or_buf=os.path.join(save_path, file_name + "_minority_idx.csv"), sep=",", index=False)
 
-    # Mixed change wrt to control and case samples
+    # Mixed change w.r.t. to control and case samples
     X_temp = np.copy(X)
+    temp_list = list()
     for class_idx in np.unique(y):
         sample_idx = np.where(y == class_idx)[0]
         choice_idx = np.random.choice(a=sample_idx, size=num_outliers, replace=False)
         X_temp[choice_idx] = X_temp[choice_idx] * variance
+        temp_list.extend(choice_idx)
     df = pd.DataFrame(np.hstack((y, X_temp)), columns=["class"] + features_name)
     df.to_csv(path_or_buf=os.path.join(save_path, file_name + "_mixed.csv"), sep=",", index=False)
+    df = pd.DataFrame(temp_list, columns=["samples"])
+    df.to_csv(path_or_buf=os.path.join(save_path, file_name + "_mixed_idx.csv"), sep=",", index=False)
 
-    # Exchange feature expression wrt to case samples
+    # Exchange feature expression w.r.t. to case samples
     control_idx = np.where(y == control_class)[0]
     X_control = X[control_idx][:, regulated_features_idx]
     mu = np.mean(X_control, axis=0)
@@ -65,9 +70,12 @@ def construct_data(X, y, features_name: list, regulated_features: list, control_
                                                  scale=sigma[picked_features])
     df = pd.DataFrame(np.hstack((y, X_temp)), columns=["class"] + features_name)
     df.to_csv(path_or_buf=os.path.join(save_path, file_name + "_minority_features.csv"), sep=",", index=False)
+    df = pd.DataFrame(choice_idx, columns=["samples"])
+    df.to_csv(path_or_buf=os.path.join(save_path, file_name + "_minority_features_idx.csv"), sep=",", index=False)
 
-    # Exchange feature expression wrt to control and case samples
+    # Exchange feature expression w.r.t. to control and case samples
     X_temp = np.copy(X)
+    temp_list = list()
     for class_idx in np.unique(y):
         control_idx = np.random.choice(a=[idx for idx in np.unique(y) if idx != class_idx],
                                        size=1)
@@ -76,8 +84,8 @@ def construct_data(X, y, features_name: list, regulated_features: list, control_
         sigma = np.std(X_control, axis=0)
 
         case_idx = np.where(y == class_idx)[0]
-        choice_idx = np.random.choice(
-            a=case_idx, size=num_outliers, replace=False)
+        choice_idx = np.random.choice(a=case_idx, size=num_outliers, replace=False)
+        temp_list.extend(choice_idx)
         for idx in choice_idx:
             picked_features = np.random.choice(a=len(regulated_features_idx),
                                                size=num_outliers, replace=False)
@@ -86,12 +94,14 @@ def construct_data(X, y, features_name: list, regulated_features: list, control_
                                                  scale=sigma[picked_features])
     df = pd.DataFrame(np.hstack((y, X_temp)), columns=["class"] + features_name)
     df.to_csv(path_or_buf=os.path.join(save_path, file_name + "_mixed_features.csv"), sep=",", index=False)
+    df = pd.DataFrame(temp_list, columns=["samples"])
+    df.to_csv(path_or_buf=os.path.join(save_path, file_name + "_mixed_features_idx.csv"), sep=",", index=False)
 
 
 def train(num_jobs: int = 4):
     # Actions
     analyze_outliers = False
-    build_simulation = False
+    build_simulation = True
 
     # Arguments
     direction = "both"
@@ -108,14 +118,15 @@ def train(num_jobs: int = 4):
     # simulated_normal_mixed, simulated_normal_mixed_features
     # 2. simulated_weak, simulated_weak_minority, simulated_weak_minority_features, 
     # simulated_weak_mixed, simulated_weak_mixed_features
-    file_name = "simulated_weak_mixed_features"
-    regulated_features_file = "simulated_weak_features.csv"
+    file_name = "simulated_normal"
+    regulated_features_file = "simulated_normal_features.csv"
 
     # Load expression data
     X = pd.read_csv(os.path.join(DATASET_PATH, file_name + ".csv"), sep=',')
     y = X["class"].to_numpy()
     features_name = X.drop(["class"], axis=1).columns.to_list()
     X = X.drop(["class"], axis=1).to_numpy()
+    num_examples, num_features = X.shape
 
     # Load up/down regulated features
     top_features_true = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file), sep=',')
@@ -134,7 +145,7 @@ def train(num_jobs: int = 4):
     print(
         "\t >> Sample size: {0}; Feature size: {1}; Class size: {2}".format(X.shape[0], X.shape[1], len(np.unique(y))))
     current_progress = 1
-    total_progress = 11
+    total_progress = 8
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "COPA"), end="\r")
@@ -183,40 +194,24 @@ def train(num_jobs: int = 4):
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            "V-ΔIQR (zscore)"), end="\r")
-    estimator = UHeT(normalize="zscore", q=0.75, iqr_range=(25, 75), calculate_pval=False)
-    df_uhet_z = estimator.fit_predict(X=X, y=y)
+                                                            "ΔIQR"), end="\r")
+    estimator = DiffIQR(normalize="zscore", q=0.75, iqr_range=(25, 75), calculate_pval=False)
+    df_uhet = estimator.fit_predict(X=X, y=y)
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            "V-ΔIQR (robust)"), end="\r")
-    estimator = UHeT(normalize="robust", q=0.75, iqr_range=(25, 75), calculate_pval=False)
-    df_uhet_r = estimator.fit_predict(X=X, y=y)
+                                                            "PHET"))
+    estimator = PHeT(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=5000, subsampling_size=None,
+                     significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                     weight_range=[0.1, 0.4, 0.8], calculate_hstatistic=calculate_hstatistic, num_components=10,
+                     num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50,
+                     num_jobs=num_jobs)
+    df_phet = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            "R-ΔIQR (zscore)"), end="\r")
-    estimator = CLEANSE(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
-                        significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                        weight_range=[0.1, 0.3, 0.5], calculate_hstatistic=calculate_hstatistic, num_components=10,
-                        num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50,
-                        num_jobs=num_jobs)
-    df_cleanse_z = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            "R-ΔIQR (robust)"))
-    estimator = CLEANSE(normalize="robust", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
-                        significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                        calculate_hstatistic=calculate_hstatistic, num_components=10, num_subclusters=10,
-                        binary_clustering=True, calculate_pval=False, num_rounds=50, num_jobs=num_jobs)
-    df_cleanse_r = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
 
     methods_df = dict({"COPA": df_copa, "OS": df_os, "ORT": df_ort, "MOST": df_most, "LSOSS": df_lsoss,
-                       "DIDS": df_dids, "DECO": df_deco, "V-ΔIQR (zscore)": df_uhet_z, "R-ΔIQR (robust)": df_uhet_r,
-                       "R-ΔIQR (zscore)": df_cleanse_z, "R-ΔIQR (robust)": df_cleanse_r})
-    methods_name = ["COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "VDiffIQR_zscore", "VDiffIQR_robust",
-                    "RDiffIQR_zscore", "RDiffIQR_robust"]
+                       "DIDS": df_dids, "DECO": df_deco, "ΔIQR": df_uhet, "PHeT": df_phet})
+    methods_name = ["COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "DiffIQR", "PHeT"]
 
     if sort_by_pvalue:
         print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))
@@ -234,7 +229,7 @@ def train(num_jobs: int = 4):
             temp = sort_features(X=df, features_name=features_name, X_map=None,
                                  map_genes=False, ttest=False)
         methods_df[stat_name] = temp
-    del df_copa, df_os, df_ort, df_most, df_lsoss, df_dids, df_uhet_z, df_uhet_r, df_cleanse_r
+    del df_copa, df_os, df_ort, df_most, df_lsoss, df_dids, df_deco, df_uhet, df_phet
 
     print("## Scoring results using known regulated features...")
     selected_regulated_features = topKfeatures
@@ -248,7 +243,7 @@ def train(num_jobs: int = 4):
                 if feature in df['features'][:selected_regulated_features].tolist()]
         top_features_pred = np.zeros((len(top_features_true)))
         top_features_pred[temp] = 1
-        score = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
+        score = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true, metric="f1")
         list_scores.append(score)
 
     print("## Plot barplot using the top {0} features...".format(topKfeatures))
@@ -282,7 +277,7 @@ def train(num_jobs: int = 4):
             temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
             temp_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
         num_features = len(temp)
-        plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
+        plot_umap(X=X[:, temp], y=y, subtypes=None, features_name=temp_feature, num_features=num_features,
                   standardize=True, num_neighbors=5, min_dist=0.0, perform_cluster=True, cluster_type="spectral",
                   num_clusters=0, max_clusters=10, heatmap_plot=False, num_jobs=num_jobs, suptitle=stat_name.upper(),
                   file_name=file_name + "_" + method_name.lower(), save_path=RESULT_PATH)

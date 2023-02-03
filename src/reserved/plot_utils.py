@@ -1,11 +1,10 @@
-import os
-import warnings
-
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pandas as pd
 import pyCompare
 import seaborn as sns
+import warnings
 from scipy.stats import zscore
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import MinMaxScaler

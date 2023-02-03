@@ -1,19 +1,18 @@
-import os
-
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pandas as pd
 import seaborn as sns
 from sklearn.preprocessing import LabelBinarizer
 
-from model.cleanse import CLEANSE
 from model.copa import COPA
 from model.dids import DIDS
 from model.lsoss import LSOSS
 from model.most import MOST
 from model.ors import OutlierRobustStatistic
 from model.oss import OutlierSumStatistic
-from model.uhet import UHeT
+from model.phet import PHeT
+from model.uhet import DiffIQR
 from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.utils import sort_features, comparative_score
 
@@ -53,7 +52,7 @@ def train(num_jobs: int = 4):
     print("\t >> Control size: {0}; Case size: {1}; Feature size: {2}".format(X_control.shape[0], X_case.shape[1],
                                                                               len(features_name)))
     list_scores = list()
-    methods = ["COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "V-ΔIQR", "R-ΔIQR"]
+    methods = ["COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "V-ΔIQR", "PHET"]
     current_progress = 1
     total_progress = num_batches * len(methods)
     for batch_idx in range(num_batches):
@@ -150,7 +149,7 @@ def train(num_jobs: int = 4):
 
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                 "V-ΔIQR"), end="\r")
-        estimator = UHeT(normalize="zcore", q=0.75, iqr_range=(25, 75), calculate_pval=False)
+        estimator = DiffIQR(normalize="zcore", q=0.75, iqr_range=(25, 75), calculate_pval=False)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -162,17 +161,17 @@ def train(num_jobs: int = 4):
 
         if total_progress == current_progress:
             print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                    "R-ΔIQR"))
+                                                                    "PHET"))
         else:
             print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                    "R-ΔIQR"), end="\r")
-            estimator = CLEANSE(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000,
-                                subsampling_size=None,
-                                significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                                weight_range=[0.1, 0.3, 0.5], calculate_hstatistic=calculate_hstatistic,
-                                num_components=10,
-                                num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50,
-                                num_jobs=num_jobs)
+                                                                    "PHET"), end="\r")
+            estimator = PHeT(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000,
+                             subsampling_size=None,
+                             significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                             weight_range=[0.1, 0.3, 0.5], calculate_hstatistic=calculate_hstatistic,
+                             num_components=10,
+                             num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50,
+                             num_jobs=num_jobs)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
