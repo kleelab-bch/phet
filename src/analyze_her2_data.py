@@ -1,18 +1,19 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import pandas as pd
 import seaborn as sns
 from sklearn.preprocessing import LabelBinarizer
 
 from model.copa import COPA
+from model.deltaiqr import DeltaIQR
 from model.dids import DIDS
 from model.lsoss import LSOSS
 from model.most import MOST
 from model.ors import OutlierRobustStatistic
 from model.oss import OutlierSumStatistic
 from model.phet import PHeT
-from model.uhet import DiffIQR
 from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.utils import sort_features, comparative_score
 
@@ -36,12 +37,21 @@ def train(num_jobs: int = 4):
     lb = LabelBinarizer()
     lb.fit(y=features_name)
 
+    # Load genes genes that are known to be encoded on chromosome 17
+    X_humchr17 = pd.read_csv(os.path.join(DATASET_PATH, "humchr17.csv"), sep=',')
+    temp = [idx for idx, item in enumerate(X_humchr17["Chromosomal position"].tolist())
+            if item == "17q12" or item == "17q21.1"]
+    X_humchr17 = X_humchr17.iloc[temp]["Gene name"].tolist()
+
     # Load top k features that are differentially expressed
     top_features_true = pd.read_csv(os.path.join(DATASET_PATH, "her2_topfeatures.csv"), sep=',')
-    top_features_true = top_features_true["ID"].tolist()[:topKfeatures]
+    temp = [idx for idx, item in enumerate(top_features_true["Gene.symbol"])
+            if item in X_humchr17 and idx <= topKfeatures]
+    top_features_true = top_features_true.iloc[temp]["ID"].tolist()
     top_features_true = lb.transform(top_features_true).sum(axis=0).astype(int)
+    topKfeatures = sum(top_features_true).astype(int)
 
-    # load DECO results    
+    # Load DECO results    
     df_deco = pd.read_csv(os.path.join(DATASET_PATH, "her2_deco.csv"), sep=',', header=None)
     df_deco = df_deco.to_numpy()
     if df_deco.shape[1] != num_batches:
@@ -52,7 +62,7 @@ def train(num_jobs: int = 4):
     print("\t >> Control size: {0}; Case size: {1}; Feature size: {2}".format(X_control.shape[0], X_case.shape[1],
                                                                               len(features_name)))
     list_scores = list()
-    methods = ["COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "V-ΔIQR", "PHET"]
+    methods = ["COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "DeltaIQR", "PHeT"]
     current_progress = 1
     total_progress = num_batches * len(methods)
     for batch_idx in range(num_batches):
@@ -148,8 +158,8 @@ def train(num_jobs: int = 4):
         current_progress += 1
 
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                "V-ΔIQR"), end="\r")
-        estimator = DiffIQR(normalize="zcore", q=0.75, iqr_range=(25, 75), calculate_pval=False)
+                                                                "DeltaIQR"), end="\r")
+        estimator = DeltaIQR(normalize="zcore", q=0.75, iqr_range=(25, 75), calculate_pval=False)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -161,17 +171,15 @@ def train(num_jobs: int = 4):
 
         if total_progress == current_progress:
             print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                    "PHET"))
+                                                                    "PHet"))
         else:
             print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                    "PHET"), end="\r")
-            estimator = PHeT(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000,
-                             subsampling_size=None,
-                             significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                             weight_range=[0.1, 0.3, 0.5], calculate_hstatistic=calculate_hstatistic,
-                             num_components=10,
-                             num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50,
-                             num_jobs=num_jobs)
+                                                                    "P-Het"), end="\r")
+        estimator = PHeT(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
+                         significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                         weight_range=[0.1, 0.3, 0.5], calculate_hstatistic=calculate_hstatistic,
+                         num_components=10, num_subclusters=10, binary_clustering=True, calculate_pval=False,
+                         num_rounds=50, num_jobs=num_jobs)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)

@@ -1,16 +1,17 @@
-import numpy as np
 import os
+
+import numpy as np
 import pandas as pd
 import seaborn as sns
 
 from model.copa import COPA
 from model.dids import DIDS
+from model.deltaiqr import DeltaIQR
 from model.lsoss import LSOSS
 from model.most import MOST
 from model.ors import OutlierRobustStatistic
 from model.oss import OutlierSumStatistic
-from model.phet import PHeT
-from model.uhet import DiffIQR
+from model.PHeT import PHeT
 from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.plot_utils import plot_umap, plot_barplot
 from utility.utils import comparative_score
@@ -194,13 +195,13 @@ def train(num_jobs: int = 4):
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            "ΔIQR"), end="\r")
-    estimator = DiffIQR(normalize="zscore", q=0.75, iqr_range=(25, 75), calculate_pval=False)
-    df_uhet = estimator.fit_predict(X=X, y=y)
+                                                            "DeltaIQR"), end="\r")
+    estimator = DeltaIQR(normalize="zscore", q=0.75, iqr_range=(25, 75), calculate_pval=False)
+    df_iqr = estimator.fit_predict(X=X, y=y)
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            "PHET"))
+                                                            "PHeT"))
     estimator = PHeT(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=5000, subsampling_size=None,
                      significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
                      weight_range=[0.1, 0.4, 0.8], calculate_hstatistic=calculate_hstatistic, num_components=10,
@@ -210,8 +211,8 @@ def train(num_jobs: int = 4):
     current_progress += 1
 
     methods_df = dict({"COPA": df_copa, "OS": df_os, "ORT": df_ort, "MOST": df_most, "LSOSS": df_lsoss,
-                       "DIDS": df_dids, "DECO": df_deco, "ΔIQR": df_uhet, "PHeT": df_phet})
-    methods_name = ["COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "DiffIQR", "PHeT"]
+                       "DIDS": df_dids, "DECO": df_deco, "DeltaIQR": df_iqr, "PHeT": df_phet})
+    methods_name = ["COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "DeltaIQR", "PHeT"]
 
     if sort_by_pvalue:
         print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))
@@ -229,7 +230,7 @@ def train(num_jobs: int = 4):
             temp = sort_features(X=df, features_name=features_name, X_map=None,
                                  map_genes=False, ttest=False)
         methods_df[stat_name] = temp
-    del df_copa, df_os, df_ort, df_most, df_lsoss, df_dids, df_deco, df_uhet, df_phet
+    del df_copa, df_os, df_ort, df_most, df_lsoss, df_dids, df_deco, df_iqr, df_phet
 
     print("## Scoring results using known regulated features...")
     selected_regulated_features = topKfeatures

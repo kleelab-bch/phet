@@ -10,7 +10,7 @@ from scipy.stats import iqr
 from scipy.stats import zscore
 
 
-class DiffIQR:
+class DeltaIQR:
     def __init__(self, normalize: str = None, q: float = 0.75, iqr_range: int = (25, 75),
                  calculate_pval: bool = False, num_iterations: int = 10000):
         self.normalize = normalize

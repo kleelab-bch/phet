@@ -1,11 +1,12 @@
-import numpy as np
 import os
+
+import numpy as np
 import pandas as pd
 import seaborn as sns
 from scipy.io import mmread
 
+from model.deltaiqr import DeltaIQR
 from model.phet import PHeT
-from model.uhet import DiffIQR
 from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.plot_utils import plot_umap, plot_barplot
 from utility.utils import comparative_score
@@ -113,14 +114,12 @@ def train(num_jobs: int = 4):
     total_progress = 2
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            "V-ΔIQR"), end="\r")
-    estimator = DiffIQR(normalize="zscore", q=0.75, iqr_range=(25, 75), calculate_pval=False)
-    df_viqr = estimator.fit_predict(X=X, y=y)
+                                                            "DeltaIQR"), end="\r")
+    estimator = DeltaIQR(normalize="zscore", q=0.75, iqr_range=(25, 75), calculate_pval=False)
+    df_iqr = estimator.fit_predict(X=X, y=y)
     current_progress += 1
 
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-<<<<<<< HEAD
-                                                            "PHET"))
+    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "PHet"))
     estimator = PHeT(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=5000, subsampling_size=None,
                      significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
                      weight_range=[0.1, 0.3, 0.5], calculate_hstatistic=calculate_hstatistic, num_components=10,
@@ -128,38 +127,27 @@ def train(num_jobs: int = 4):
                      num_jobs=num_jobs)
     df_phet = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
 
-    methods_df = dict({"V-ΔIQR": df_viqr, "PHET": df_phet})
-    methods_name = ["VDiffIQR", "PHET"]
-=======
-                                                            "R-ΔIQR"))
-    estimator = CLEANSE(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=5000, subsampling_size=None,
-                        significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                        weight_range=[0.1, 0.3, 0.5], calculate_hstatistic=calculate_hstatistic, num_components=10,
-                        num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50,
-                        num_jobs=num_jobs)
-    df_riqr = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+    methods_df = dict({"DeltaIQR": df_iqr, "PHet": df_phet})
+    methods_name = ["DeltaIQR", "PHet"]
 
-    methods_df = dict({"V-ΔIQR": df_viqr, "R-ΔIQR": df_riqr})
-    methods_name = ["VDiffIQR", "RDiffIQR"]
->>>>>>> b853694868eef5d8b341d3bd581592b6f76b8b65
     if sort_by_pvalue:
         print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))
     else:
         print("## Sort features by the score statistic...".format())
     for method_idx, item in enumerate(methods_df.items()):
         stat_name, df = item
-        method_name = methods_name[method_idx]
-        if sort_by_pvalue:
-            temp = significant_features(X=df, features_name=features_name, pvalue=pvalue,
-                                        X_map=None, map_genes=False, ttest=False)
-        else:
-            temp = sort_features(X=df, features_name=features_name, X_map=None,
-                                 map_genes=False, ttest=False)
-        df = pd.DataFrame(temp["features"].tolist(), columns=["features"])
-        df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + method_name.lower() + "_features.csv"),
-                  sep=',', index=False)
-        methods_df[stat_name] = temp
-    del df_viqr, df_phet
+    method_name = methods_name[method_idx]
+    if sort_by_pvalue:
+        temp = significant_features(X=df, features_name=features_name, pvalue=pvalue,
+                                    X_map=None, map_genes=False, ttest=False)
+    else:
+        temp = sort_features(X=df, features_name=features_name, X_map=None,
+                             map_genes=False, ttest=False)
+    df = pd.DataFrame(temp["features"].tolist(), columns=["features"])
+    df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + method_name.lower() + "_features.csv"),
+              sep=',', index=False)
+    methods_df[stat_name] = temp
+    del df_iqr, df_phet
 
     print("## Scoring results using known regulated features...")
     selected_regulated_features = topKfeatures
@@ -171,10 +159,10 @@ def train(num_jobs: int = 4):
     for stat_name, df in methods_df.items():
         temp = [idx for idx, feature in enumerate(features_name)
                 if feature in df['features'][:selected_regulated_features].tolist()]
-        top_features_pred = np.zeros((len(top_features_true)))
-        top_features_pred[temp] = 1
-        score = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
-        list_scores.append(score)
+    top_features_pred = np.zeros((len(top_features_true)))
+    top_features_pred[temp] = 1
+    score = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
+    list_scores.append(score)
     print("## Plot barplot using the top {0} features...".format(topKfeatures))
     plot_barplot(X=list_scores, methods_name=list(methods_df.keys()), file_name=file_name,
                  save_path=RESULT_PATH)
@@ -205,26 +193,26 @@ def train(num_jobs: int = 4):
         print("## Plot UMAP using the top features for each method...")
     for method_idx, item in enumerate(methods_df.items()):
         stat_name, df = item
-        method_name = methods_name[method_idx]
-        if total_progress == method_idx + 1:
-            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / total_progress) * 100,
-                                                                    stat_name))
-        else:
-            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / total_progress) * 100,
-                                                                    stat_name), end="\r")
-        if plot_topKfeatures:
-            temp = [idx for idx, feature in enumerate(features_name) if
-                    feature in df['features'].tolist()[:topKfeatures]]
-            temp_feature = [feature for idx, feature in enumerate(features_name) if
-                            feature in df['features'].tolist()[:topKfeatures]]
-        else:
-            temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
-            temp_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
-        num_features = len(temp)
-        plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
-                  standardize=True, num_neighbors=5, min_dist=0.0, perform_cluster=True, cluster_type="kmeans",
-                  num_clusters=3, max_clusters=10, heatmap_plot=False, num_jobs=num_jobs, suptitle=stat_name.upper(),
-                  file_name=file_name + "_" + method_name.lower(), save_path=RESULT_PATH)
+    method_name = methods_name[method_idx]
+    if total_progress == method_idx + 1:
+        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / total_progress) * 100,
+                                                                stat_name))
+    else:
+        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / total_progress) * 100,
+                                                                stat_name), end="\r")
+    if plot_topKfeatures:
+        temp = [idx for idx, feature in enumerate(features_name) if
+                feature in df['features'].tolist()[:topKfeatures]]
+        temp_feature = [feature for idx, feature in enumerate(features_name) if
+                        feature in df['features'].tolist()[:topKfeatures]]
+    else:
+        temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
+        temp_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
+    num_features = len(temp)
+    plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
+              standardize=True, num_neighbors=5, min_dist=0.0, perform_cluster=True, cluster_type="kmeans",
+              num_clusters=3, max_clusters=10, heatmap_plot=False, num_jobs=num_jobs, suptitle=stat_name.upper(),
+              file_name=file_name + "_" + method_name.lower(), save_path=RESULT_PATH)
 
 
 if __name__ == "__main__":
