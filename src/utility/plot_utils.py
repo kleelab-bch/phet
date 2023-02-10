@@ -6,7 +6,9 @@ import numpy as np
 import pandas as pd
 import pyCompare
 import seaborn as sns
+from scipy.optimize import linear_sum_assignment as linear_assignment
 from scipy.stats import zscore
+from sklearn.metrics import confusion_matrix
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import MinMaxScaler
 from utility.utils import dimensionality_reduction, clustering
@@ -21,20 +23,27 @@ plt.rc('ytick', labelsize=15)
 plt.rc('axes', labelsize=16)
 
 
+def make_cost_m(cm):
+    s = np.max(cm)
+    return (- cm + s)
+
+
 def plot_barplot(X, methods_name, metric: str = "f1", file_name: str = "temp", save_path: str = "."):
     plt.figure(figsize=(12, 8))
     plt.bar(x=methods_name, height=X)
     plt.xticks(fontsize=18, rotation=45)
     plt.yticks(fontsize=18)
-    plt.xlabel('Method', fontsize=20, fontweight="bold")
+    plt.xlabel('Methods', fontsize=20, fontweight="bold")
     if metric == "f1":
         temp = "F1"
     elif metric == "auc":
         temp = "AUC"
+    elif metric == "accuracy":
+        temp = "Accuracy"
     else:
         temp = "Jaccard"
-    plt.ylabel(temp + " score", fontsize=20, fontweight="bold")
-    plt.suptitle("Results using {0} data".format(file_name.capitalize()), fontsize=22, fontweight="bold")
+    plt.ylabel(temp + " scores of each method", fontsize=22)
+    plt.suptitle("Results using {0} data".format(file_name.capitalize()), fontsize=26)
     file_path = os.path.join(save_path, file_name + "_" + temp.lower() + ".png")
     plt.tight_layout()
     plt.savefig(file_path)
@@ -48,13 +57,15 @@ def plot_scatter(X, y, num_features: int = 100, legend_title: str = "Class", sup
     # plot figure
     plt.figure(figsize=(12, 8))
     sns.scatterplot(x=X[:, 0], y=X[:, 1], hue=y, palette='tab10', s=80, alpha=0.6)
-    plt.xlabel("UMAP 1")
-    plt.ylabel("UMAP 2")
     if suptitle is None:
-        plt.suptitle('UMAP of all (%s) features' % str(num_features), fontsize=20, fontweight="bold")
+        plt.suptitle('UMAP of all (%s) features' % str(num_features), fontsize=26, fontweight="bold")
     else:
-        plt.suptitle('%s (%s features)' % (suptitle, str(num_features)), fontsize=20, fontweight="bold")
+        plt.suptitle('%s (%s features)' % (suptitle, str(num_features)), fontsize=26, fontweight="bold")
     plt.legend(title=legend_title, fontsize=16, title_fontsize=20)
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
+    plt.xlabel("UMAP 1", fontsize=22)
+    plt.ylabel("UMAP 2", fontsize=22)
     sns.despine()
     file_path = os.path.join(save_path, file_name)
     plt.tight_layout()
@@ -90,6 +101,7 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
               min_dist: float = 0, perform_cluster: bool = False, cluster_type: str = "spectral", num_clusters: int = 0,
               max_clusters: int = 10, heatmap_plot: bool = True, num_jobs: int = 2, suptitle: str = "temp",
               file_name: str = "temp", save_path: str = "."):
+    score = 0
     # Standardize if needed
     if standardize:
         X = zscore(X)
@@ -124,8 +136,21 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
         df = pd.DataFrame(cluster_labels, columns=["Cluster"])
         df.to_csv(os.path.join(save_path, file_name + "_clusters.csv"), sep=',')
 
+        # Plot scatter 
         plot_scatter(X=X_reducer, y=cluster_labels, num_features=num_features, legend_title="Cluster",
                      suptitle=suptitle, file_name=file_name + "_clusters_umap.png", save_path=save_path)
+
+        if subtypes is not None:
+            # Match cluster labels to true labels
+            y_true = np.unique(subtypes)
+            y_true = dict([(item, idx) for idx, item in enumerate(y_true)])
+            y_true = [y_true[item] for item in subtypes]
+            cm = confusion_matrix(y_true=y_true, y_pred=cluster_labels)
+            # Permutation maximizing the sum of the diagonal elements using the Hungarian algorithm
+            indexes = linear_assignment(make_cost_m(cm))
+            js = [e[1] for e in sorted(indexes, key=lambda x: x[0])]
+            cm = cm[:, js]
+            score = np.trace(cm) / np.sum(cm)
 
     if heatmap_plot and perform_cluster:
         # print heatmap if true
@@ -137,6 +162,9 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
         df = df.groupby('cluster').mean()
         if df.shape[1] > 2:
             plot_heatmap(df, file_name=file_name + "_heatmap.png", save_path=save_path)
+
+    if perform_cluster and subtypes is not None:
+        return score
 
 
 def plot_boxplot(X, y, features_name, num_features: int, standardize: bool = False, swarmplot: bool = False):

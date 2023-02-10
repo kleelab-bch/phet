@@ -161,7 +161,7 @@ def train(num_jobs: int = 4):
                 if feature in df['features'][:selected_regulated_features].tolist()]
     top_features_pred = np.zeros((len(top_features_true)))
     top_features_pred[temp] = 1
-    score = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true)
+    score = comparative_score(pred_features=top_features_pred, true_features=top_features_true)
     list_scores.append(score)
     print("## Plot barplot using the top {0} features...".format(topKfeatures))
     plot_barplot(X=list_scores, methods_name=list(methods_df.keys()), file_name=file_name,

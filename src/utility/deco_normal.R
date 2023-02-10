@@ -3,12 +3,9 @@ require(dplyr, quietly = TRUE)
 
 working_dir <- file.path("R:/GeneAnalysis/data")
 
-# Simulated Datasets:
-# minority, minority_features, mixed, mixed_features
-
 file_name <- "simulated_normal"
 outlier_per <- paste("0", seq(9), "_", sep = "")
-data_type <- c("minority", "minority_features", "mixed", "mixed_features")
+data_type <- c("minority_features", "mixed_features")
 iterations <- 1000
 q.val <- 0.01
 

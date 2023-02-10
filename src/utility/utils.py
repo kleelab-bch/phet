@@ -115,16 +115,16 @@ def sort_features(X, features_name, X_map=None, map_genes: bool = True, ttest: b
     return df
 
 
-def comparative_score(top_features_pred, top_features_true, metric: str = "f1"):
-    if len(top_features_pred) != len(top_features_true):
+def comparative_score(pred_features, true_features, metric: str = "f1"):
+    if len(pred_features) != len(true_features):
         temp = "The number of samples must be same for both lists."
         raise Exception(temp)
     if metric == "f1":
-        score = f1_score(y_true=top_features_true, y_pred=top_features_pred)
+        score = f1_score(y_true=true_features, y_pred=pred_features)
     elif metric == "auc":
-        score = roc_auc_score(y_true == top_features_true, y_score=top_features_pred)
+        score = roc_auc_score(y_true=true_features, y_score=pred_features)
     else:
-        score = jaccard_score(y_true=top_features_true, y_pred=top_features_pred)
+        score = jaccard_score(y_true=true_features, y_pred=pred_features)
     return score
 
 
@@ -165,3 +165,29 @@ def outliers_analysis(X, y, regulated_features: list):
         print("\t>> Group: {0}; Expected outliers per expressed feature: {1:.4f}".format(group_idx,
                                                                                          num_regulated_outliers / len(
                                                                                              regulated_features)))
+
+
+def outliers_analysis(X, y, outliers: list, true_changed_features: list, pred_changed_features: list):
+    # Detect outliers
+    total_outliers = 0
+    for group_idx in np.unique(y):
+        examples_idx = np.where(y == group_idx)[0]
+        q1 = np.percentile(X[examples_idx], q=25, axis=0)
+        q3 = np.percentile(X[examples_idx], q=75, axis=0)
+        iqr = q3 - q1  # Inter-quartile range
+        fence_high = q3 + (1.5 * iqr)
+        fence_low = q1 - (1.5 * iqr)
+        for outlier_idx in outliers:
+            for feature_idx in pred_changed_features:
+                if feature_idx not in true_changed_features:
+                    continue
+                temp = np.where(X[examples_idx, feature_idx] > fence_high[feature_idx])[0]
+                temp = examples_idx[temp]
+                if outlier_idx in temp:
+                    total_outliers += 1
+                    continue
+                temp = np.where(X[examples_idx, feature_idx] < fence_low[feature_idx])[0]
+                temp = examples_idx[temp]
+                if outlier_idx in temp:
+                    total_outliers += 1
+    return total_outliers

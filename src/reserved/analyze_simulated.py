@@ -3,15 +3,14 @@ import os
 import numpy as np
 import pandas as pd
 import seaborn as sns
-
 from model.copa import COPA
-from model.dids import DIDS
 from model.deltaiqr import DeltaIQR
+from model.dids import DIDS
 from model.lsoss import LSOSS
 from model.most import MOST
 from model.ors import OutlierRobustStatistic
 from model.oss import OutlierSumStatistic
-from model.PHeT import PHeT
+from model.phet import PHeT
 from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.plot_utils import plot_umap, plot_barplot
 from utility.utils import comparative_score
@@ -19,10 +18,12 @@ from utility.utils import outliers_analysis
 from utility.utils import sort_features, significant_features
 
 sns.set_theme()
+sns.set_style(style='white')
 
 
 def construct_data(X, y, features_name: list, regulated_features: list, control_class: int = 0, num_outliers: int = 5,
-                   variance: float = 1.5, file_name: str = "synset", save_path: str = "."):
+                   num_features_changes: int = 5, variance: float = 1.5, file_name: str = "synset",
+                   save_path: str = "."):
     y = np.reshape(y, (y.shape[0], 1))
     regulated_features_idx = np.where(regulated_features != 0)[0]
 
@@ -65,7 +66,7 @@ def construct_data(X, y, features_name: list, regulated_features: list, control_
         choice_idx = np.random.choice(a=case_idx, size=num_outliers, replace=False)
         for idx in choice_idx:
             picked_features = np.random.choice(a=len(regulated_features_idx),
-                                               size=num_outliers, replace=False)
+                                               size=num_features_changes, replace=False)
             temp = regulated_features_idx[picked_features]
             X_temp[idx, temp] = np.random.normal(loc=mu[picked_features],
                                                  scale=sigma[picked_features])
@@ -89,7 +90,7 @@ def construct_data(X, y, features_name: list, regulated_features: list, control_
         temp_list.extend(choice_idx)
         for idx in choice_idx:
             picked_features = np.random.choice(a=len(regulated_features_idx),
-                                               size=num_outliers, replace=False)
+                                               size=num_features_changes, replace=False)
             temp = regulated_features_idx[picked_features]
             X_temp[idx, temp] = np.random.normal(loc=mu[picked_features],
                                                  scale=sigma[picked_features])
@@ -135,12 +136,12 @@ def train(num_jobs: int = 4):
     top_features_true[top_features_true < 0] = 1
     if analyze_outliers:
         print("## Analyzing outliers...")
-        outliers_analysis(X=X, y=y, regulated_features=top_features_true)
+        outliers_analysis(X=X, y=y, pred_changed_features=top_features_true)
     if build_simulation:
         print("## Constructing four simulated data...")
         construct_data(X=X, y=y, features_name=features_name, regulated_features=top_features_true,
-                       control_class=0, num_outliers=5, variance=1.5, file_name=file_name,
-                       save_path=DATASET_PATH)
+                       control_class=0, num_outliers=5, num_features_changes=sum(top_features_true) // 10,
+                       variance=1.5, file_name=file_name, save_path=DATASET_PATH)
 
     print("## Perform simulation studies using {0} data...".format(file_name))
     print(
@@ -182,7 +183,7 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "DIDS"), end="\r")
-    estimator = DIDS(score_function="quad", direction=direction, calculate_pval=False)
+    estimator = DIDS(score_function="tanh", direction=direction, calculate_pval=False)
     df_dids = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     current_progress += 1
 
@@ -211,8 +212,8 @@ def train(num_jobs: int = 4):
     current_progress += 1
 
     methods_df = dict({"COPA": df_copa, "OS": df_os, "ORT": df_ort, "MOST": df_most, "LSOSS": df_lsoss,
-                       "DIDS": df_dids, "DECO": df_deco, "DeltaIQR": df_iqr, "PHeT": df_phet})
-    methods_name = ["COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "DeltaIQR", "PHeT"]
+                       "DIDS": df_dids, "DECO": df_deco, "DeltaIQR": df_iqr, "PHet": df_phet})
+    methods_name = ["COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "DeltaIQR", "PHet"]
 
     if sort_by_pvalue:
         print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))
@@ -244,7 +245,7 @@ def train(num_jobs: int = 4):
                 if feature in df['features'][:selected_regulated_features].tolist()]
         top_features_pred = np.zeros((len(top_features_true)))
         top_features_pred[temp] = 1
-        score = comparative_score(top_features_pred=top_features_pred, top_features_true=top_features_true, metric="f1")
+        score = comparative_score(pred_features=top_features_pred, true_features=top_features_true, metric="f1")
         list_scores.append(score)
 
     print("## Plot barplot using the top {0} features...".format(topKfeatures))

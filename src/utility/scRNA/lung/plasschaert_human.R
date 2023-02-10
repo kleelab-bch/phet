@@ -5,7 +5,7 @@ require(limma)
 require(umap)
 require(Seurat)
 require(Matrix)
-source("R:/GeneAnalysis/uhet/src/utility/create_sce.R")
+source("R:/GeneAnalysis/phet/src/utility/create_sce.R")
 
 working_dir <- file.path("R:/GeneAnalysis/data")
 file_name <- "plasschaert_human"
