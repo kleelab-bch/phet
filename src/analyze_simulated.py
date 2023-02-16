@@ -12,7 +12,7 @@ from model.most import MOST
 from model.ors import OutlierRobustStatistic
 from model.oss import OutlierSumStatistic
 from model.phet import PHeT
-from model.studentt import StudentTTest
+from model.tstatistic import StudentTTest
 from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.utils import comparative_score
 from utility.utils import sort_features, significant_features
@@ -78,7 +78,7 @@ def train(num_jobs: int = 4):
     num_features_changes = 46
     list_data = list(range(1, 11))
     data_type = ["minority_features", "mixed_features"]
-    methods_name = ["ttest", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "DeltaIQR", "PHet"]
+    methods_name = ["t-statistic", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "ΔIQR", "PHet"]
 
     # dataset name
     file_name = "simulated_normal"
@@ -251,62 +251,3 @@ if __name__ == "__main__":
     else:
         _ = os.system('clear')
     train(num_jobs=10)
-
-# Outliers
-df = pd.read_csv(os.path.join(RESULT_PATH, "simulated_normal_methods_outliers_scores.csv"),
-                 sep=',', index_col=0)
-data_name = df.columns.to_list()
-methods_name = df.index.to_list()
-methods_name = ["ΔIQR" if item == "DeltaIQR" else item for item in methods_name]
-df.index = methods_name
-
-temp = [1, 0, 0, 0] * int(len(data_name) / 4)
-df_minority = df[[data_name[idx] for idx, item in enumerate(temp) if item == 1]]
-temp = [0, 1, 0, 0] * int(len(data_name) / 4)
-df_mixed = df[[data_name[idx] for idx, item in enumerate(temp) if item == 1]]
-
-ax = df_minority.T.plot.bar(rot=0, legend=False, align='center', width=0.85, figsize=(8, 6))
-ax.set_xlabel("Number of outliers (case samples)", fontsize=22)
-ax.set_ylabel("F1 scores of each method", fontsize=22)
-ax.set_xticklabels(["1/20", "3/20", "5/20", "7/20", "9/20"])
-ax.tick_params(axis='both', labelsize=18)
-
-ax = df_mixed.T.plot.bar(rot=0, legend=False, align='center', width=0.85, figsize=(8, 6))
-ax.set_xlabel("Number of outliers (case and control samples)", fontsize=22)
-ax.set_ylabel("F1 scores of each method", fontsize=22)
-ax.set_xticklabels(["2/40", "6/40", "10/40", "14/40", "18/40"])
-ax.tick_params(axis='both', labelsize=18)
-
-# Features
-df = pd.read_csv(os.path.join(RESULT_PATH, "simulated_normal_methods_features.csv"),
-                 sep=',', index_col=0)
-data_name = df.columns.to_list()
-methods_name = df.index.to_list()
-methods_name = ["ΔIQR" if item == "DeltaIQR" else item for item in methods_name]
-df.index = methods_name
-
-temp = [1, 0, 0, 0] * int(len(data_name) / 4)
-df_minority = df[[data_name[idx] for idx, item in enumerate(temp) if item == 1]]
-temp = [0, 1, 0, 0] * int(len(data_name) / 4)
-df_mixed = df[[data_name[idx] for idx, item in enumerate(temp) if item == 1]]
-
-ax = df_minority.T.plot.bar(rot=0, legend=False, align='center', width=0.85, figsize=(8, 6))
-ax.set_xlabel("Number of outliers (case samples)", fontsize=22)
-ax.set_ylabel("Number of significant features \n found by each method", fontsize=22)
-ax.set_xticklabels(["1/20", "3/20", "5/20", "7/20", "9/20"])
-ax.tick_params(axis='both', labelsize=18)
-
-ax = df_mixed.T.plot.bar(rot=0, legend=False, align='center', width=0.85, figsize=(8, 6))
-ax.set_xlabel("Number of outliers (case and control samples)", fontsize=22)
-ax.set_ylabel("Number of significant features \n found by each method", fontsize=22)
-ax.set_xticklabels(["2/40", "6/40", "10/40", "14/40", "18/40"])
-ax.tick_params(axis='both', labelsize=18)
-
-# # Legend
-# ax = df_mixed.T.plot.bar(rot=0, figsize=(20, 10))
-# ax.set_xlabel("Number of outliers (in case and control samples)")
-# ax.set_ylabel("Number of significant features found by each method")
-# ax.set_xticklabels(["2/40", "6/40", "10/40", "14/40", "18/40"])
-# ax.legend(title="Methods", title_fontsize=30, fontsize=25, ncol=5,
-#           loc="lower right", bbox_to_anchor=(1.0, 1.0),
-#           facecolor="None")

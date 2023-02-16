@@ -10,6 +10,7 @@ from scipy.optimize import linear_sum_assignment as linear_assignment
 from scipy.stats import zscore
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import silhouette_score
+from sklearn.metrics.cluster import adjusted_rand_score
 from sklearn.preprocessing import MinMaxScaler
 from utility.utils import dimensionality_reduction, clustering
 
@@ -28,7 +29,8 @@ def make_cost_m(cm):
     return (- cm + s)
 
 
-def plot_barplot(X, methods_name, metric: str = "f1", file_name: str = "temp", save_path: str = "."):
+def plot_barplot(X, methods_name, metric: str = "f1", suptitle: str = "temp", file_name: str = "temp",
+                 save_path: str = "."):
     plt.figure(figsize=(12, 8))
     plt.bar(x=methods_name, height=X)
     plt.xticks(fontsize=18, rotation=45)
@@ -40,10 +42,14 @@ def plot_barplot(X, methods_name, metric: str = "f1", file_name: str = "temp", s
         temp = "AUC"
     elif metric == "accuracy":
         temp = "Accuracy"
-    else:
+    elif metric == "jaccard":
         temp = "Jaccard"
+    elif metric == "ari":
+        temp = "ARI"
+    else:
+        raise Exception("Please provide a valid metric:f1, auc, jaccard, and ari")
     plt.ylabel(temp + " scores of each method", fontsize=22)
-    plt.suptitle("Results using {0} data".format(file_name.capitalize()), fontsize=26)
+    plt.suptitle("Results using {0} data".format(suptitle), fontsize=26)
     file_path = os.path.join(save_path, file_name + "_" + temp.lower() + ".png")
     plt.tight_layout()
     plt.savefig(file_path)
@@ -54,18 +60,16 @@ def plot_barplot(X, methods_name, metric: str = "f1", file_name: str = "temp", s
 
 def plot_scatter(X, y, num_features: int = 100, legend_title: str = "Class", suptitle: str = "temp",
                  file_name: str = "temp", save_path: str = "."):
-    # plot figure
-    plt.figure(figsize=(12, 8))
-    sns.scatterplot(x=X[:, 0], y=X[:, 1], hue=y, palette='tab10', s=80, alpha=0.6)
-    if suptitle is None:
-        plt.suptitle('UMAP of all (%s) features' % str(num_features), fontsize=26, fontweight="bold")
-    else:
-        plt.suptitle('%s (%s features)' % (suptitle, str(num_features)), fontsize=26, fontweight="bold")
-    plt.legend(title=legend_title, fontsize=16, title_fontsize=20)
-    plt.xticks(fontsize=18)
-    plt.yticks(fontsize=18)
-    plt.xlabel("UMAP 1", fontsize=22)
-    plt.ylabel("UMAP 2", fontsize=22)
+    plt.figure(figsize=(12, 10))
+    plt.suptitle('%s (%s features)' % (suptitle, str(num_features)), fontsize=36)
+    sns.scatterplot(x=X[:, 0], y=X[:, 1], hue=y, palette='tab10', s=80, alpha=0.6, linewidth=0)
+    plt.xticks([], fontsize=28)
+    plt.yticks([], fontsize=28)
+    plt.xlabel("UMAP 1", fontsize=30)
+    plt.ylabel("UMAP 2", fontsize=30)
+    plt.legend(title=legend_title, fontsize=26, title_fontsize=30, markerscale=3)
+    # plt.legend(title=legend_title, fontsize=26, title_fontsize=30, markerscale=3,
+    #            loc='center left', bbox_to_anchor=(1, 0.5))
     sns.despine()
     file_path = os.path.join(save_path, file_name)
     plt.tight_layout()
@@ -99,8 +103,8 @@ def plot_heatmap(df, file_name: str = "temp", save_path: str = "."):
 
 def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardize: bool = True, num_neighbors: int = 15,
               min_dist: float = 0, perform_cluster: bool = False, cluster_type: str = "spectral", num_clusters: int = 0,
-              max_clusters: int = 10, heatmap_plot: bool = True, num_jobs: int = 2, suptitle: str = "temp",
-              file_name: str = "temp", save_path: str = "."):
+              max_clusters: int = 10, apply_hungarian: bool = False, heatmap_plot: bool = True, num_jobs: int = 2,
+              suptitle: str = "temp", file_name: str = "temp", save_path: str = "."):
     score = 0
     # Standardize if needed
     if standardize:
@@ -141,16 +145,19 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
                      suptitle=suptitle, file_name=file_name + "_clusters_umap.png", save_path=save_path)
 
         if subtypes is not None:
-            # Match cluster labels to true labels
             y_true = np.unique(subtypes)
             y_true = dict([(item, idx) for idx, item in enumerate(y_true)])
             y_true = [y_true[item] for item in subtypes]
-            cm = confusion_matrix(y_true=y_true, y_pred=cluster_labels)
-            # Permutation maximizing the sum of the diagonal elements using the Hungarian algorithm
-            indexes = linear_assignment(make_cost_m(cm))
-            js = [e[1] for e in sorted(indexes, key=lambda x: x[0])]
-            cm = cm[:, js]
-            score = np.trace(cm) / np.sum(cm)
+            if apply_hungarian:
+                # Match cluster labels to true labels
+                cm = confusion_matrix(y_true=y_true, y_pred=cluster_labels)
+                # Permutation maximizing the sum of the diagonal elements using the Hungarian algorithm
+                indexes = linear_assignment(make_cost_m(cm))
+                js = [e[1] for e in sorted(indexes, key=lambda x: x[0])]
+                cm = cm[:, js]
+                score = np.trace(cm) / np.sum(cm)
+            else:
+                score = adjusted_rand_score(labels_true=y_true, labels_pred=cluster_labels)
 
     if heatmap_plot and perform_cluster:
         # print heatmap if true

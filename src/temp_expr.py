@@ -4,19 +4,9 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from model.copa import COPA
-from model.deltaiqr import DeltaIQR
-from model.dids import DIDS
-from model.lsoss import LSOSS
-from model.most import MOST
-from model.ors import OutlierRobustStatistic
-from model.oss import OutlierSumStatistic
-from model.phet import PHeT
-from model.tstatistic import StudentTTest
 from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.plot_utils import plot_umap, plot_barplot
 from utility.utils import comparative_score
-from utility.utils import sort_features, significant_features
 
 sns.set_theme()
 sns.set_theme(style="white")
@@ -25,10 +15,8 @@ np.random.seed(seed=12345)
 
 def train(num_jobs: int = 4):
     # Arguments
-    direction = "both"
     minimum_samples = 5
     pvalue = 0.01
-    calculate_hstatistic = False
     sort_by_pvalue = True
     topKfeatures = 100
     plot_topKfeatures = False
@@ -48,8 +36,8 @@ def train(num_jobs: int = 4):
     # 1. Microarray datasets: allgse412, bc_ccgse3726, bladdergse89, braintumor, gastricgse2685, glioblastoma, 
     # leukemia_golub, lung, lunggse1987, mll, srbct
     # 2. scRNA datasets: darmanis, yan, camp1, baron, li, and patel
-    file_name = "allgse412"
-    data_name = "GSE412"
+    file_name = "srbct"
+    data_name = "SRBCT"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
@@ -103,105 +91,20 @@ def train(num_jobs: int = 4):
     print("## Perform experimental studies using {0} data...".format(data_name))
     print("\t >> Sample size: {0}; Feature size: {1}; Subtype size: {2}".format(X.shape[0], X.shape[1],
                                                                                 len(np.unique(subtypes))))
-    current_progress = 1
     total_progress = len(methods_name)
 
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            methods_name[0]), end="\r")
-    estimator = StudentTTest(direction=direction, calculate_pval=False)
-    df_ttest = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            methods_name[1]), end="\r")
-    estimator = COPA(q=0.75, direction=direction, calculate_pval=False)
-    df_copa = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            methods_name[2]), end="\r")
-    estimator = OutlierSumStatistic(q=0.75, iqr_range=(25, 75), two_sided_test=False, direction=direction,
-                                    calculate_pval=False)
-    df_os = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            methods_name[3]), end="\r")
-    estimator = OutlierRobustStatistic(q=0.75, iqr_range=(25, 75), direction=direction,
-                                       calculate_pval=False)
-    df_ort = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            methods_name[4]), end="\r")
-    estimator = MOST(direction=direction, calculate_pval=False)
-    df_most = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            methods_name[5]), end="\r")
-    estimator = LSOSS(direction=direction, calculate_pval=False)
-    df_lsoss = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            methods_name[6]), end="\r")
-    estimator = DIDS(score_function="tanh", direction=direction, calculate_pval=False)
-    df_dids = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            methods_name[7]), end="\r")
-    temp = pd.read_csv(os.path.join(DATASET_PATH, file_name + "_deco.csv"), sep=',')
-    temp = [(features_name[feature_ids[int(item[1][0])]], item[1][1]) for item in temp.iterrows()]
-    df_deco = pd.DataFrame(temp, columns=["features", "score"])
-    del temp
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            methods_name[8]), end="\r")
-    estimator = DeltaIQR(normalize="zscore", q=0.75, iqr_range=(25, 75), calculate_pval=False)
-    df_iqr = estimator.fit_predict(X=X, y=y)
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            methods_name[9]))
-    estimator = PHeT(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
-                     significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                     weight_range=[0.1, 0.4, 0.8], calculate_hstatistic=calculate_hstatistic, num_components=10,
-                     num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50,
-                     num_jobs=num_jobs)
-    df_phet = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-
-    methods_dict = dict({methods_name[0]: df_ttest, methods_name[1]: df_copa, methods_name[2]: df_os,
-                         methods_name[3]: df_ort, methods_name[4]: df_most, methods_name[5]: df_lsoss,
-                         methods_name[6]: df_dids, methods_name[7]: df_deco, methods_name[8]: df_iqr,
-                         methods_name[9]: df_phet})
-    if sort_by_pvalue:
-        print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))
-    else:
-        print("## Sort features by the score statistic...".format())
-    for method_idx, item in enumerate(methods_dict.items()):
-        method_name, df = item
-        method_name = methods_name[method_idx]
-        save_name = method_name
-        if method_name == "DECO":
-            continue
-        if method_name == "t-statistic":
-            save_name = "ttest"
-        elif method_name == "ΔIQR":
-            save_name = "DeltaIQR"
-        if sort_by_pvalue:
-            temp = significant_features(X=df, features_name=features_name, pvalue=pvalue,
-                                        X_map=None, map_genes=False, ttest=False)
-        else:
-            temp = sort_features(X=df, features_name=features_name, X_map=None,
-                                 map_genes=False, ttest=False)
-        df = pd.DataFrame(temp["features"].tolist(), columns=["features"])
-        df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_features.csv"),
-                  sep=',', index=False)
-        methods_dict[method_name] = temp
-    del df_copa, df_os, df_ort, df_most, df_lsoss, df_dids, df_iqr, df_phet
+    result_path = os.path.join(RESULT_PATH, "microarray")
+    feature_files = [file_name + "_" + method.lower() + "_features.csv" for method in methods_name]
+    feature_files[0] = file_name + "_ttest_features.csv"
+    feature_files[7] = file_name + "_deco.csv"
+    feature_files[8] = file_name + "_deltaiqr_features.csv"
+    methods_dict = dict()
+    for idx, f in enumerate(feature_files):
+        df = pd.read_csv(os.path.join(result_path, f), sep=',')
+        if methods_name[idx] == "DECO":
+            df = [(features_name[feature_ids[int(df[1][0])]], df[1][1]) for df in df.iterrows()]
+            df = pd.DataFrame(df, columns=["features", "score"])
+        methods_dict.update({methods_name[idx]: df})
 
     print("## Scoring results using known regulated features...")
     selected_regulated_features = topKfeatures

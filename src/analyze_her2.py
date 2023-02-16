@@ -15,7 +15,7 @@ from model.most import MOST
 from model.ors import OutlierRobustStatistic
 from model.oss import OutlierSumStatistic
 from model.phet import PHeT
-from model.studentt import StudentTTest
+from model.tstatistic import StudentTTest
 from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.utils import sort_features, comparative_score
 
@@ -30,7 +30,7 @@ def train(num_jobs: int = 4):
     calculate_hstatistic = False
     num_batches = 1000
     subsample_size = 10
-    methods_name = ["ttest", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "DeltaIQR", "PHet"]
+    methods_name = ["t-statistic", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "ΔIQR", "PHet"]
 
     # Load expression data
     X_control = pd.read_csv(os.path.join(DATASET_PATH, "her2_negative_matrix.csv"), sep=',')
@@ -63,7 +63,7 @@ def train(num_jobs: int = 4):
         raise Exception(temp)
 
     print("## Perform simulation studies using HER2 data...")
-    print("\t >> Control size: {0}; Case size: {1}; Feature size: {2}".format(X_control.shape[0], X_case.shape[1],
+    print("\t >> Control size: {0}; Case size: {1}; Feature size: {2}".format(X_control.shape[0], X_case.shape[0],
                                                                               len(features_name)))
     list_scores = list()
     current_progress = 1
@@ -222,25 +222,25 @@ def train(num_jobs: int = 4):
     df = pd.DataFrame(list_scores, index=range(num_batches), columns=methods_name)
     df.index.name = 'Batch'
     df = pd.melt(df.reset_index(), id_vars='Batch', value_vars=methods_name, var_name="Methods",
-                 value_name="F1 scores")
+                 value_name="Scores")
     df.to_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',', index=False)
     df = pd.read_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',')
     temp = [idx for idx, item in enumerate(df["Methods"].tolist()) if item != "DECO"]
     df = df.iloc[temp]
     temp = ["ΔIQR" if item == "DeltaIQR" else item for item in df["Methods"].tolist()]
+    temp = ["t-statistic" if item == "ttest" else item for item in temp]
     df["Methods"] = temp
     palette = mcolors.TABLEAU_COLORS
     methods_name = ["ΔIQR" if item == "DeltaIQR" else item for item in methods_name]
+    methods_name = ["t-statistic" if item == "ttest" else item for item in methods_name]
     palette = dict([(methods_name[idx], item[1]) for idx, item in enumerate(palette.items())
                     if idx + 1 <= len(methods_name) and methods_name[idx] != "DECO"])
 
     # Plot boxplot
     print("## Plot boxplot using top k features...")
     plt.figure(figsize=(14, 8))
-    bplot = sns.boxplot(y='F1 scores', x='Methods', data=df, width=0.5,
+    bplot = sns.boxplot(y='Scores', x='Methods', data=df, width=0.5,
                         palette=palette)
-    # bplot = sns.swarmplot(y='F1 scores', x='Methods', data=df,
-    #                      color='black', alpha=0.75)
     plt.xticks(fontsize=18, rotation=45)
     plt.yticks(fontsize=18)
     plt.xlabel('Methods', fontsize=22)
@@ -262,37 +262,4 @@ if __name__ == "__main__":
     # for mac and linux(here, os.name is 'posix')
     else:
         _ = os.system('clear')
-    train(num_jobs=4)
-
-result_path = os.path.join(RESULT_PATH, "scRNA")
-files = [file for file in os.listdir(result_path) if file.endswith("_features_scores.csv")]
-# files = [file for file in os.listdir(result_path) if file.endswith("_cluster_accuracy.csv")]
-methods_name = []
-methods = []
-scores = []
-for f in files:
-    df = pd.read_csv(os.path.join(result_path, f), sep=',')
-    methods_name = df.iloc[:, 0].to_list()
-    methods.extend(df.iloc[:, 0].to_list())
-    scores.extend(df.iloc[:, 1].to_list())
-
-methods_name = ["ΔIQR" if item == "DeltaIQR" else item for item in methods_name]
-methods = ["ΔIQR" if item == "DeltaIQR" else item for item in methods]
-df = pd.DataFrame([methods, scores]).T
-df.columns = ["Methods", "F1 scores"]
-mean_scores = np.mean(scores, 0)
-std_scores = np.std(scores, 0)
-
-palette = mcolors.TABLEAU_COLORS
-palette = dict([(methods_name[idx], item[1]) for idx, item in enumerate(palette.items())
-                if idx + 1 <= len(methods_name)])
-
-plt.figure(figsize=(14, 8))
-bplot = sns.boxplot(y='F1 scores', x='Methods', data=df, palette=palette)
-plt.xticks(fontsize=20, rotation=45)
-plt.yticks(fontsize=20)
-plt.xlabel('Methods', fontsize=24)
-plt.ylabel("F1 scores of each method", fontsize=26)
-plt.suptitle("Results using 6 scRNA datasets", fontsize=28)
-sns.despine()
-plt.tight_layout()
+    train(num_jobs=10)

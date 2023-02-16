@@ -13,7 +13,7 @@ from model.most import MOST
 from model.ors import OutlierRobustStatistic
 from model.oss import OutlierSumStatistic
 from model.phet import PHeT
-from model.studentt import StudentTTest
+from model.tstatistic import StudentTTest
 from utility.file_path import DATASET_PATH, RESULT_PATH
 
 sns.set_theme()

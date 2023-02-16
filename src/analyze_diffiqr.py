@@ -24,7 +24,9 @@ def train(num_jobs: int = 4):
     plot_topKfeatures = False
     if not sort_by_pvalue:
         plot_topKfeatures = True
-    is_mtx = True
+    is_mtx = False
+    max_clusters = 10
+    cluster_type = "kmeans"
 
     # 1. Micro-array datasets: allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89,
     # braintumor, cmlgse2535, colon, dlbcl, ewsgse967, gastricgse2685, glioblastoma, leukemia_golub,
@@ -34,7 +36,7 @@ def train(num_jobs: int = 4):
     # 3. Lung scRNA datasets (mtx): pulseseq, pulseseq_club, pulseseq_club_lineage, pulseseq_goblet, pulseseq_tuft, pulseseq_ionocyte
     # 4. Lung scRNA datasets (csv): plasschaert_human, plasschaert_human_basal_vs_secretory, plasschaert_human_secretory_vs_ciliated, 
     # plasschaert_human_secretory_vs_rare, plasschaert_mouse, plasschaert_mouse_secretory_vs_rare
-    file_name = "pulseseq_ionocyte"
+    file_name = "yan"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
@@ -59,6 +61,7 @@ def train(num_jobs: int = 4):
     # Load subtypes file
     subtypes = pd.read_csv(os.path.join(DATASET_PATH, subtypes_file + ".csv"), sep=',').dropna(axis=1)
     subtypes = [str(idx).lower() for idx in subtypes["subtypes"].to_list()]
+    num_clusters = len(np.unique(subtypes))
 
     # Filter data based on counts
     num_examples, num_features = X.shape
@@ -164,7 +167,7 @@ def train(num_jobs: int = 4):
     score = comparative_score(pred_features=top_features_pred, true_features=top_features_true)
     list_scores.append(score)
     print("## Plot barplot using the top {0} features...".format(topKfeatures))
-    plot_barplot(X=list_scores, methods_name=list(methods_df.keys()), file_name=file_name,
+    plot_barplot(X=list_scores, methods_name=methods_name, metric="f1", file_name=file_name,
                  save_path=RESULT_PATH)
 
     temp = np.copy(y)
@@ -173,19 +176,22 @@ def train(num_jobs: int = 4):
     temp[np.where(y == 1)[0]] = case_name
     y = temp
     print("## Plot UMAP using all features ({0})...".format(num_features))
-    plot_umap(X=X, y=y, subtypes=subtypes, features_name=features_name, num_features=num_features, standardize=True,
-              num_neighbors=5, min_dist=0, cluster_type="kmeans", num_clusters=0, max_clusters=10, heatmap_plot=False,
-              num_jobs=num_jobs, suptitle=None, file_name=file_name + "_all", save_path=RESULT_PATH)
+    plot_umap(X=X, y=y, subtypes=subtypes, features_name=features_name, num_features=num_features,
+              standardize=True, num_neighbors=5, min_dist=0, perform_cluster=True, cluster_type=cluster_type,
+              num_clusters=num_clusters, max_clusters=max_clusters, apply_hungarian=False, heatmap_plot=False,
+              num_jobs=num_jobs, suptitle=file_name.capitalize() + ": ", file_name=file_name + "_all",
+              save_path=RESULT_PATH)
     print("## Plot UMAP using marker features ({0})...".format(sum(top_features_true)))
     temp = np.where(np.array(top_features_true) == 1)[0]
     plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=features_name, num_features=temp.shape[0],
-              standardize=True, num_neighbors=5, min_dist=0, cluster_type="kmeans", num_clusters=0, max_clusters=10,
-              heatmap_plot=False, num_jobs=num_jobs, suptitle="UMAP of markers", file_name=file_name + "_markers",
-              save_path=RESULT_PATH)
+              standardize=True, num_neighbors=5, min_dist=0, cluster_type=cluster_type, num_clusters=0,
+              max_clusters=10, apply_hungarian=False, heatmap_plot=False, num_jobs=num_jobs,
+              suptitle="UMAP of markers: ", file_name=file_name + "_markers", save_path=RESULT_PATH)
     plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=features_name, num_features=temp.shape[0],
-              standardize=True, num_neighbors=5, min_dist=0, perform_cluster=True, cluster_type="kmeans",
-              num_clusters=3, max_clusters=10, heatmap_plot=False, num_jobs=num_jobs, suptitle="UMAP of markers",
-              file_name=file_name + "_markers", save_path=RESULT_PATH)
+              standardize=True, num_neighbors=5, min_dist=0, perform_cluster=True, cluster_type=cluster_type,
+              num_clusters=num_clusters, max_clusters=10, apply_hungarian=False, heatmap_plot=False,
+              num_jobs=num_jobs, suptitle="UMAP of markers: ", file_name=file_name + "_markers",
+              save_path=RESULT_PATH)
 
     if plot_topKfeatures:
         print("## Plot UMAP using the top {0} features...".format(topKfeatures))
@@ -193,26 +199,28 @@ def train(num_jobs: int = 4):
         print("## Plot UMAP using the top features for each method...")
     for method_idx, item in enumerate(methods_df.items()):
         stat_name, df = item
-    method_name = methods_name[method_idx]
-    if total_progress == method_idx + 1:
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / total_progress) * 100,
-                                                                stat_name))
-    else:
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / total_progress) * 100,
-                                                                stat_name), end="\r")
-    if plot_topKfeatures:
-        temp = [idx for idx, feature in enumerate(features_name) if
-                feature in df['features'].tolist()[:topKfeatures]]
-        temp_feature = [feature for idx, feature in enumerate(features_name) if
-                        feature in df['features'].tolist()[:topKfeatures]]
-    else:
-        temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
-        temp_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
-    num_features = len(temp)
-    plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
-              standardize=True, num_neighbors=5, min_dist=0.0, perform_cluster=True, cluster_type="kmeans",
-              num_clusters=3, max_clusters=10, heatmap_plot=False, num_jobs=num_jobs, suptitle=stat_name.upper(),
-              file_name=file_name + "_" + method_name.lower(), save_path=RESULT_PATH)
+        method_name = methods_name[method_idx]
+        if total_progress == method_idx + 1:
+            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / total_progress) * 100,
+                                                                    stat_name))
+        else:
+            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / total_progress) * 100,
+                                                                    stat_name), end="\r")
+        if plot_topKfeatures:
+            temp = [idx for idx, feature in enumerate(features_name) if
+                    feature in df['features'].tolist()[:topKfeatures]]
+            temp_feature = [feature for idx, feature in enumerate(features_name) if
+                            feature in df['features'].tolist()[:topKfeatures]]
+        else:
+            temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
+            temp_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
+        num_features = len(temp)
+        plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
+                  standardize=True, num_neighbors=5, min_dist=0.0, perform_cluster=True,
+                  cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
+                  apply_hungarian=False, heatmap_plot=False, num_jobs=num_jobs,
+                  suptitle=file_name.capitalize() + ": " + method_name, file_name=file_name + "_" + method_name.lower(),
+                  save_path=RESULT_PATH)
 
 
 if __name__ == "__main__":
