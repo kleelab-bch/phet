@@ -13,24 +13,25 @@ sns.set_style(style='white')
 
 ######################## Real data ###########################
 
-result_path = os.path.join(RESULT_PATH, "microarray")
-methods_name = ["ttest", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "DeltaIQR", "PHet"]
-methods_name = ["ΔIQR" if item == "DeltaIQR" else item for item in methods_name]
-methods_name = ["t-statistic" if item == "ttest" else item for item in methods_name]
+result_path = os.path.join(RESULT_PATH, "scRNA")
+methods_name = {"ttest": "t-statistic", "COPA": "COPA", "OS": "OS", "ORT": "ORT",
+                "MOST": "MOST", "LSOSS": "LSOSS", "DIDS": "DIDS", "DECO": "DECO",
+                "DeltaIQR": "ΔIQR", "PHet": "PHet"}
+
 # Use static colors
 palette = mcolors.TABLEAU_COLORS
-palette = dict([(methods_name[idx], item[1]) for idx, item in enumerate(palette.items())
+palette = dict([(list(methods_name.values())[idx], item[1]) for idx, item in enumerate(palette.items())
                 if idx + 1 <= len(methods_name)])
 
 # Feature scores
 files = [f for f in os.listdir(result_path) if f.endswith("_features_scores.csv")]
+
 # DECO
 feature_files = sorted([f for f in os.listdir(result_path) if f.endswith("_deco.csv")])
 deco_features = []
 for f in feature_files:
     df = pd.read_csv(os.path.join(result_path, f), sep=',')
     deco_features.append(len(df["features"].to_list()))
-# deco_features = np.mean(deco_features)
 
 # Collect features scores
 methods = []
@@ -42,7 +43,7 @@ for f in files:
 
 # Total features
 feature_files = [sorted([f for f in os.listdir(result_path) if f.endswith(method.lower() + "_features.csv")])
-                 for method in methods_name]
+                 for method, _ in methods_name.items()]
 total_features = []
 for lst_files in feature_files:
     temp = list()
@@ -54,13 +55,13 @@ total_features[7] = deco_features
 total_features = np.log(total_features)
 
 # Change names scores
-methods = ["ΔIQR" if item == "DeltaIQR" else item for item in methods]
-methods = ["t-statistic" if item == "ttest" else item for item in methods]
+# methods = ["ΔIQR" if item == "DeltaIQR" else item for item in methods]
+# methods = ["t-statistic" if item == "ttest" else item for item in methods]
 
 # Dataframe 
 df = pd.DataFrame([methods, scores]).T
 df.columns = ["Methods", "F1 scores"]
-methods = [list(np.repeat(m, total_features.shape[1])) for m in methods_name]
+methods = [list(np.repeat(m, total_features.shape[1])) for _, m in methods_name.items()]
 methods = np.reshape(methods, (total_features.shape[0] * total_features.shape[1]))
 total_features = total_features.reshape((total_features.shape[0] * total_features.shape[1]))
 df_features = pd.DataFrame([methods, total_features])
@@ -74,7 +75,7 @@ ax.set_xlabel("")
 ax.set_ylabel("Number of significant features  \n  found by each method (log scale)", fontsize=36)
 ax.set_xticklabels([])
 ax.tick_params(axis='both', labelsize=30)
-plt.suptitle("11 microarray gene expression datasets", fontsize=36)
+plt.suptitle("6 single cell RNA-seq datasets", fontsize=36)
 sns.despine()
 plt.tight_layout()
 
@@ -85,7 +86,7 @@ ax.set_xlabel("")
 ax.set_ylabel("F1 scores of each method", fontsize=36)
 ax.set_xticklabels([])
 ax.tick_params(axis='both', labelsize=30)
-plt.suptitle("11 microarray gene expression datasets", fontsize=36)
+plt.suptitle("6 single cell RNA-seq datasets", fontsize=36)
 sns.despine()
 plt.tight_layout()
 
@@ -108,7 +109,7 @@ ax.set_xlabel("")
 ax.set_ylabel("ARI of each method", fontsize=36)
 ax.set_xticklabels([])
 ax.tick_params(axis='both', labelsize=30)
-plt.suptitle("11 microarray gene expression datasets", fontsize=36)
+plt.suptitle("6 single cell RNA-seq datasets", fontsize=36)
 sns.despine()
 plt.tight_layout()
 

@@ -69,6 +69,7 @@ class LSOSS:
 
             # Estimate the pooled standard error
             SE = (SS_control[feature_idx] + SS1 + SS2) / (n + m - 2)
+            SE = np.sqrt(SE)
 
             # The LSOSS statistic for declaring a feature with outlier differential
             # expression in case samples is computed

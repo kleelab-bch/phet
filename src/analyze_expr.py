@@ -36,7 +36,7 @@ def train(num_jobs: int = 4):
         plot_topKfeatures = True
     max_clusters = 10
     cluster_type = "kmeans"
-    # cluster_type = "spectral"
+    cluster_type = "spectral"
     methods_name = ["t-statistic", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "ΔIQR", "PHet"]
 
     # 1. Microarray datasets: allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89,
@@ -48,8 +48,8 @@ def train(num_jobs: int = 4):
     # 1. Microarray datasets: allgse412, bc_ccgse3726, bladdergse89, braintumor, gastricgse2685, glioblastoma, 
     # leukemia_golub, lung, lunggse1987, mll, srbct
     # 2. scRNA datasets: darmanis, yan, camp1, baron, li, and patel
-    file_name = "allgse412"
-    data_name = "GSE412"
+    file_name = "baron"
+    data_name = "Baron"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
