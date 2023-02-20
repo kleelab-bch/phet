@@ -45,10 +45,10 @@ gset <- as.data.frame(t(gset))
 # group membership for all samples
 # 0 (Basal cells): "Basal" and "Basal>Secretory"
 # 1 (Secretory cells): "Secretory"
+gsms <- c(0, 0, 1)
 # 0 (Basal>Secretory cells): "Basal>Secretory"
 # 1 (Basal and Secretory cells): "Basal" and "Secretory"
-gsms <- c(0, 0, 1)
-gsms <- c(1, 0, 1)
+# gsms <- c(1, 0, 1)
 names(gsms) <- unique(metadata)
 gsms <- gsms[metadata]
 gsms <- paste0(gsms, collapse = "")

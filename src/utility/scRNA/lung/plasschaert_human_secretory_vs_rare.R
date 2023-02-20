@@ -44,7 +44,7 @@ gset <- as.data.frame(t(gset))
 
 # group membership for all samples
 # 0 (Secretory cells): "Secretory", "Secretory>Ciliated", and "FOXN4+"
-# 1 (Ciliated and Rare cells): "Ciliated", "SLC16A7+", "Brush+PNEC", and "Ionocytes"  
+# 1 (Rare cells): "Ciliated", "SLC16A7+", "Brush+PNEC", and "Ionocytes"  
 gsms <- c(0, 1, 1, 0, 1, 1, 0)
 names(gsms) <- unique(metadata)
 gsms <- gsms[metadata]

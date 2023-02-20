@@ -85,7 +85,7 @@ tT <- topTable(fit2, adjust = "fdr", sort.by = "B", number = 10000)
 temp <- rownames(tT)
 rownames(tT) <- NULL
 tT <- cbind("ID" = temp, tT)
-write.table(tT, file = file.path(working_dir, paste(file_name, "diff_features.csv",
+write.table(tT, file = file.path(working_dir, paste(file_name, "_diff_features.csv",
                                                     sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 

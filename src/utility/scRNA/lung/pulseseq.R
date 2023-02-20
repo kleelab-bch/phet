@@ -170,7 +170,7 @@ temp_metadata <- metadata[condition]
 file_name <- "pulseseq_tuft"
 
 # group membership for all samples
-# 0 (PNEC and Ionocyte): "Neuroendocrine" and "Ionocyte"
+# 0 (PNEC and Ionocytes): "Neuroendocrine" and "Ionocytes"
 # 1 (Tuft): "Tuft"
 gsms <- c(0, 0, 1)
 names(gsms) <- unique(temp_metadata)
@@ -204,7 +204,7 @@ metadata <- metadata[condition]
 file_name <- "pulseseq_ionocyte"
 
 # group membership for all samples
-# 0 (Ionocyte): "Ionocyte"
+# 0 (Ionocytes): "Ionocytes"
 # 1 (Tuft): "Tuft"
 gsms <- c(0, 1)
 names(gsms) <- unique(metadata)
