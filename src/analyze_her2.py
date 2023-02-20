@@ -155,7 +155,7 @@ def train(num_jobs: int = 4):
 
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "DIDS"),
               end="\r")
-        estimator = DIDS(score_function="quad", direction=direction, calculate_pval=False)
+        estimator = DIDS(score_function="sqrt", direction=direction, calculate_pval=False)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
