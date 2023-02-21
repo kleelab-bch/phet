@@ -24,23 +24,37 @@ def train(num_jobs: int = 4):
     plot_topKfeatures = False
     if not sort_by_pvalue:
         plot_topKfeatures = True
-    is_mtx = True
+    is_mtx = False
     max_clusters = 10
-    cluster_type = "kmeans"
+    cluster_type = "spectral"
     methods_name = ["ΔIQR", "PHet"]
 
     # 1. Micro-array datasets: allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89,
     # braintumor, cmlgse2535, colon, dlbcl, ewsgse967, gastricgse2685, glioblastoma, leukemia_golub,
     # ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, mll, myelodysplastic_mds1,
     # myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
+    
     # 2. scRNA datasets: camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
+    
     # 3. Lung scRNA datasets (mtx): pulseseq, pulseseq_club, pulseseq_club_lineage, pulseseq_goblet, 
     # pulseseq_tuft, pulseseq_ionocyte
-    # 4. Lung scRNA datasets (csv): plasschaert_human, plasschaert_human_basal_vs_secretory, 
-    # plasschaert_human_basal_vs_ionocytes, plasschaert_human_basal2secretory_vs_ionocytes, 
+
+    # 4. Plasschaert-Human (csv): plasschaert_human, plasschaert_human_basaland2secretory_vs_others,
+    # plasschaert_human_basal_vs_basal2secretory, plasschaert_human_basal2secretory_vs_secretory,
+    # plasschaert_human_basaland2secretory_vs_secretory, plasschaert_human_basal_vs_secretory,
+    # plasschaert_human_basal2secretory_vs_ionocytes, plasschaert_human_basal_vs_ionocytes
+    # plasschaert_human_basal_vs_ciliated, plasschaert_human_secretory_vs_secretory2ciliated, 
+    # plasschaert_human_secretory2ciliated_vs_ciliated, plasschaert_human_secretoryand2ciliated_vs_ciliated, 
     # plasschaert_human_secretory_vs_ciliated, plasschaert_human_secretory_vs_rare, 
-    # plasschaert_human_secretory_vs_ionocytes, plasschaert_mouse, plasschaert_mouse_secretory_vs_rare
-    file_name = "pulseseq"
+    # plasschaert_human_secretory_vs_ionocytes, plasschaert_human_ciliated_vs_ionocytes
+
+    # 5. Plasschaert-Mouse (csv): plasschaert_mouse, plasschaert_mouse_basalandplus_vs_secretoryandkrt4, 
+    # plasschaert_mouse_basalandpreciliated_vs_ciliated, plasschaert_mouse_preandciliated_vs_rare, 
+    # plasschaert_mouse_secretory_vs_rare
+
+    # plasschaert_human
+    # plasschaert_human_basaland2secretory_vs_others
+    file_name = "plasschaert_human"
     data_name = "Basal vs non Basal"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
@@ -128,7 +142,7 @@ def train(num_jobs: int = 4):
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "PHet"))
-    estimator = PHeT(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=5000, subsampling_size=None,
+    estimator = PHeT(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
                      significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
                      weight_range=[0.1, 0.3, 0.5], calculate_hstatistic=calculate_hstatistic, num_components=10,
                      num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50,

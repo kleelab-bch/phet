@@ -58,18 +58,18 @@ def plot_barplot(X, methods_name, metric: str = "f1", suptitle: str = "temp", fi
     plt.close(fig="all")
 
 
-def plot_scatter(X, y, num_features: int = 100, legend_title: str = "Class", suptitle: str = "temp",
-                 file_name: str = "temp", save_path: str = "."):
+def plot_scatter(X, y, num_features: int = 100, add_legend:bool=True, legend_title: str = "Class", 
+                 suptitle: str = "temp", file_name: str = "temp", save_path: str = "."):
     plt.figure(figsize=(12, 10))
     plt.suptitle('%s (%s features)' % (suptitle, str(num_features)), fontsize=36)
-    sns.scatterplot(x=X[:, 0], y=X[:, 1], hue=y, palette='tab10', s=80, alpha=0.6, linewidth=0)
+    sns.scatterplot(x=X[:, 0], y=X[:, 1], hue=y, palette='tab10', s=80, alpha=0.6, linewidth=0, 
+                    legend=add_legend)
     plt.xticks([], fontsize=28)
     plt.yticks([], fontsize=28)
     plt.xlabel("UMAP 1", fontsize=30)
     plt.ylabel("UMAP 2", fontsize=30)
-    plt.legend(title=legend_title, fontsize=26, title_fontsize=30, markerscale=3)
-    # plt.legend(title=legend_title, fontsize=26, title_fontsize=30, markerscale=3,
-    #            loc='center left', bbox_to_anchor=(1, 0.5))
+    if add_legend:
+        plt.legend(title=legend_title, fontsize=26, title_fontsize=30, markerscale=3)
     sns.despine()
     file_path = os.path.join(save_path, file_name)
     plt.tight_layout()
@@ -119,6 +119,9 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
     if subtypes is not None:
         plot_scatter(X=X_reducer, y=subtypes, num_features=num_features, suptitle=suptitle,
                      file_name=file_name + "_subtypes_umap.png", save_path=save_path)
+        plot_scatter(X=X_reducer, y=subtypes, num_features=num_features, add_legend=False, 
+                     suptitle=suptitle, file_name=file_name + "_subtypes_nolegend_umap.png", 
+                     save_path=save_path)
 
     if perform_cluster:
         # Perform Silhoette Analysis
