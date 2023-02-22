@@ -15,6 +15,8 @@ metadata <- read.table(file.path(working_dir,
                                  paste("GSE102580_meta_mouse.tsv", sep = "")),
                        header = TRUE, sep = "\t", row.names = 1,
                        check.names = FALSE, stringsAsFactors = FALSE)
+donors <- metadata$mouse_id
+timepoints <- metadata$timepoint
 metadata$cell_type1 <- metadata$clusters_Fig2
 metadata <- metadata$cell_type1
 # remove Basal cells 
@@ -30,7 +32,16 @@ df <- read.table(file.path(working_dir,
 enriched_features <- df$EnrichedIn %in% c("Secretory", "Pre-ciliated", "Ciliated", "Brush", 
                                            "PNEC", "Ionocytes")
 ID <- rownames(df)[enriched_features]
-write.table(as.data.frame(ID), file = file.path(working_dir, paste(file_name, "_features.csv", sep = "")),
+write.table(as.data.frame(ID), 
+            file = file.path(working_dir, paste(file_name, "_features.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+donors <- donors[condition]
+write.table(as.data.frame(donors), 
+            file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+timepoints <- timepoints[condition]
+write.table(as.data.frame(timepoints), 
+            file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 # already normalized
 gset <- read.table(file.path(working_dir,

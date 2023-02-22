@@ -15,6 +15,7 @@ metadata <- read.table(file.path(working_dir,
                                  paste("GSE102580_meta_human.tsv", sep = "")),
                        header = TRUE, sep = "\t", row.names = 1,
                        check.names = FALSE, stringsAsFactors = FALSE)
+donors <- metadata$library
 metadata$cell_type1 <- metadata$clusters_Fig1
 metadata <- metadata$cell_type1
 metadata[metadata == "Interm. basal>secr."] <- "Basal>Secretory"
@@ -31,7 +32,12 @@ df[df == "Interm. basal>secr."] <- "Basal>Secretory"
 df[df == "Interm. secr.>cil."] <- "Secretory>Ciliated"
 enriched_features <- df$EnrichedIn %in% c("Secretory", "Ionocytes")
 ID <- rownames(df)[enriched_features]
-write.table(as.data.frame(ID), file = file.path(working_dir, paste(file_name, "_features.csv", sep = "")),
+write.table(as.data.frame(ID), 
+            file = file.path(working_dir, paste(file_name, "_features.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+donors <- donors[condition]
+write.table(as.data.frame(donors), 
+            file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 # already normalized
 gset <- read.table(file.path(working_dir,
@@ -53,12 +59,14 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
 subtypes <- metadata
-write.table(as.data.frame(subtypes), file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
+write.table(as.data.frame(subtypes), 
+            file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 gset$class <- sml
-write.table(gset, file = file.path(working_dir, paste(file_name, "_matrix.csv", sep = "")),
+write.table(gset, 
+            file = file.path(working_dir, paste(file_name, "_matrix.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 gset$class <- NULL
 

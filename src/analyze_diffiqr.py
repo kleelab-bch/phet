@@ -11,7 +11,6 @@ from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.plot_utils import plot_umap, plot_barplot
 from utility.utils import comparative_score
 from utility.utils import sort_features, significant_features
-
 sns.set_theme(style="white")
 
 
@@ -20,6 +19,7 @@ def train(num_jobs: int = 4):
     pvalue = 0.01
     calculate_hstatistic = False
     sort_by_pvalue = True
+    export_spring = True
     topKfeatures = 100
     plot_topKfeatures = False
     if not sort_by_pvalue:
@@ -52,15 +52,15 @@ def train(num_jobs: int = 4):
     # plasschaert_mouse_basalandpreciliated_vs_ciliated, plasschaert_mouse_preandciliated_vs_rare, 
     # plasschaert_mouse_secretory_vs_rare
 
-    # plasschaert_human
-    # plasschaert_human_basaland2secretory_vs_others
-    file_name = "plasschaert_human"
-    data_name = "Basal vs non Basal"
+    file_name = "plasschaert_mouse"
+    suptitle_name = "Basal vs Others"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
+    donors_file = file_name + "_donors"
+    timepoints_file = file_name + "_timepoints"
     control_name = "Basal"
-    case_name = "non Basal"
+    case_name = "Others"
 
     # Load expression data
     if not is_mtx:
@@ -79,8 +79,16 @@ def train(num_jobs: int = 4):
 
     # Load subtypes file
     subtypes = pd.read_csv(os.path.join(DATASET_PATH, subtypes_file + ".csv"), sep=',').dropna(axis=1)
-    subtypes = [str(idx).lower() for idx in subtypes["subtypes"].to_list()]
+    subtypes = [str(item[0]).lower() for item in subtypes.values.tolist()]
     num_clusters = len(np.unique(subtypes))
+    donors = []
+    if os.path.exists(os.path.join(DATASET_PATH, donors_file + ".csv")):
+        donors = pd.read_csv(os.path.join(DATASET_PATH, donors_file + ".csv"), sep=',').dropna(axis=1)
+        donors = [str(item[0]).lower() for item in donors.values.tolist()]
+    timepoints = []
+    if os.path.exists(os.path.join(DATASET_PATH, timepoints_file + ".csv")):
+        timepoints = pd.read_csv(os.path.join(DATASET_PATH, timepoints_file + ".csv"), sep=',').dropna(axis=1)
+        timepoints = [str(item[0]).lower() for item in timepoints.values.tolist()]
 
     # Filter data based on counts
     num_examples, num_features = X.shape
@@ -88,6 +96,11 @@ def train(num_jobs: int = 4):
     examples_ids = np.where(example_sums > int(0.01 * num_features))[0]
     X = X[examples_ids]
     y = y[examples_ids]
+    subtypes = np.array(subtypes)[examples_ids].tolist()
+    if len(donors) != 0:
+        donors = np.array(donors)[examples_ids].tolist()
+    if len(timepoints) != 0:
+        timepoints = np.array(timepoints)[examples_ids].tolist()
     num_examples, num_features = X.shape
     del example_sums, examples_ids
     temp = np.absolute(X)
@@ -104,6 +117,19 @@ def train(num_jobs: int = 4):
     feature_ids = dict([(feature_idx, idx) for idx, feature_idx in enumerate(feature_ids)])
     num_examples, num_features = X.shape
     del feature_sums
+
+    # Save subtypes for SPRING
+    if export_spring:
+        groups = []
+        groups.append(["subtypes"] + subtypes)
+        if len(donors) != 0:
+            groups.append(["donors"] + donors)
+        if len(timepoints) != 0:
+            groups.append(["timepoints"] + timepoints)
+        df = pd.DataFrame(groups)
+        df.to_csv(os.path.join(RESULT_PATH, file_name + "_groups.csv"), sep=',', 
+                  index=False, header=False)
+        del df
 
     # Load up/down regulated features
     if not is_mtx:
@@ -123,8 +149,7 @@ def train(num_jobs: int = 4):
             topKfeatures = len(top_features_true)
         top_features_true = [1 if feature in top_features_true else 0 for idx, feature in enumerate(features_name)]
     else:
-        top_features_true = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file + ".csv")).replace(np.nan,
-                                                                                                              -1)
+        top_features_true = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file + ".csv")).replace(np.nan, -1)
         top_features_true = list(set([item for item in top_features_true.to_numpy().flatten() if item != -1]))
         top_features_true = [1 if feature in top_features_true else 0 for idx, feature in enumerate(features_name)]
         topKfeatures = sum(top_features_true)
@@ -167,12 +192,8 @@ def train(num_jobs: int = 4):
         else:
             temp = sort_features(X=df, features_name=features_name, X_map=None,
                                  map_genes=False, ttest=False)
-        df = pd.DataFrame(temp["features"].tolist(), columns=["features"])
-        df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_features.csv"),
-                    sep=',', index=False)
         methods_dict[method_name] = temp
     del df_iqr, df_phet
-
 
     print("## Scoring results using known regulated features...")
     selected_regulated_features = topKfeatures
@@ -199,7 +220,7 @@ def train(num_jobs: int = 4):
     df = pd.DataFrame(list_scores, columns=["Scores"], index=methods_name)
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_features_scores.csv"), sep=",")
     print("## Plot barplot using the top {0} features...".format(topKfeatures))
-    plot_barplot(X=list_scores, methods_name=methods_name, metric="f1", suptitle=data_name,
+    plot_barplot(X=list_scores, methods_name=methods_name, metric="f1", suptitle=suptitle_name,
                  file_name=file_name, save_path=RESULT_PATH)
           
     temp = np.copy(y)
@@ -212,20 +233,15 @@ def train(num_jobs: int = 4):
     score = plot_umap(X=X, y=y, subtypes=subtypes, features_name=features_name, num_features=num_features,
                       standardize=True, num_neighbors=5, min_dist=0, perform_cluster=True, cluster_type=cluster_type,
                       num_clusters=num_clusters, max_clusters=max_clusters, apply_hungarian=False, heatmap_plot=False,
-                      num_jobs=num_jobs, suptitle=data_name + ": ", file_name=file_name + "_all", save_path=RESULT_PATH)
+                      num_jobs=num_jobs, suptitle=suptitle_name + "\nAll", file_name=file_name + "_all", save_path=RESULT_PATH)
     list_scores.append(score)
     print("## Plot UMAP using marker features ({0})...".format(sum(top_features_true)))
     temp = np.where(np.array(top_features_true) == 1)[0]
     score = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=features_name, num_features=temp.shape[0],
                       standardize=True, num_neighbors=5, min_dist=0, perform_cluster=True, cluster_type=cluster_type, 
                       num_clusters=num_clusters, max_clusters=max_clusters, apply_hungarian=False, heatmap_plot=False, 
-                      num_jobs=num_jobs, suptitle=data_name + " (markers): ", file_name=file_name + "_markers", save_path=RESULT_PATH)
+                      num_jobs=num_jobs, suptitle=suptitle_name + "\nMarkers", file_name=file_name + "_markers", save_path=RESULT_PATH)
     list_scores.append(score)
-    # plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=features_name, num_features=temp.shape[0],
-    #           standardize=True, num_neighbors=5, min_dist=0, perform_cluster=True, cluster_type=cluster_type,
-    #           num_clusters=num_clusters, max_clusters=10, apply_hungarian=False, heatmap_plot=False,
-    #           num_jobs=num_jobs, suptitle="UMAP of markers: ", file_name=file_name + "_markers",
-    #           save_path=RESULT_PATH)
 
     if plot_topKfeatures:
         print("## Plot UMAP using the top {0} features...".format(topKfeatures))
@@ -256,8 +272,16 @@ def train(num_jobs: int = 4):
                           standardize=True, num_neighbors=5, min_dist=0.0, perform_cluster=True,
                           cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
                           apply_hungarian=False, heatmap_plot=False, num_jobs=num_jobs,
-                          suptitle=data_name + ": " + method_name, file_name=file_name + "_" + save_name.lower(),
+                          suptitle=suptitle_name + "\n" + method_name, file_name=file_name + "_" + save_name.lower(),
                           save_path=RESULT_PATH)
+        df = pd.DataFrame(temp_feature, columns=["features"])
+        df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_features.csv"),
+                    sep=',', index=False, header=False)
+        if export_spring:
+            df = pd.DataFrame(X[:, temp])
+            df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_expression.csv"), 
+                    sep=",", index=False, header=False)
+        del df
         list_scores.append(score)
 
     df = pd.DataFrame(list_scores, columns=["Scores"], index=["All", "Markers"] + methods_name)
@@ -265,7 +289,7 @@ def train(num_jobs: int = 4):
 
     print("## Plot barplot using to demonstrate clustering accuracy...".format(topKfeatures))
     plot_barplot(X=list_scores, methods_name=["All", "Markers"] + methods_name, metric="ari",
-                 suptitle=data_name, file_name=file_name, save_path=RESULT_PATH)
+                 suptitle=suptitle_name, file_name=file_name, save_path=RESULT_PATH)
 
 if __name__ == "__main__":
     # for windows
@@ -274,4 +298,4 @@ if __name__ == "__main__":
     # for mac and linux(here, os.name is 'posix')
     else:
         _ = os.system('clear')
-    train(num_jobs=4)
+    train(num_jobs=10)

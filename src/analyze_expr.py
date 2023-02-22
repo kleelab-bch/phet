@@ -30,6 +30,7 @@ def train(num_jobs: int = 4):
     pvalue = 0.01
     calculate_hstatistic = False
     sort_by_pvalue = True
+    export_spring = False
     topKfeatures = 100
     plot_topKfeatures = False
     if not sort_by_pvalue:
@@ -49,7 +50,7 @@ def train(num_jobs: int = 4):
     # leukemia_golub, lung, lunggse1987, mll, srbct
     # 2. scRNA datasets: darmanis, yan, camp1, baron, li, and patel
     file_name = "baron"
-    data_name = "Baron"
+    suptitle_name = "Baron"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
@@ -63,7 +64,7 @@ def train(num_jobs: int = 4):
 
     # Load subtypes file
     subtypes = pd.read_csv(os.path.join(DATASET_PATH, subtypes_file + ".csv"), sep=',').dropna(axis=1)
-    subtypes = subtypes["subtypes"].to_list()
+    subtypes = [str(item[0]).lower() for item in subtypes.values.tolist()]
     num_clusters = len(np.unique(subtypes))
 
     # Filter data based on counts (CPM)
@@ -71,6 +72,7 @@ def train(num_jobs: int = 4):
     examples_ids = np.where(example_sums >= 5)[0]
     X = X[examples_ids]
     y = y[examples_ids]
+    subtypes = np.array(subtypes)[examples_ids].tolist()
     num_examples, num_features = X.shape
     del example_sums, examples_ids
     temp = np.absolute(X)
@@ -87,6 +89,12 @@ def train(num_jobs: int = 4):
     num_examples, num_features = X.shape
     del temp, feature_sums
 
+    # Save subtypes for SPRING
+    if export_spring:
+        df = pd.DataFrame(subtypes, columns=["subtypes"]).T
+        df.to_csv(os.path.join(RESULT_PATH, file_name + "_subtypes.csv"), sep=',', header=False)
+        del df
+
     # Load up/down regulated features
     top_features_true = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file + ".csv"), sep=',',
                                     index_col="ID")
@@ -100,7 +108,7 @@ def train(num_jobs: int = 4):
     top_features_true = [str(feature_idx) for feature_idx in temp.index.to_list()[:topKfeatures]]
     top_features_true = [1 if feature in top_features_true else 0 for idx, feature in enumerate(features_name)]
 
-    print("## Perform experimental studies using {0} data...".format(data_name))
+    print("## Perform experimental studies using {0} data...".format(suptitle_name))
     print("\t >> Sample size: {0}; Feature size: {1}; Subtype size: {2}".format(X.shape[0], X.shape[1],
                                                                                 len(np.unique(subtypes))))
     current_progress = 1
@@ -197,9 +205,6 @@ def train(num_jobs: int = 4):
         else:
             temp = sort_features(X=df, features_name=features_name, X_map=None,
                                  map_genes=False, ttest=False)
-        df = pd.DataFrame(temp["features"].tolist(), columns=["features"])
-        df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_features.csv"),
-                  sep=',', index=False)
         methods_dict[method_name] = temp
     del df_copa, df_os, df_ort, df_most, df_lsoss, df_dids, df_iqr, df_phet
 
@@ -228,7 +233,7 @@ def train(num_jobs: int = 4):
     df = pd.DataFrame(list_scores, columns=["Scores"], index=methods_name)
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_features_scores.csv"), sep=",")
     print("## Plot barplot using the top {0} features...".format(topKfeatures))
-    plot_barplot(X=list_scores, methods_name=methods_name, metric="f1", suptitle=data_name,
+    plot_barplot(X=list_scores, methods_name=methods_name, metric="f1", suptitle=suptitle_name,
                  file_name=file_name, save_path=RESULT_PATH)
 
     list_scores = list()
@@ -236,7 +241,7 @@ def train(num_jobs: int = 4):
     score = plot_umap(X=X, y=y, subtypes=subtypes, features_name=features_name, num_features=num_features,
                       standardize=True, num_neighbors=5, min_dist=0, perform_cluster=True, cluster_type=cluster_type,
                       num_clusters=num_clusters, max_clusters=max_clusters, apply_hungarian=False, heatmap_plot=False,
-                      num_jobs=num_jobs, suptitle=data_name + ": ", file_name=file_name + "_all", save_path=RESULT_PATH)
+                      num_jobs=num_jobs, suptitle=suptitle_name + ": ", file_name=file_name + "_all", save_path=RESULT_PATH)
     list_scores.append(score)
 
     if plot_topKfeatures:
@@ -270,8 +275,16 @@ def train(num_jobs: int = 4):
                           standardize=True, num_neighbors=5, min_dist=0.0, perform_cluster=True,
                           cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
                           apply_hungarian=False, heatmap_plot=False, num_jobs=num_jobs,
-                          suptitle=data_name + ": " + method_name, file_name=file_name + "_" + save_name.lower(),
+                          suptitle=suptitle_name + ": " + method_name, file_name=file_name + "_" + save_name.lower(),
                           save_path=RESULT_PATH)
+        df = pd.DataFrame(temp_feature, columns=["features"])
+        df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_features.csv"),
+                    sep=',', index=False, header=False)
+        if export_spring:
+            df = pd.DataFrame(X[:, temp])
+            df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_expression.csv"), 
+                    sep=",", index=False, header=False)
+        del df
         list_scores.append(score)
 
     df = pd.DataFrame(list_scores, columns=["Scores"], index=["All"] + methods_name)
@@ -279,7 +292,7 @@ def train(num_jobs: int = 4):
 
     print("## Plot barplot using to demonstrate clustering accuracy...".format(topKfeatures))
     plot_barplot(X=list_scores, methods_name=["All"] + methods_name, metric="ari",
-                 suptitle=data_name, file_name=file_name, save_path=RESULT_PATH)
+                 suptitle=suptitle_name, file_name=file_name, save_path=RESULT_PATH)
 
 
 if __name__ == "__main__":

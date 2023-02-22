@@ -49,7 +49,7 @@ def plot_barplot(X, methods_name, metric: str = "f1", suptitle: str = "temp", fi
     else:
         raise Exception("Please provide a valid metric:f1, auc, jaccard, and ari")
     plt.ylabel(temp + " scores of each method", fontsize=22)
-    plt.suptitle("Results using {0} data".format(suptitle), fontsize=26)
+    plt.title("Results using {0} data".format(suptitle), fontsize=26)
     file_path = os.path.join(save_path, file_name + "_" + temp.lower() + ".png")
     plt.tight_layout()
     plt.savefig(file_path)
@@ -61,7 +61,7 @@ def plot_barplot(X, methods_name, metric: str = "f1", suptitle: str = "temp", fi
 def plot_scatter(X, y, num_features: int = 100, add_legend:bool=True, legend_title: str = "Class", 
                  suptitle: str = "temp", file_name: str = "temp", save_path: str = "."):
     plt.figure(figsize=(12, 10))
-    plt.suptitle('%s (%s features)' % (suptitle, str(num_features)), fontsize=36)
+    plt.title('%s (%s features)' % (suptitle, str(num_features)), fontsize=36)
     sns.scatterplot(x=X[:, 0], y=X[:, 1], hue=y, palette='tab10', s=80, alpha=0.6, linewidth=0, 
                     legend=add_legend)
     plt.xticks([], fontsize=28)
