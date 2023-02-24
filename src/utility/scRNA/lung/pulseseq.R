@@ -14,6 +14,8 @@ file_name <- "pulseseq"
 metadata <- read.delim(file.path(working_dir, paste(file_name, "_md.txt", sep = "")))
 metadata$cell_type1 <- metadata$res.2_named
 metadata$res.2_named <- NULL
+donors <- metadata$mouse
+timepoints <- metadata$timepoint
 gset <- readRDS(file.path(working_dir, "GSE103354_PulseSeq_UMI_counts.rds"))
 features <- gset@Dimnames[[1]]
 gset <- CreateSeuratObject(counts = ps, min.cells = 0, min.genes = 0)
@@ -38,194 +40,608 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
 subtypes <- metadata
-write.table(as.data.frame(subtypes), file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
+write.table(as.data.frame(subtypes), 
+            file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save metadata
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
+write.table(as.data.frame(classes), 
+            file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+write.table(as.data.frame(features), 
+            file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save donors
+write.table(as.data.frame(donors), 
+            file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save timepoints
+write.table(as.data.frame(timepoints), 
+            file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
 writeMM(gset, file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 
-
 #########################################################
-################### Trim Basal cells ####################
+############### Basal vs Club & its Lineage #############
 #########################################################
-# The population of proliferating cells are predominantly basal cells
-condition <- !metadata %in% c("Basal", "Proliferating")
-metadata <- metadata[condition]
-file_name <- "pulseseq_club"
+condition <- metadata %in% c("Basal", "Proliferating", 
+                             "Club", "Ciliated", "Goblet")
+file_name <- "pulseseq_basal_vs_clubandlineage"
 
 # group membership for all samples
-# 0 (Club): "Club", "Ciliated", and "Goblet"
-# 1 (non Club): Neuroendocrine", "Ionocyte", and "Tuft"
-gsms <- c(0, 1, 0, 0, 1, 1)
-names(gsms) <- unique(metadata)
-gsms <- gsms[metadata]
+# 0 (Basal): "Basal" and "Proliferating"
+# 1 (Club and Club Lineage): "Club", "Ciliated", and "Goblet"
+gsms <- c(0, 0, 1, 1, 1)
+names(gsms) <- unique(metadata[condition])
+gsms <- gsms[metadata[condition]]
 gsms <- paste0(gsms, collapse = "")
 sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
-subtypes <- metadata
-write.table(as.data.frame(subtypes), file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
+subtypes <- metadata[condition]
+write.table(as.data.frame(subtypes), 
+            file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save metadata
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
+write.table(as.data.frame(classes), 
+            file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+write.table(as.data.frame(features), 
+            file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save donors
+write.table(as.data.frame(donors[condition]), 
+            file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save timepoints
+write.table(as.data.frame(timepoints[condition]), 
+            file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(gset[, condition], file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
-
+writeMM(gset[, condition], 
+        file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 
 #########################################################
-############### Trim Basal & Club cells ################# 
+################ Basal vs Non club lineage ##############
 #########################################################
-# The population of proliferating cells are predominantly basal cells
-condition <- !metadata %in% c("Club", "Basal", "Proliferating")
-metadata <- metadata[condition]
-file_name <- "pulseseq_club_lineage"
+condition <- metadata %in% c("Basal", "Proliferating", 
+                             "Neuroendocrine", "Ionocyte", 
+                             "Tuft")
+file_name <- "pulseseq_basal_vs_nonclublineage"
 
 # group membership for all samples
-# 0 (Club lineage): "Goblet" and "Ciliated"
-# 1 (non Club lineage): Neuroendocrine", "Ionocyte", and "Tuft"
-gsms <- c(1, 0, 0, 1, 1)
-names(gsms) <- unique(metadata)
-gsms <- gsms[metadata]
+# 0 (Basal): "Basal" and "Proliferating"
+# 1 (Non Club Lineage): "PNEC", "Ionocyte", and "Tuft"
+gsms <- c(0, 0, 1, 1, 1)
+names(gsms) <- unique(metadata[condition])
+gsms <- gsms[metadata[condition]]
 gsms <- paste0(gsms, collapse = "")
 sml <- strsplit(gsms, split = "")[[1]]
 
-# save subtypes
-subtypes <- metadata
-write.table(as.data.frame(subtypes), file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
+# save subtypes 
+subtypes <- metadata[condition]
+write.table(as.data.frame(subtypes), 
+            file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save metadata
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
+write.table(as.data.frame(classes), 
+            file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+write.table(as.data.frame(features), 
+            file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save donors
+write.table(as.data.frame(donors[condition]), 
+            file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save timepoints
+write.table(as.data.frame(timepoints[condition]), 
+            file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(gset[, condition], file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
-
+writeMM(gset[, condition], 
+        file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 
 #########################################################
-########### Include Ciliated & Goblet cells #############
+################ Basal vs Neuroendocrine ################
+#########################################################
+condition <- metadata %in% c("Basal", "Proliferating", 
+                             "Neuroendocrine")
+file_name <- "pulseseq_basal_vs_neuroendocrine"
+
+# group membership for all samples
+# 0 (Basal): "Basal" and "Proliferating"
+# 1 (PNEC): "Neuroendocrine"
+gsms <- c(0, 0, 1)
+names(gsms) <- unique(metadata[condition])
+gsms <- gsms[metadata[condition]]
+gsms <- paste0(gsms, collapse = "")
+sml <- strsplit(gsms, split = "")[[1]]
+
+# save subtypes 
+subtypes <- metadata[condition]
+write.table(as.data.frame(subtypes), 
+            file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save metadata
+classes <- as.numeric(sml)
+write.table(as.data.frame(classes), 
+            file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save feature names
+write.table(as.data.frame(features), 
+            file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save donors
+write.table(as.data.frame(donors[condition]), 
+            file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save timepoints
+write.table(as.data.frame(timepoints[condition]), 
+            file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save features data
+rownames(gset) <- features
+writeMM(gset[, condition], 
+        file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
+
+#########################################################
+##################### Basal vs Tuft #####################
+#########################################################
+condition <- metadata %in% c("Basal", "Proliferating", 
+                             "Tuft")
+file_name <- "pulseseq_basal_vs_tuft"
+
+# group membership for all samples
+# 0 (Basal): "Basal" and "Proliferating"
+# 1 (Tuft): "Tuft"
+gsms <- c(0, 0, 1)
+names(gsms) <- unique(metadata[condition])
+gsms <- gsms[metadata[condition]]
+gsms <- paste0(gsms, collapse = "")
+sml <- strsplit(gsms, split = "")[[1]]
+
+# save subtypes 
+subtypes <- metadata[condition]
+write.table(as.data.frame(subtypes), 
+            file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save metadata
+classes <- as.numeric(sml)
+write.table(as.data.frame(classes), 
+            file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save feature names
+write.table(as.data.frame(features), 
+            file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save donors
+write.table(as.data.frame(donors[condition]), 
+            file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save timepoints
+write.table(as.data.frame(timepoints[condition]), 
+            file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save features data
+rownames(gset) <- features
+writeMM(gset[, condition], 
+        file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
+
+#########################################################
+################### Basal vs Ionocyte ###################
+#########################################################
+condition <- metadata %in% c("Basal", "Proliferating", 
+                             "Ionocyte")
+file_name <- "pulseseq_basal_vs_ionocyte"
+
+# group membership for all samples
+# 0 (Basal): "Basal" and "Proliferating"
+# 1 (Ionocyte): "Ionocyte"
+gsms <- c(0, 0, 1)
+names(gsms) <- unique(metadata[condition])
+gsms <- gsms[metadata[condition]]
+gsms <- paste0(gsms, collapse = "")
+sml <- strsplit(gsms, split = "")[[1]]
+
+# save subtypes 
+subtypes <- metadata[condition]
+write.table(as.data.frame(subtypes), 
+            file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save metadata
+classes <- as.numeric(sml)
+write.table(as.data.frame(classes), 
+            file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save feature names
+write.table(as.data.frame(features), 
+            file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save donors
+write.table(as.data.frame(donors[condition]), 
+            file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save timepoints
+write.table(as.data.frame(timepoints[condition]), 
+            file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
+            sep = ",", quote = FALSE, row. names = FALSE)
+
+# save features data
+rownames(gset) <- features
+writeMM(gset[, condition], 
+        file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
+
+#########################################################
+################ Club & Lineage vs Rare #################
+#########################################################
+# The population of proliferating cells are predominantly basal cells
+condition <- metadata %in% c("Club", "Ciliated", "Goblet", 
+                             "Neuroendocrine", "Ionocyte", 
+                             "Tuft")
+file_name <- "pulseseq_clubandlineage_vs_rare"
+
+# group membership for all samples
+# 0 (Club/Lineage): "Club", "Ciliated", and "Goblet"
+# 1 (Rare): "PNEC", "Ionocyte", and "Tuft"
+gsms <- c(0, 1, 0, 0, 1, 1)
+names(gsms) <- unique(metadata[condition])
+gsms <- gsms[metadata[condition]]
+gsms <- paste0(gsms, collapse = "")
+sml <- strsplit(gsms, split = "")[[1]]
+
+# save subtypes 
+subtypes <- metadata[condition]
+write.table(as.data.frame(subtypes), 
+            file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save metadata
+classes <- as.numeric(sml)
+write.table(as.data.frame(classes), 
+            file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save feature names
+write.table(as.data.frame(features), 
+            file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save donors
+write.table(as.data.frame(donors[condition]), 
+            file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save timepoints
+write.table(as.data.frame(timepoints[condition]), 
+            file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save features data
+rownames(gset) <- features
+writeMM(gset[, condition], 
+        file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
+
+#########################################################
+################## Club vs Club Lineage #################
+#########################################################
+# The population of proliferating cells are predominantly basal cells
+condition <- metadata %in% c("Club", "Ciliated", "Goblet")
+file_name <- "pulseseq_club_vs_clublineage"
+
+# group membership for all samples
+# 0 (Club): "Club"
+# 1 (Club Lineage): "Ciliated", and "Goblet"
+gsms <- c(0, 1, 1)
+names(gsms) <- unique(metadata[condition])
+gsms <- gsms[metadata[condition]]
+gsms <- paste0(gsms, collapse = "")
+sml <- strsplit(gsms, split = "")[[1]]
+
+# save subtypes 
+subtypes <- metadata[condition]
+write.table(as.data.frame(subtypes), 
+            file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save metadata
+classes <- as.numeric(sml)
+write.table(as.data.frame(classes), 
+            file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save feature names
+write.table(as.data.frame(features), 
+            file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save donors
+write.table(as.data.frame(donors[condition]), 
+            file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save timepoints
+write.table(as.data.frame(timepoints[condition]), 
+            file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save features data
+rownames(gset) <- features
+writeMM(gset[, condition], 
+        file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
+
+#########################################################
+################### Club vs Ciliated ####################
+#########################################################
+# The population of proliferating cells are predominantly basal cells
+condition <- metadata %in% c("Club", "Ciliated")
+file_name <- "pulseseq_club_vs_ciliated"
+
+# group membership for all samples
+# 0 (Club): "Club"
+# 1 (Ciliated): "Ciliated"
+gsms <- c(0, 1)
+names(gsms) <- unique(metadata[condition])
+gsms <- gsms[metadata[condition]]
+gsms <- paste0(gsms, collapse = "")
+sml <- strsplit(gsms, split = "")[[1]]
+
+# save subtypes 
+subtypes <- metadata[condition]
+write.table(as.data.frame(subtypes), 
+            file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save metadata
+classes <- as.numeric(sml)
+write.table(as.data.frame(classes), 
+            file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save feature names
+write.table(as.data.frame(features), 
+            file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save donors
+write.table(as.data.frame(donors[condition]), 
+            file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save timepoints
+write.table(as.data.frame(timepoints[condition]), 
+            file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save features data
+rownames(gset) <- features
+writeMM(gset[, condition], 
+        file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
+
+#########################################################
+#################### Club vs Goblet #####################
+#########################################################
+# The population of proliferating cells are predominantly basal cells
+condition <- metadata %in% c("Club", "Goblet")
+file_name <- "pulseseq_club_vs_goblet"
+
+# group membership for all samples
+# 0 (Club): "Club"
+# 1 (Goblet): "Goblet"
+gsms <- c(0, 1)
+names(gsms) <- unique(metadata[condition])
+gsms <- gsms[metadata[condition]]
+gsms <- paste0(gsms, collapse = "")
+sml <- strsplit(gsms, split = "")[[1]]
+
+# save subtypes 
+subtypes <- metadata[condition]
+write.table(as.data.frame(subtypes), 
+            file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save metadata
+classes <- as.numeric(sml)
+write.table(as.data.frame(classes), 
+            file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save feature names
+write.table(as.data.frame(features), 
+            file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save donors
+write.table(as.data.frame(donors[condition]), 
+            file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save timepoints
+write.table(as.data.frame(timepoints[condition]), 
+            file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save features data
+rownames(gset) <- features
+writeMM(gset[, condition], 
+        file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
+
+#########################################################
+################## Ciliated vs Goblet ###################
 #########################################################
 condition <- metadata %in% c("Ciliated", "Goblet")
-temp_metadata <- metadata[condition]
-file_name <- "pulseseq_goblet"
+file_name <- "pulseseq_ciliated_vs_goblet"
 
 # group membership for all samples
 # 0 (Ciliated): "Ciliated"
 # 1 (Goblet): "Goblet"
 gsms <- c(0, 1)
-names(gsms) <- unique(temp_metadata)
-gsms <- gsms[temp_metadata]
+names(gsms) <- unique(metadata[condition])
+gsms <- gsms[metadata[condition]]
 gsms <- paste0(gsms, collapse = "")
 sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
-subtypes <- temp_metadata
-write.table(as.data.frame(subtypes), file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
+subtypes <- metadata[condition]
+write.table(as.data.frame(subtypes), 
+            file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
-# save temp_metadata
+# save metadata
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
+write.table(as.data.frame(classes), 
+            file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+write.table(as.data.frame(features), 
+            file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save donors
+write.table(as.data.frame(donors[condition]), 
+            file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save timepoints
+write.table(as.data.frame(timepoints[condition]), 
+            file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(gset[, condition], file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
+writeMM(gset[, condition], 
+        file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 
 #########################################################
-########## Include PNEC, Ionocyte, & Tuft cells #########
+############## Tuft vs PNEC & Ionocytes #################
 #########################################################
 condition <- metadata %in% c("Neuroendocrine", "Ionocyte",
                              "Tuft")
-temp_metadata <- metadata[condition]
-file_name <- "pulseseq_tuft"
+file_name <- "pulseseq_tuft_vs_pnecandionocyte"
 
 # group membership for all samples
-# 0 (PNEC and Ionocytes): "Neuroendocrine" and "Ionocytes"
-# 1 (Tuft): "Tuft"
-gsms <- c(0, 0, 1)
-names(gsms) <- unique(temp_metadata)
-gsms <- gsms[temp_metadata]
+# 0 (Tuft): "Tuft"
+# 1 (PNEC and Ionocytes): "Neuroendocrine" and "Tuft"
+gsms <- c(1, 1, 0)
+names(gsms) <- unique(metadata[condition])
+gsms <- gsms[metadata[condition]]
 gsms <- paste0(gsms, collapse = "")
 sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
-subtypes <- temp_metadata
-write.table(as.data.frame(subtypes), file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
+subtypes <- metadata[condition]
+write.table(as.data.frame(subtypes), 
+            file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save metadata
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
+write.table(as.data.frame(classes), 
+            file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+write.table(as.data.frame(features), 
+            file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save donors
+write.table(as.data.frame(donors[condition]), 
+            file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save timepoints
+write.table(as.data.frame(timepoints[condition]), 
+            file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(gset[, condition], file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
+writeMM(gset[, condition], 
+        file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 
 #########################################################
-############ Include Ionocyte and Tuft cells ############
+################## Tuft vs Ionocytes ####################
 #########################################################
 condition <- metadata %in% c("Ionocyte", "Tuft")
-metadata <- metadata[condition]
-file_name <- "pulseseq_ionocyte"
+file_name <- "pulseseq_tuft_vs_ionocyte"
 
 # group membership for all samples
-# 0 (Ionocytes): "Ionocytes"
-# 1 (Tuft): "Tuft"
-gsms <- c(0, 1)
-names(gsms) <- unique(metadata)
-gsms <- gsms[metadata]
+# 0 (Tuft): "Tuft"
+# 1 (Ionocytes): "Ionocytes"
+gsms <- c(1, 0)
+names(gsms) <- unique(metadata[condition])
+gsms <- gsms[metadata[condition]]
 gsms <- paste0(gsms, collapse = "")
 sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
-subtypes <- metadata
-write.table(as.data.frame(subtypes), file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
+subtypes <- metadata[condition]
+write.table(as.data.frame(subtypes), 
+            file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save metadata
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
+write.table(as.data.frame(classes), 
+            file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+write.table(as.data.frame(features), 
+            file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save donors
+write.table(as.data.frame(donors[condition]), 
+            file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save timepoints
+write.table(as.data.frame(timepoints[condition]), 
+            file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(gset[, condition], file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
+writeMM(gset[, condition], 
+        file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))

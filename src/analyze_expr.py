@@ -37,7 +37,7 @@ def train(num_jobs: int = 4):
         plot_topKfeatures = True
     max_clusters = 10
     cluster_type = "kmeans"
-    cluster_type = "spectral"
+    # cluster_type = "spectral"
     methods_name = ["t-statistic", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "ΔIQR", "PHet"]
 
     # 1. Microarray datasets: allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89,
@@ -49,8 +49,8 @@ def train(num_jobs: int = 4):
     # 1. Microarray datasets: allgse412, bc_ccgse3726, bladdergse89, braintumor, gastricgse2685, glioblastoma, 
     # leukemia_golub, lung, lunggse1987, mll, srbct
     # 2. scRNA datasets: darmanis, yan, camp1, baron, li, and patel
-    file_name = "baron"
-    suptitle_name = "Baron"
+    file_name = "yan"
+    suptitle_name = "Yan"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
@@ -241,7 +241,8 @@ def train(num_jobs: int = 4):
     score = plot_umap(X=X, y=y, subtypes=subtypes, features_name=features_name, num_features=num_features,
                       standardize=True, num_neighbors=5, min_dist=0, perform_cluster=True, cluster_type=cluster_type,
                       num_clusters=num_clusters, max_clusters=max_clusters, apply_hungarian=False, heatmap_plot=False,
-                      num_jobs=num_jobs, suptitle=suptitle_name + ": ", file_name=file_name + "_all", save_path=RESULT_PATH)
+                      num_jobs=num_jobs, suptitle=suptitle_name + ": ", file_name=file_name + "_all",
+                      save_path=RESULT_PATH)
     list_scores.append(score)
 
     if plot_topKfeatures:
@@ -279,11 +280,11 @@ def train(num_jobs: int = 4):
                           save_path=RESULT_PATH)
         df = pd.DataFrame(temp_feature, columns=["features"])
         df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_features.csv"),
-                    sep=',', index=False, header=False)
+                  sep=',', index=False, header=False)
         if export_spring:
             df = pd.DataFrame(X[:, temp])
-            df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_expression.csv"), 
-                    sep=",", index=False, header=False)
+            df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_expression.csv"),
+                      sep=",", index=False, header=False)
         del df
         list_scores.append(score)
 

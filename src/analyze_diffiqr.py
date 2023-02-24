@@ -11,6 +11,7 @@ from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.plot_utils import plot_umap, plot_barplot
 from utility.utils import comparative_score
 from utility.utils import sort_features, significant_features
+
 sns.set_theme(style="white")
 
 
@@ -25,19 +26,22 @@ def train(num_jobs: int = 4):
     if not sort_by_pvalue:
         plot_topKfeatures = True
     is_mtx = False
+    is_filter = True
     max_clusters = 10
-    cluster_type = "spectral"
+    cluster_type = "kmeans"
     methods_name = ["ΔIQR", "PHet"]
 
     # 1. Micro-array datasets: allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89,
     # braintumor, cmlgse2535, colon, dlbcl, ewsgse967, gastricgse2685, glioblastoma, leukemia_golub,
     # ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, mll, myelodysplastic_mds1,
     # myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
-    
     # 2. scRNA datasets: camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
-    
-    # 3. Lung scRNA datasets (mtx): pulseseq, pulseseq_club, pulseseq_club_lineage, pulseseq_goblet, 
-    # pulseseq_tuft, pulseseq_ionocyte
+
+    # 3. Pulseseq data (mtx): pulseseq, pulseseq_basal_vs_clubandlineage, pulseseq_basal_vs_nonclublineage, 
+    # pulseseq_basal_vs_neuroendocrine, pulseseq_basal_vs_tuft, pulseseq_basal_vs_ionocyte, 
+    # pulseseq_clubandlineage_vs_rare, pulseseq_club_vs_clublineage, pulseseq_club_vs_ciliated,
+    # pulseseq_club_vs_goblet, pulseseq_ciliated_vs_goblet, pulseseq_tuft_vs_pnecandionocyte, 
+    # pulseseq_tuft_vs_ionocyte
 
     # 4. Plasschaert-Human (csv): plasschaert_human, plasschaert_human_basaland2secretory_vs_others,
     # plasschaert_human_basal_vs_basal2secretory, plasschaert_human_basal2secretory_vs_secretory,
@@ -53,14 +57,14 @@ def train(num_jobs: int = 4):
     # plasschaert_mouse_secretory_vs_rare
 
     file_name = "plasschaert_mouse"
-    suptitle_name = "Basal vs Others"
+    suptitle_name = "Basal vs non Basal"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
     donors_file = file_name + "_donors"
     timepoints_file = file_name + "_timepoints"
     control_name = "Basal"
-    case_name = "Others"
+    case_name = "non Basal"
 
     # Load expression data
     if not is_mtx:
@@ -92,31 +96,30 @@ def train(num_jobs: int = 4):
 
     # Filter data based on counts
     num_examples, num_features = X.shape
-    example_sums = np.absolute(X).sum(1)
-    examples_ids = np.where(example_sums > int(0.01 * num_features))[0]
-    X = X[examples_ids]
-    y = y[examples_ids]
-    subtypes = np.array(subtypes)[examples_ids].tolist()
-    if len(donors) != 0:
-        donors = np.array(donors)[examples_ids].tolist()
-    if len(timepoints) != 0:
-        timepoints = np.array(timepoints)[examples_ids].tolist()
-    num_examples, num_features = X.shape
-    del example_sums, examples_ids
-    temp = np.absolute(X)
-    temp = (temp * 1e6) / temp.sum(axis=1).reshape((num_examples, 1))
-    temp[temp > 1] = 1
-    temp[temp != 1] = 0
-    feature_sums = temp.sum(0)
-    del temp
-    # if num_examples <= minimum_samples or minimum_samples > num_examples // 2:
-    #     minimum_samples = num_examples // 2
-    feature_ids = np.where(feature_sums > int(0.01 * num_examples))[0]
-    features_name = np.array(features_name)[feature_ids].tolist()
-    X = X[:, feature_ids]
-    feature_ids = dict([(feature_idx, idx) for idx, feature_idx in enumerate(feature_ids)])
-    num_examples, num_features = X.shape
-    del feature_sums
+    if is_filter:
+        example_sums = np.absolute(X).sum(1)
+        examples_ids = np.where(example_sums > int(0.01 * num_features))[0]
+        X = X[examples_ids]
+        y = y[examples_ids]
+        subtypes = np.array(subtypes)[examples_ids].tolist()
+        if len(donors) != 0:
+            donors = np.array(donors)[examples_ids].tolist()
+        if len(timepoints) != 0:
+            timepoints = np.array(timepoints)[examples_ids].tolist()
+        num_examples, num_features = X.shape
+        del example_sums, examples_ids
+        temp = np.absolute(X)
+        temp = (temp * 1e6) / temp.sum(axis=1).reshape((num_examples, 1))
+        temp[temp > 1] = 1
+        temp[temp != 1] = 0
+        feature_sums = temp.sum(0)
+        del temp
+        feature_ids = np.where(feature_sums > int(0.01 * num_examples))[0]
+        features_name = np.array(features_name)[feature_ids].tolist()
+        X = X[:, feature_ids]
+        feature_ids = dict([(feature_idx, idx) for idx, feature_idx in enumerate(feature_ids)])
+        num_examples, num_features = X.shape
+        del feature_sums
 
     # Save subtypes for SPRING
     if export_spring:
@@ -127,7 +130,7 @@ def train(num_jobs: int = 4):
         if len(timepoints) != 0:
             groups.append(["timepoints"] + timepoints)
         df = pd.DataFrame(groups)
-        df.to_csv(os.path.join(RESULT_PATH, file_name + "_groups.csv"), sep=',', 
+        df.to_csv(os.path.join(RESULT_PATH, file_name + "_groups.csv"), sep=',',
                   index=False, header=False)
         del df
 
@@ -149,7 +152,8 @@ def train(num_jobs: int = 4):
             topKfeatures = len(top_features_true)
         top_features_true = [1 if feature in top_features_true else 0 for idx, feature in enumerate(features_name)]
     else:
-        top_features_true = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file + ".csv")).replace(np.nan, -1)
+        top_features_true = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file + ".csv")).replace(np.nan,
+                                                                                                              -1)
         top_features_true = list(set([item for item in top_features_true.to_numpy().flatten() if item != -1]))
         top_features_true = [1 if feature in top_features_true else 0 for idx, feature in enumerate(features_name)]
         topKfeatures = sum(top_features_true)
@@ -175,7 +179,7 @@ def train(num_jobs: int = 4):
     df_phet = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
 
     methods_dict = dict({methods_name[0]: df_iqr, methods_name[1]: df_phet})
-    
+
     if sort_by_pvalue:
         print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))
     else:
@@ -222,25 +226,28 @@ def train(num_jobs: int = 4):
     print("## Plot barplot using the top {0} features...".format(topKfeatures))
     plot_barplot(X=list_scores, methods_name=methods_name, metric="f1", suptitle=suptitle_name,
                  file_name=file_name, save_path=RESULT_PATH)
-          
+
     temp = np.copy(y)
     temp = temp.astype(str)
     temp[np.where(y == 0)[0]] = control_name
     temp[np.where(y == 1)[0]] = case_name
     y = temp
     list_scores = list()
+    score = 0
     print("## Plot UMAP using all features ({0})...".format(num_features))
     score = plot_umap(X=X, y=y, subtypes=subtypes, features_name=features_name, num_features=num_features,
                       standardize=True, num_neighbors=5, min_dist=0, perform_cluster=True, cluster_type=cluster_type,
                       num_clusters=num_clusters, max_clusters=max_clusters, apply_hungarian=False, heatmap_plot=False,
-                      num_jobs=num_jobs, suptitle=suptitle_name + "\nAll", file_name=file_name + "_all", save_path=RESULT_PATH)
+                      num_jobs=num_jobs, suptitle=suptitle_name + "\nAll", file_name=file_name + "_all",
+                      save_path=RESULT_PATH)
     list_scores.append(score)
     print("## Plot UMAP using marker features ({0})...".format(sum(top_features_true)))
     temp = np.where(np.array(top_features_true) == 1)[0]
     score = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=features_name, num_features=temp.shape[0],
-                      standardize=True, num_neighbors=5, min_dist=0, perform_cluster=True, cluster_type=cluster_type, 
-                      num_clusters=num_clusters, max_clusters=max_clusters, apply_hungarian=False, heatmap_plot=False, 
-                      num_jobs=num_jobs, suptitle=suptitle_name + "\nMarkers", file_name=file_name + "_markers", save_path=RESULT_PATH)
+                      standardize=True, num_neighbors=5, min_dist=0, perform_cluster=True, cluster_type=cluster_type,
+                      num_clusters=num_clusters, max_clusters=max_clusters, apply_hungarian=False, heatmap_plot=False,
+                      num_jobs=num_jobs, suptitle=suptitle_name + "\nMarkers", file_name=file_name + "_markers",
+                      save_path=RESULT_PATH)
     list_scores.append(score)
 
     if plot_topKfeatures:
@@ -276,11 +283,11 @@ def train(num_jobs: int = 4):
                           save_path=RESULT_PATH)
         df = pd.DataFrame(temp_feature, columns=["features"])
         df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_features.csv"),
-                    sep=',', index=False, header=False)
+                  sep=',', index=False, header=False)
         if export_spring:
             df = pd.DataFrame(X[:, temp])
-            df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_expression.csv"), 
-                    sep=",", index=False, header=False)
+            df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_expression.csv"),
+                      sep=",", index=False, header=False)
         del df
         list_scores.append(score)
 
@@ -291,6 +298,7 @@ def train(num_jobs: int = 4):
     plot_barplot(X=list_scores, methods_name=["All", "Markers"] + methods_name, metric="ari",
                  suptitle=suptitle_name, file_name=file_name, save_path=RESULT_PATH)
 
+
 if __name__ == "__main__":
     # for windows
     if os.name == 'nt':
@@ -298,4 +306,4 @@ if __name__ == "__main__":
     # for mac and linux(here, os.name is 'posix')
     else:
         _ = os.system('clear')
-    train(num_jobs=10)
+    train(num_jobs=8)

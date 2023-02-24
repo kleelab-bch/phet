@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-
 from utility.file_path import RESULT_PATH
 
 sns.set_theme()
