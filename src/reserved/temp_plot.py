@@ -98,13 +98,13 @@ for f in files:
     df = pd.read_csv(os.path.join(result_path, f), sep=',')
     scores.extend(df.loc[1:]["Scores"].to_numpy())
     methods.extend(df.iloc[1:, 0].to_list())
-df = pd.DataFrame([methods, scores]).T
-df.columns = ["Methods", "ARI"]
-df.groupby(["Methods"])["ARI"].median()
+df_ari = pd.DataFrame([methods, scores]).T
+df_ari.columns = ["Methods", "ARI"]
+df_ari.groupby(["Methods"])["ARI"].median()
 
 # Plot ARI
 plt.figure(figsize=(14, 8))
-ax = sns.boxplot(y='ARI', x='Methods', data=df, width=0.85, palette=palette)
+ax = sns.boxplot(y='ARI', x='Methods', data=df_ari, width=0.85, palette=palette)
 ax.set_xlabel("")
 ax.set_ylabel("ARI of each method", fontsize=36)
 ax.set_xticklabels([])
@@ -112,6 +112,11 @@ ax.tick_params(axis='both', labelsize=30)
 plt.suptitle("6 single cell RNA-seq datasets", fontsize=36)
 sns.despine()
 plt.tight_layout()
+
+overall_scores = []
+overall_scores.append(df.groupby(["Methods"])["F1 scores"].mean().tolist())
+overall_scores.append(df_ari.groupby(["Methods"])["ARI"].mean().tolist())
+overall_scores.append(1 / np.array(df_features.groupby(["Methods"])["Features"].mean().tolist()))
 
 # # Legend
 # plt.figure(figsize=(20, 10))
