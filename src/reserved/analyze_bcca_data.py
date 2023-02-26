@@ -45,15 +45,15 @@ def train(num_jobs: int = 4):
 
     if np.unique(y).shape[0] == 2:
         print("\t{0})- The cancer outlier profile analysis (COPA)...".format(count))
-        estimator = COPA(q=0.75, direction=direction, calculate_pval=calculate_pval, num_iterations=num_iterations)
+        estimator = COPA(q=0.75, direction=direction, permutation_test=calculate_pval, num_iterations=num_iterations)
         df_copa = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         df_copa = sort_features(X=df_copa, features_name=features_name, X_map=X_map, map_genes=map_genes)
         count += 1
 
         print("\t{0})- The outlier-sum statistic (OSS)...".format(count))
         estimator = OutlierSumStatistic(q=0.75, iqr_range=(25, 75), two_sided_test=False,
-                                        direction=direction, calculate_pval=calculate_pval,
-                                        num_iterations=num_iterations)
+                                        direction=direction, permutation_test=calculate_pval,
+                                        num_rounds=num_iterations)
         df_os = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         df_os = sort_features(X=df_os, features_name=features_name, X_map=X_map,
                               map_genes=map_genes)
@@ -61,15 +61,15 @@ def train(num_jobs: int = 4):
 
         print("\t{0})- The outlier robust t-statistic (ORT)...".format(count))
         estimator = OutlierRobustStatistic(q=0.75, iqr_range=(25, 75), direction=direction,
-                                           calculate_pval=calculate_pval,
-                                           num_iterations=num_iterations)
+                                           permutation_test=calculate_pval,
+                                           num_rounds=num_iterations)
         df_ort = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         df_ort = sort_features(X=df_ort, features_name=features_name, X_map=X_map,
                                map_genes=map_genes)
         count += 1
 
         print("\t{0})- The maximum ordered subset t-statistics (MOST)...".format(count))
-        estimator = MOST(direction=direction, calculate_pval=calculate_pval, num_iterations=num_iterations)
+        estimator = MOST(direction=direction, permutation_test=calculate_pval, num_rounds=num_iterations)
         df_most = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         df_most = sort_features(X=df_most, features_name=features_name, X_map=X_map,
                                 map_genes=map_genes)
@@ -77,15 +77,15 @@ def train(num_jobs: int = 4):
 
         print(
             "\t{0})- The least sum of ordered subset square t-statistic (LSOSS)...".format(count))
-        estimator = LSOSS(direction=direction, calculate_pval=calculate_pval, num_iterations=num_iterations)
+        estimator = LSOSS(direction=direction, permutation_test=calculate_pval, num_rounds=num_iterations)
         df_lsoss = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         df_lsoss = sort_features(X=df_lsoss, features_name=features_name, X_map=X_map,
                                  map_genes=map_genes)
         count += 1
 
         print("\t{0})- The detection of imbalanced differential signal (DIDS)...".format(count))
-        estimator = DIDS(score_function="quad", direction=direction, calculate_pval=calculate_pval,
-                         num_iterations=num_iterations)
+        estimator = DIDS(score_function="quad", direction=direction, permutation_test=calculate_pval,
+                         num_rounds=num_iterations)
         df_dids = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         df_dids = sort_features(X=df_dids, features_name=features_name, X_map=X_map,
                                 map_genes=map_genes)

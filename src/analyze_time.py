@@ -24,9 +24,8 @@ def train(num_jobs: int = 4):
     # Arguments
     direction = "both"
     minimum_samples = 5
-    calculate_hstatistic = False
     num_iterations = 1000
-    methods_name = ["ttest", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "DeltaIQR", "PHet"]
+    methods = ["t-statistic", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "ΔIQR", "PHet"]
 
     # 1. Micro-array datasets: allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89,
     # braintumor, cmlgse2535, colon, dlbcl, ewsgse967, gastricgse2685, glioblastoma, leukemia_golub, 
@@ -67,7 +66,7 @@ def train(num_jobs: int = 4):
     print("## Perform experimental studies using {0} data...".format(file_name))
     print("\t >> Sample size: {0}; Feature size: {1}".format(X.shape[0], X.shape[1]))
     current_progress = 1
-    total_progress = len(methods_name) * num_iterations
+    total_progress = len(methods) * num_iterations
     list_times = list()
     for iteration in range(num_iterations):
         if current_progress == total_progress:
@@ -75,67 +74,68 @@ def train(num_jobs: int = 4):
         else:
             print("\t >> Progress: {0:.4f}%".format((current_progress / total_progress) * 100), end="\r")
 
-        estimator = StudentTTest(direction=direction, calculate_pval=False)
+        estimator = StudentTTest(direction=direction, permutation_test=False)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
         current_progress += 1
 
-        estimator = COPA(q=0.75, direction=direction, calculate_pval=False)
+        estimator = COPA(q=0.75, direction=direction, permutation_test=False)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
         current_progress += 1
 
         estimator = OutlierSumStatistic(q=0.75, iqr_range=(25, 75), two_sided_test=False, direction=direction,
-                                        calculate_pval=False)
+                                        permutation_test=False)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
         current_progress += 1
 
         estimator = OutlierRobustStatistic(q=0.75, iqr_range=(25, 75), direction=direction,
-                                           calculate_pval=False)
+                                           permutation_test=False)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
         current_progress += 1
 
-        estimator = MOST(direction=direction, calculate_pval=False)
+        estimator = MOST(direction=direction, permutation_test=False)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
         current_progress += 1
 
-        estimator = LSOSS(direction=direction, calculate_pval=False)
+        estimator = LSOSS(direction=direction, permutation_test=False)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
         current_progress += 1
 
-        estimator = DIDS(score_function="tanh", direction=direction, calculate_pval=False)
+        estimator = DIDS(score_function="tanh", direction=direction, permutation_test=False)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
         current_progress += 1
 
-        estimator = DeltaIQR(normalize="zscore", q=0.75, iqr_range=(25, 75), calculate_pval=False)
+        estimator = DeltaIQR(normalize="zscore", q=0.75, iqr_range=(25, 75), permutation_test=False)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y)
         list_times.append(time.time() - curr_time)
         current_progress += 1
 
         estimator = PHeT(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
-                         significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                         weight_range=[0.1, 0.4, 0.8], calculate_hstatistic=calculate_hstatistic, num_components=10,
-                         num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50,
-                         num_jobs=num_jobs)
+                         alpha_subsample=0.05, partition_by_anova=False, bin_KS_pvalues=False,
+                         feature_weight=[0.4, 0.3, 0.2, 0.1],
+                         weight_range=[0.1, 0.4, 0.8], calculate_hstatistic=False, num_components=10,
+                         num_subclusters=10,
+                         binary_clustering=True, permutation_test=False, num_rounds=50, num_jobs=num_jobs)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
         current_progress += 1
-    list_times = np.array(list_times).reshape((len(methods_name), num_iterations))
-    df = pd.DataFrame(list_times, index=methods_name)
+    list_times = np.array(list_times).reshape((len(methods), num_iterations))
+    df = pd.DataFrame(list_times, index=methods)
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_times.csv"), sep=",")
 
 

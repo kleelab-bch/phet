@@ -12,12 +12,12 @@ from scipy.stats import zscore
 
 class DeltaIQR:
     def __init__(self, normalize: str = None, q: float = 0.75, iqr_range: int = (25, 75),
-                 calculate_pval: bool = False, num_iterations: int = 10000):
+                 permutation_test: bool = False, num_rounds: int = 10000):
         self.normalize = normalize
         self.q = q
         self.iqr_range = iqr_range
-        self.calculate_pval = calculate_pval
-        self.num_iterations = num_iterations
+        self.permutation_test = permutation_test
+        self.num_rounds = num_rounds
 
     def fit_predict(self, X, y):
         # Extract properties

@@ -78,7 +78,7 @@ def train(num_jobs: int = 4):
     num_features_changes = 46
     list_data = list(range(1, 11))
     data_type = ["minority_features", "mixed_features"]
-    methods_name = ["t-statistic", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "ΔIQR", "PHet"]
+    methods = ["t-statistic", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "ΔIQR", "PHet"]
 
     # dataset name
     file_name = "simulated_normal"
@@ -101,9 +101,9 @@ def train(num_jobs: int = 4):
                            control_class=0, num_outliers=n_outliers, num_features_changes=num_features_changes,
                            file_name=file_name + "%.2d" % n_outliers, save_path=DATASET_PATH)
 
-    total_progress = len(methods_name)
-    methods_features = np.zeros(shape=(len(methods_name), len(list_data) * len(data_type)), dtype=np.int32)
-    methods_outliers_scores = np.zeros(shape=(len(methods_name), len(list_data) * len(data_type)), dtype=np.float32)
+    total_progress = len(methods)
+    methods_features = np.zeros(shape=(len(methods), len(list_data) * len(data_type)), dtype=np.int32)
+    methods_outliers_scores = np.zeros(shape=(len(methods), len(list_data) * len(data_type)), dtype=np.float32)
     for data_idx, outlier_idx in enumerate(list_data):
         for type_idx, outlier_type in enumerate(data_type):
             current_progress = 1
@@ -128,51 +128,51 @@ def train(num_jobs: int = 4):
                                                                                      len(np.unique(y))))
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                      methods_name[0]), end="\r")
-            estimator = StudentTTest(direction=direction, calculate_pval=False)
+                                                                      methods[0]), end="\r")
+            estimator = StudentTTest(direction=direction, permutation_test=False)
             df_ttest = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                      methods_name[1]), end="\r")
-            estimator = COPA(q=0.75, direction=direction, calculate_pval=False)
+                                                                      methods[1]), end="\r")
+            estimator = COPA(q=0.75, direction=direction, permutation_test=False)
             df_copa = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                      methods_name[2]), end="\r")
+                                                                      methods[2]), end="\r")
             estimator = OutlierSumStatistic(q=0.75, iqr_range=(25, 75), two_sided_test=False, direction=direction,
-                                            calculate_pval=False)
+                                            permutation_test=False)
             df_os = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                      methods_name[3]), end="\r")
+                                                                      methods[3]), end="\r")
             estimator = OutlierRobustStatistic(q=0.75, iqr_range=(25, 75), direction=direction,
-                                               calculate_pval=False)
+                                               permutation_test=False)
             df_ort = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                      methods_name[4]), end="\r")
-            estimator = MOST(direction=direction, calculate_pval=False)
+                                                                      methods[4]), end="\r")
+            estimator = MOST(direction=direction, permutation_test=False)
             df_most = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                      methods_name[5]), end="\r")
-            estimator = LSOSS(direction=direction, calculate_pval=False)
+                                                                      methods[5]), end="\r")
+            estimator = LSOSS(direction=direction, permutation_test=False)
             df_lsoss = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                      methods_name[6]), end="\r")
-            estimator = DIDS(score_function="tanh", direction=direction, calculate_pval=False)
+                                                                      methods[6]), end="\r")
+            estimator = DIDS(score_function="tanh", direction=direction, permutation_test=False)
             df_dids = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                      methods_name[7]), end="\r")
+                                                                      methods[7]), end="\r")
             temp = pd.read_csv(os.path.join(DATASET_PATH, temp_name + "_deco.csv"), sep=',')
             df_deco = pd.DataFrame([(features_name[int(item[1][0])], item[1][1])
                                     for item in temp.iterrows()], columns=["features", "score"])
@@ -180,30 +180,31 @@ def train(num_jobs: int = 4):
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                      methods_name[8]), end="\r")
-            estimator = DeltaIQR(normalize="zscore", q=0.75, iqr_range=(25, 75), calculate_pval=False)
+                                                                      methods[8]), end="\r")
+            estimator = DeltaIQR(normalize="zscore", q=0.75, iqr_range=(25, 75), permutation_test=False)
             df_iqr = estimator.fit_predict(X=X, y=y)
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                      methods_name[9]))
+                                                                      methods[9]))
             estimator = PHeT(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
-                             significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                             alpha_subsample=0.05, partition_by_anova=False, bin_KS_pvalues=False,
+                             feature_weight=[0.4, 0.3, 0.2, 0.1],
                              weight_range=[0.1, 0.4, 0.8], calculate_hstatistic=False, num_components=10,
-                             num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50,
-                             num_jobs=num_jobs)
+                             num_subclusters=10,
+                             binary_clustering=True, permutation_test=False, num_rounds=50, num_jobs=num_jobs)
             df_phet = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             current_progress += 1
 
-            methods_dict = dict({methods_name[0]: df_ttest, methods_name[1]: df_copa, methods_name[2]: df_os,
-                                 methods_name[3]: df_ort, methods_name[4]: df_most, methods_name[5]: df_lsoss,
-                                 methods_name[6]: df_dids, methods_name[7]: df_deco, methods_name[8]: df_iqr,
-                                 methods_name[9]: df_phet})
+            methods_dict = dict({methods[0]: df_ttest, methods[1]: df_copa, methods[2]: df_os,
+                                 methods[3]: df_ort, methods[4]: df_most, methods[5]: df_lsoss,
+                                 methods[6]: df_dids, methods[7]: df_deco, methods[8]: df_iqr,
+                                 methods[9]: df_phet})
 
             print("\t>> Sort features by the score statistic...".format())
             for method_idx, item in enumerate(methods_dict.items()):
                 method_name, df = item
-                if methods_name[method_idx] == "DECO":
+                if methods[method_idx] == "DECO":
                     temp = [idx for idx, feature in enumerate(features_name)
                             if feature in df['features'].tolist()]
                 else:
@@ -219,13 +220,13 @@ def train(num_jobs: int = 4):
 
             print("\t>> Scoring results using known regulated features and outliers...")
             for method_idx, item in enumerate(methods_dict.items()):
-                if method_idx + 1 == len(methods_name):
+                if method_idx + 1 == len(methods):
                     print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format(
-                        ((method_idx + 1) / len(methods_name)) * 100,
-                        methods_name[method_idx]))
+                        ((method_idx + 1) / len(methods)) * 100,
+                        methods[method_idx]))
                 else:
-                    print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((method_idx / len(methods_name)) * 100,
-                                                                              methods_name[method_idx]), end="\r")
+                    print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((method_idx / len(methods)) * 100,
+                                                                              methods[method_idx]), end="\r")
                 method_name, df = item
                 temp = [idx for idx, feature in enumerate(features_name)
                         if feature in df['features'].tolist()[:num_features_changes]]
@@ -237,9 +238,9 @@ def train(num_jobs: int = 4):
                 methods_outliers_scores[method_idx, current_idx] = score
 
     temp = [outlier_type + "%.2d" % outlier_idx for outlier_idx in list_data for outlier_type in data_type]
-    df = pd.DataFrame(methods_features, columns=temp, index=methods_name)
+    df = pd.DataFrame(methods_features, columns=temp, index=methods)
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_methods_features.csv"), sep=",")
-    df = pd.DataFrame(methods_outliers_scores, columns=temp, index=methods_name)
+    df = pd.DataFrame(methods_outliers_scores, columns=temp, index=methods)
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_methods_outliers_scores.csv"), sep=",")
 
 

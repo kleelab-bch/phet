@@ -10,11 +10,11 @@ from mlxtend.evaluate import permutation_test
 
 
 class COPA:
-    def __init__(self, q: float = 0.75, direction: str = "both", calculate_pval: bool = False,
+    def __init__(self, q: float = 0.75, direction: str = "both", permutation_test: bool = False,
                  num_iterations: int = 10000):
         self.q = q
         self.direction = direction  # up, down, both
-        self.calculate_pval = calculate_pval
+        self.permutation_test = permutation_test
         self.num_iterations = num_iterations
 
     def fit_predict(self, X, y, control_class: int = 0, case_class: int = 1):
@@ -40,7 +40,7 @@ class COPA:
         results = (np.percentile(a=case_X, q=100 * self.q, axis=0) - med) / mad
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
-        if self.calculate_pval:
+        if self.permutation_test:
             # Permutation based p-value calculation using approximate method
             pvals = np.zeros((num_features,))
             for feature_idx in range(num_features):

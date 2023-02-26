@@ -7,15 +7,7 @@ import pandas as pd
 import seaborn as sns
 from sklearn.preprocessing import LabelBinarizer
 
-from model.copa import COPA
-from model.deltaiqr import DeltaIQR
-from model.dids import DIDS
-from model.lsoss import LSOSS
-from model.most import MOST
-from model.ors import OutlierRobustStatistic
-from model.oss import OutlierSumStatistic
 from model.phet import PHeT
-from model.tstatistic import StudentTTest
 from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.utils import sort_features, comparative_score
 
@@ -25,11 +17,14 @@ sns.set_style(style='white')
 
 def train(num_jobs: int = 4):
     # Arguments
-    direction = "both"
+    feature_weight = [0.4, 0.3, 0.2, 0.1]
+    weight_range = [0.1, 0.4, 0.8]
     topKfeatures = 100
     num_batches = 1000
     subsample_size = 10
-    methods = ["t-statistic", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "ΔIQR", "PHet"]
+    methods = ["PHet (ΔIQR)", "PHet (Fisher)", "PHet (Profile)", "PHet (ΔIQR+Fisher)",
+               "PHet (ΔIQR+Profile)", "PHet (Fisher+Profile)", "PHet (ΔIQR+Fisher+Profile)",
+               "PHet (Binning)"]
 
     # Load expression data
     X_control = pd.read_csv(os.path.join(DATASET_PATH, "her2_negative_matrix.csv"), sep=',')
@@ -54,13 +49,6 @@ def train(num_jobs: int = 4):
     top_features_true = lb.transform(top_features_true).sum(axis=0).astype(int)
     topKfeatures = sum(top_features_true).astype(int)
 
-    # Load DECO results    
-    df_deco = pd.read_csv(os.path.join(DATASET_PATH, "her2_deco.csv"), sep=',', header=None)
-    df_deco = df_deco.to_numpy()
-    if df_deco.shape[1] != num_batches:
-        temp = "The number of bacthes does not macth with DECO results"
-        raise Exception(temp)
-
     print("## Perform simulation studies using HER2 data...")
     print("\t >> Control size: {0}; Case size: {1}; Feature size: {2}".format(X_control.shape[0], X_case.shape[0],
                                                                               len(features_name)))
@@ -72,117 +60,12 @@ def train(num_jobs: int = 4):
         X = np.vstack((X_control, X_case[temp]))
         y = np.array(X_control.shape[0] * [0] + subsample_size * [1])
 
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                "t-statistic"),
-              end="\r")
-        estimator = StudentTTest(direction=direction, permutation_test=False)
-        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
-                                          X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
-        top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
-        temp = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
-                                 metric="f1")
-        list_scores.append(temp)
-        current_progress += 1
-
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "COPA"),
-              end="\r")
-        estimator = COPA(q=0.75, direction=direction, permutation_test=False)
-        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
-                                          X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
-        top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
-        temp = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
-                                 metric="f1")
-        list_scores.append(temp)
-        current_progress += 1
-
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "OS"),
-              end="\r")
-        estimator = OutlierSumStatistic(q=0.75, iqr_range=(25, 75), two_sided_test=False,
-                                        direction=direction, permutation_test=False)
-        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
-                                          X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
-        top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
-        temp = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
-                                 metric="f1")
-        list_scores.append(temp)
-        current_progress += 1
-
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "ORT"),
-              end="\r")
-        estimator = OutlierRobustStatistic(q=0.75, iqr_range=(25, 75), direction=direction, permutation_test=False)
-        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
-                                          X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
-        top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
-        temp = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
-                                 metric="f1")
-        list_scores.append(temp)
-        current_progress += 1
-
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "MOST"),
-              end="\r")
-        estimator = MOST(direction=direction, permutation_test=False)
-        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
-                                          X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
-        top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
-        temp = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
-                                 metric="f1")
-        list_scores.append(temp)
-        current_progress += 1
-
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "LSOSS"),
-              end="\r")
-        estimator = LSOSS(direction=direction, permutation_test=False)
-        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
-                                          X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
-        top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
-        temp = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
-                                 metric="f1")
-        list_scores.append(temp)
-        current_progress += 1
-
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "DIDS"),
-              end="\r")
-        estimator = DIDS(score_function="tanh", direction=direction, permutation_test=False)
-        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
-                                          X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
-        top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
-        temp = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
-                                 metric="f1")
-        list_scores.append(temp)
-        current_progress += 1
-
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "DECO"),
-              end="\r")
-        top_features_pred = df_deco[:, batch_idx]
-        temp = np.nonzero(top_features_pred)[0]
-        top_features_pred[temp] = np.max(top_features_pred) + 1 - top_features_pred[temp]
-        top_features_pred = top_features_pred.reshape(top_features_pred.shape[0], 1)
-        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
-                                          X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
-        top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
-        temp = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
-                                 metric="f1")
-        list_scores.append(temp)
-        current_progress += 1
-
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                "DeltaIQR"), end="\r")
-        estimator = DeltaIQR(normalize="zcore", q=0.75, iqr_range=(25, 75), permutation_test=False)
+        print("\t >> Progress: {0:.4f}%; Method: {1:35}".format((current_progress / total_progress) * 100,
+                                                                methods[0]), end="\r")
+        estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
+                         calculate_deltaiqr=True, calculate_fisher=False, calculate_profile=False,
+                         calculate_hstatistic=False, bin_KS_pvalues=True, feature_weight=feature_weight,
+                         weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -193,18 +76,112 @@ def train(num_jobs: int = 4):
         list_scores.append(temp)
         current_progress += 1
 
-        if total_progress == current_progress:
-            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                    "PHet"))
+        print("\t >> Progress: {0:.4f}%; Method: {1:35}".format((current_progress / total_progress) * 100,
+                                                                methods[1]), end="\r")
+        estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
+                         calculate_deltaiqr=False, calculate_fisher=True, calculate_profile=False,
+                         calculate_hstatistic=False, bin_KS_pvalues=True, feature_weight=feature_weight,
+                         weight_range=weight_range)
+        top_features_pred = estimator.fit_predict(X=X, y=y)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
+        top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
+        temp = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
+                                 metric="f1")
+        list_scores.append(temp)
+        current_progress += 1
+
+        print("\t >> Progress: {0:.4f}%; Method: {1:35}".format((current_progress / total_progress) * 100,
+                                                                methods[2]), end="\r")
+        estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
+                         calculate_deltaiqr=False, calculate_fisher=False, calculate_profile=True,
+                         calculate_hstatistic=False, bin_KS_pvalues=True, feature_weight=feature_weight,
+                         weight_range=weight_range)
+        top_features_pred = estimator.fit_predict(X=X, y=y)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
+        top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
+        temp = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
+                                 metric="f1")
+        list_scores.append(temp)
+        current_progress += 1
+
+        print("\t >> Progress: {0:.4f}%; Method: {1:35}".format((current_progress / total_progress) * 100,
+                                                                methods[3]), end="\r")
+        estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
+                         calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=False,
+                         calculate_hstatistic=False, bin_KS_pvalues=True, feature_weight=feature_weight,
+                         weight_range=weight_range)
+        top_features_pred = estimator.fit_predict(X=X, y=y)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
+        top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
+        temp = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
+                                 metric="f1")
+        list_scores.append(temp)
+        current_progress += 1
+
+        print("\t >> Progress: {0:.4f}%; Method: {1:35}".format((current_progress / total_progress) * 100,
+                                                                methods[4]), end="\r")
+        estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
+                         calculate_deltaiqr=True, calculate_fisher=False, calculate_profile=True,
+                         calculate_hstatistic=False, bin_KS_pvalues=True, feature_weight=feature_weight,
+                         weight_range=weight_range)
+        top_features_pred = estimator.fit_predict(X=X, y=y)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
+        top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
+        temp = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
+                                 metric="f1")
+        list_scores.append(temp)
+        current_progress += 1
+
+        print("\t >> Progress: {0:.4f}%; Method: {1:35}".format((current_progress / total_progress) * 100,
+                                                                methods[5]), end="\r")
+        estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
+                         calculate_deltaiqr=False, calculate_fisher=True, calculate_profile=True,
+                         calculate_hstatistic=False, bin_KS_pvalues=True, feature_weight=feature_weight,
+                         weight_range=weight_range)
+        top_features_pred = estimator.fit_predict(X=X, y=y)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
+        top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
+        temp = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
+                                 metric="f1")
+        list_scores.append(temp)
+        current_progress += 1
+
+        print("\t >> Progress: {0:.4f}%; Method: {1:35}".format((current_progress / total_progress) * 100,
+                                                                methods[6]), end="\r")
+        estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
+                         calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=True,
+                         calculate_hstatistic=False, bin_KS_pvalues=False, feature_weight=feature_weight,
+                         weight_range=weight_range)
+        top_features_pred = estimator.fit_predict(X=X, y=y)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"][:topKfeatures].to_list()
+        top_features_pred = lb.transform(top_features_pred).sum(axis=0).astype(int)
+        temp = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
+                                 metric="f1")
+        list_scores.append(temp)
+        current_progress += 1
+
+        if current_progress == total_progress:
+            print("\t >> Progress: {0:.4f}%; Method: {1:35}".format((current_progress / total_progress) * 100,
+                                                                    methods[7]))
         else:
-            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                    "PHet"), end="\r")
-        estimator = PHeT(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
-                         alpha_subsample=0.05, partition_by_anova=False, bin_KS_pvalues=False,
-                         feature_weight=[0.4, 0.3, 0.2, 0.1],
-                         weight_range=[0.1, 0.4, 0.8], calculate_hstatistic=False, num_components=10,
-                         num_subclusters=10,
-                         binary_clustering=True, permutation_test=False, num_rounds=50, num_jobs=num_jobs)
+            print("\t >> Progress: {0:.4f}%; Method: {1:35}".format((current_progress / total_progress) * 100,
+                                                                    methods[7]), end="\r")
+        estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
+                         calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=True,
+                         calculate_hstatistic=False, bin_KS_pvalues=True, feature_weight=feature_weight,
+                         weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -223,18 +200,11 @@ def train(num_jobs: int = 4):
     df.index.name = 'Batch'
     df = pd.melt(df.reset_index(), id_vars='Batch', value_vars=methods, var_name="Methods",
                  value_name="Scores")
-    df.to_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',', index=False)
-    df = pd.read_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',')
-    temp = [idx for idx, item in enumerate(df["Methods"].tolist()) if item != "DECO"]
-    df = df.iloc[temp]
-    #     temp = ["ΔIQR" if item == "DeltaIQR" else item for item in df["Methods"].tolist()]
-    #     temp = ["t-statistic" if item == "ttest" else item for item in temp]
-    df["Methods"] = temp
+    df.to_csv(os.path.join(RESULT_PATH, "her2_phet_scores.csv"), sep=',', index=False)
+    df = pd.read_csv(os.path.join(RESULT_PATH, "her2_phet_scores.csv"), sep=',')
     palette = mcolors.TABLEAU_COLORS
-    #     methods = ["ΔIQR" if item == "DeltaIQR" else item for item in methods]
-    #     methods = ["t-statistic" if item == "ttest" else item for item in methods]
     palette = dict([(methods[idx], item[1]) for idx, item in enumerate(palette.items())
-                    if idx + 1 <= len(methods) and methods[idx] != "DECO"])
+                    if idx + 1 <= len(methods)])
 
     # Plot boxplot
     print("## Plot boxplot using top k features...")
@@ -248,7 +218,7 @@ def train(num_jobs: int = 4):
     plt.suptitle("Results using Her2 data", fontsize=26)
     sns.despine()
     plt.tight_layout()
-    file_path = os.path.join(RESULT_PATH, "her2_boxplot.png")
+    file_path = os.path.join(RESULT_PATH, "her2_phet_boxplot.png")
     plt.savefig(file_path)
     plt.clf()
     plt.cla()

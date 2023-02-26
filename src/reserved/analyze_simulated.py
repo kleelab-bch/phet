@@ -151,39 +151,39 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "COPA"), end="\r")
-    estimator = COPA(q=0.75, direction=direction, calculate_pval=False)
+    estimator = COPA(q=0.75, direction=direction, permutation_test=False)
     df_copa = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "OS"), end="\r")
     estimator = OutlierSumStatistic(q=0.75, iqr_range=(25, 75), two_sided_test=False, direction=direction,
-                                    calculate_pval=False)
+                                    permutation_test=False)
     df_os = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "ORT"), end="\r")
     estimator = OutlierRobustStatistic(q=0.75, iqr_range=(25, 75), direction=direction,
-                                       calculate_pval=False)
+                                       permutation_test=False)
     df_ort = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "MOST"), end="\r")
-    estimator = MOST(direction=direction, calculate_pval=False)
+    estimator = MOST(direction=direction, permutation_test=False)
     df_most = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "LSOSS"), end="\r")
-    estimator = LSOSS(direction=direction, calculate_pval=False)
+    estimator = LSOSS(direction=direction, permutation_test=False)
     df_lsoss = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "DIDS"), end="\r")
-    estimator = DIDS(score_function="tanh", direction=direction, calculate_pval=False)
+    estimator = DIDS(score_function="tanh", direction=direction, permutation_test=False)
     df_dids = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     current_progress += 1
 
@@ -197,16 +197,16 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "DeltaIQR"), end="\r")
-    estimator = DeltaIQR(normalize="zscore", q=0.75, iqr_range=(25, 75), calculate_pval=False)
+    estimator = DeltaIQR(normalize="zscore", q=0.75, iqr_range=(25, 75), permutation_test=False)
     df_iqr = estimator.fit_predict(X=X, y=y)
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             "PHeT"))
     estimator = PHeT(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=5000, subsampling_size=None,
-                     significant_p=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                     alpha_subsample=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
                      weight_range=[0.1, 0.4, 0.8], calculate_hstatistic=calculate_hstatistic, num_components=10,
-                     num_subclusters=10, binary_clustering=True, calculate_pval=False, num_rounds=50,
+                     num_subclusters=10, binary_clustering=True, permutation_test=False, num_rounds=50,
                      num_jobs=num_jobs)
     df_phet = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     current_progress += 1
