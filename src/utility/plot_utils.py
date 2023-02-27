@@ -38,6 +38,8 @@ def plot_barplot(X, methods_name, metric: str = "f1", suptitle: str = "temp", fi
     plt.xlabel('Methods', fontsize=20, fontweight="bold")
     if metric == "f1":
         temp = "F1"
+    elif metric == "precision":
+        temp = "Precision"
     elif metric == "auc":
         temp = "AUC"
     elif metric == "accuracy":

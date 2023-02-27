@@ -21,7 +21,7 @@ def train(num_jobs: int = 4):
     weight_range = [0.1, 0.4, 0.8]
     pvalue = 0.01
     sort_by_pvalue = True
-    export_spring = True
+    export_spring = False
     topKfeatures = 100
     plot_topKfeatures = False
     if not sort_by_pvalue:
@@ -30,17 +30,19 @@ def train(num_jobs: int = 4):
     is_filter = True
     max_clusters = 10
     cluster_type = "kmeans"
-    methods = ["ΔIQR", "PHet (ΔIQR)", "PHet (Fisher)", "PHet (Profile)", "PHet (ΔIQR+Fisher)",
-               "PHet (ΔIQR+Profile)", "PHet (Fisher+Profile)", "PHet (ΔIQR+Fisher+Profile)",
-               "PHet (Binning)"]
-    methods_save_name = ["DeltaIQR", "PHet_r", "PHet_f", "PHet_o", "PHet_rf", "PHet_ro", "PHet_fo",
-                         "PHet", "PHet_b"]
+    methods = ["ΔIQR", "PHet (no Binning)", "PHet"]
+    methods_save_name = ["DeltaIQR", "PHet_nb", "PHet_b"]
 
     # 1. Micro-array datasets: allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89,
     # braintumor, cmlgse2535, colon, dlbcl, ewsgse967, gastricgse2685, glioblastoma, leukemia_golub,
     # ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, mll, myelodysplastic_mds1,
     # myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
     # 2. scRNA datasets: camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
+
+    ### For the paper: 
+    # 1. Microarray datasets: allgse412, bc_ccgse3726, bladdergse89, braintumor, gastricgse2685, glioblastoma, 
+    # leukemia_golub, lung, lunggse1987, mll, srbct
+    # 2. scRNA datasets: darmanis, yan, camp1, baron, li, and patel
 
     # 3. Pulseseq data (mtx): pulseseq, pulseseq_basal_vs_clubandlineage, pulseseq_basal_vs_nonclublineage, 
     # pulseseq_basal_vs_neuroendocrine, pulseseq_basal_vs_tuft, pulseseq_basal_vs_ionocyte, 
@@ -61,15 +63,15 @@ def train(num_jobs: int = 4):
     # plasschaert_mouse_basalandpreciliated_vs_ciliated, plasschaert_mouse_preandciliated_vs_rare, 
     # plasschaert_mouse_secretory_vs_rare
 
-    file_name = "darmanis"
-    suptitle_name = "Basal vs non Basal"
+    file_name = "allgse412"
+    suptitle_name = "GSE412"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
     donors_file = file_name + "_donors"
     timepoints_file = file_name + "_timepoints"
-    control_name = "Basal"
-    case_name = "non Basal"
+    control_name = "Control"
+    case_name = "Case"
 
     # Load expression data
     if not is_mtx:
@@ -180,80 +182,20 @@ def train(num_jobs: int = 4):
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             methods[1]), end="\r")
     estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
-                     calculate_deltaiqr=True, calculate_fisher=False, calculate_profile=False,
+                     calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=True,
                      calculate_hstatistic=False, bin_KS_pvalues=False, feature_weight=feature_weight,
                      weight_range=weight_range)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({methods[1]: df})
     current_progress += 1
 
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            methods[2]), end="\r")
-    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
-                     calculate_deltaiqr=False, calculate_fisher=True, calculate_profile=False,
-                     calculate_hstatistic=False, bin_KS_pvalues=False, feature_weight=feature_weight,
-                     weight_range=weight_range)
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    methods_dict.update({methods[2]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            methods[3]), end="\r")
-    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
-                     calculate_deltaiqr=False, calculate_fisher=False, calculate_profile=True,
-                     calculate_hstatistic=False, bin_KS_pvalues=False, feature_weight=feature_weight,
-                     weight_range=weight_range)
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    methods_dict.update({methods[3]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            methods[4]), end="\r")
-    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
-                     calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=False,
-                     calculate_hstatistic=False, bin_KS_pvalues=False, feature_weight=feature_weight,
-                     weight_range=weight_range)
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    methods_dict.update({methods[4]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            methods[5]), end="\r")
-    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
-                     calculate_deltaiqr=True, calculate_fisher=False, calculate_profile=True,
-                     calculate_hstatistic=False, bin_KS_pvalues=False, feature_weight=feature_weight,
-                     weight_range=weight_range)
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    methods_dict.update({methods[5]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            methods[6]), end="\r")
-    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
-                     calculate_deltaiqr=False, calculate_fisher=True, calculate_profile=True,
-                     calculate_hstatistic=False, bin_KS_pvalues=False, feature_weight=feature_weight,
-                     weight_range=weight_range)
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    methods_dict.update({methods[6]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            methods[7]), end="\r")
-    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
-                     calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=True,
-                     calculate_hstatistic=False, bin_KS_pvalues=False, feature_weight=feature_weight,
-                     weight_range=weight_range)
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    methods_dict.update({methods[7]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, methods[8]))
+    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, methods[2]))
     estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                      calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=True,
                      calculate_hstatistic=False, bin_KS_pvalues=True, feature_weight=feature_weight,
                      weight_range=weight_range)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    methods_dict.update({methods[8]: df})
+    methods_dict.update({methods[2]: df})
 
     if sort_by_pvalue:
         print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))

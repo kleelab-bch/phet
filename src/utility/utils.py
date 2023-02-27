@@ -11,6 +11,7 @@ from sklearn.cluster import SpectralCoclustering
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.metrics import jaccard_score, f1_score, roc_auc_score
+from sklearn.metrics import precision_score, accuracy_score
 from sklearn.mixture import GaussianMixture
 
 np.seterr(divide='ignore', invalid='ignore')
@@ -121,8 +122,12 @@ def comparative_score(pred_features, true_features, metric: str = "f1"):
         raise Exception(temp)
     if metric == "f1":
         score = f1_score(y_true=true_features, y_pred=pred_features)
+    elif metric == "precision":
+        score = precision_score(y_true=true_features, y_pred=pred_features)
     elif metric == "auc":
         score = roc_auc_score(y_true=true_features, y_score=pred_features)
+    elif metric == "accuracy":
+        score = accuracy_score(y_true=true_features, y_pred=pred_features)
     else:
         score = jaccard_score(y_true=true_features, y_pred=pred_features)
     return score

@@ -28,7 +28,6 @@ def train(num_jobs: int = 4):
     direction = "both"
     minimum_samples = 5
     pvalue = 0.01
-    calculate_hstatistic = False
     sort_by_pvalue = True
     export_spring = False
     topKfeatures = 100
@@ -36,11 +35,16 @@ def train(num_jobs: int = 4):
     if not sort_by_pvalue:
         plot_topKfeatures = True
     max_clusters = 10
+    bin_KS_pvalues = True
+    feature_metric = "f1"
     cluster_type = "kmeans"
     # cluster_type = "spectral"
     methods = ["t-statistic", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "ΔIQR", "PHet"]
-    methods_save_name = ["ttest", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "DeltaIQR", "PHet"]
-
+    methods_save_name = ["ttest", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "DeltaIQR"]
+    if bin_KS_pvalues:
+        methods_save_name.append("PHet_b")
+    else:
+        methods_save_name.append("PHet_nb")
     # 1. Microarray datasets: allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89,
     # braintumor, cmlgse2535, colon, dlbcl, ewsgse967, gastricgse2685, glioblastoma, leukemia_golub, 
     # ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, mll, myelodysplastic_mds1, 
@@ -50,8 +54,8 @@ def train(num_jobs: int = 4):
     # 1. Microarray datasets: allgse412, bc_ccgse3726, bladdergse89, braintumor, gastricgse2685, glioblastoma, 
     # leukemia_golub, lung, lunggse1987, mll, srbct
     # 2. scRNA datasets: darmanis, yan, camp1, baron, li, and patel
-    file_name = "yan"
-    suptitle_name = "Yan"
+    file_name = "baron"
+    suptitle_name = "Baron"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
@@ -175,11 +179,10 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             methods[9]))
-    estimator = PHeT(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
-                     alpha_subsample=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                     weight_range=[0.1, 0.4, 0.8], calculate_hstatistic=calculate_hstatistic, num_components=10,
-                     num_subclusters=10, binary_clustering=True, permutation_test=False, num_rounds=50,
-                     num_jobs=num_jobs)
+    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
+                     calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=True,
+                     calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues, 
+                     feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.1, 0.4, 0.8])
     df_phet = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
 
     methods_dict = dict({methods[0]: df_ttest, methods[1]: df_copa, methods[2]: df_os,
@@ -224,13 +227,13 @@ def train(num_jobs: int = 4):
                 if feature in df['features'][:selected_regulated_features].tolist()]
         top_features_pred = np.zeros((len(top_features_true)))
         top_features_pred[temp] = 1
-        score = comparative_score(pred_features=top_features_pred, true_features=top_features_true, metric="f1")
+        score = comparative_score(pred_features=top_features_pred, true_features=top_features_true, metric=feature_metric)
         list_scores.append(score)
 
     df = pd.DataFrame(list_scores, columns=["Scores"], index=methods)
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_features_scores.csv"), sep=",")
     print("## Plot barplot using the top {0} features...".format(topKfeatures))
-    plot_barplot(X=list_scores, methods_name=methods, metric="f1", suptitle=suptitle_name,
+    plot_barplot(X=list_scores, methods_name=methods, metric=feature_metric, suptitle=suptitle_name,
                  file_name=file_name, save_path=RESULT_PATH)
 
     list_scores = list()
@@ -238,7 +241,7 @@ def train(num_jobs: int = 4):
     score = plot_umap(X=X, y=y, subtypes=subtypes, features_name=features_name, num_features=num_features,
                       standardize=True, num_neighbors=5, min_dist=0, perform_cluster=True, cluster_type=cluster_type,
                       num_clusters=num_clusters, max_clusters=max_clusters, apply_hungarian=False, heatmap_plot=False,
-                      num_jobs=num_jobs, suptitle=suptitle_name + ": ", file_name=file_name + "_all",
+                      num_jobs=num_jobs, suptitle=suptitle_name + "\nAll", file_name=file_name + "_all",
                       save_path=RESULT_PATH)
     list_scores.append(score)
 
@@ -269,7 +272,7 @@ def train(num_jobs: int = 4):
                           standardize=True, num_neighbors=5, min_dist=0.0, perform_cluster=True,
                           cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
                           apply_hungarian=False, heatmap_plot=False, num_jobs=num_jobs,
-                          suptitle=suptitle_name + ": " + method_name, file_name=file_name + "_" + save_name.lower(),
+                          suptitle=suptitle_name + "\n" + method_name, file_name=file_name + "_" + save_name.lower(),
                           save_path=RESULT_PATH)
         df = pd.DataFrame(temp_feature, columns=["features"])
         df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_features.csv"),

@@ -22,9 +22,10 @@ def train(num_jobs: int = 4):
     topKfeatures = 100
     num_batches = 1000
     subsample_size = 10
+    bin_KS_pvalues = False
     methods = ["PHet (ΔIQR)", "PHet (Fisher)", "PHet (Profile)", "PHet (ΔIQR+Fisher)",
-               "PHet (ΔIQR+Profile)", "PHet (Fisher+Profile)", "PHet (ΔIQR+Fisher+Profile)",
-               "PHet (Binning)"]
+               "PHet (ΔIQR+Profile)", "PHet (Fisher+Profile)", "PHet (no Binning)",
+               "PHet"]
 
     # Load expression data
     X_control = pd.read_csv(os.path.join(DATASET_PATH, "her2_negative_matrix.csv"), sep=',')
@@ -64,8 +65,8 @@ def train(num_jobs: int = 4):
                                                                 methods[0]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                          calculate_deltaiqr=True, calculate_fisher=False, calculate_profile=False,
-                         calculate_hstatistic=False, bin_KS_pvalues=True, feature_weight=feature_weight,
-                         weight_range=weight_range)
+                         calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues, 
+                         feature_weight=feature_weight, weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -80,8 +81,8 @@ def train(num_jobs: int = 4):
                                                                 methods[1]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                          calculate_deltaiqr=False, calculate_fisher=True, calculate_profile=False,
-                         calculate_hstatistic=False, bin_KS_pvalues=True, feature_weight=feature_weight,
-                         weight_range=weight_range)
+                         calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues, 
+                         feature_weight=feature_weight, weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -96,8 +97,8 @@ def train(num_jobs: int = 4):
                                                                 methods[2]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                          calculate_deltaiqr=False, calculate_fisher=False, calculate_profile=True,
-                         calculate_hstatistic=False, bin_KS_pvalues=True, feature_weight=feature_weight,
-                         weight_range=weight_range)
+                         calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues, 
+                         feature_weight=feature_weight, weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -112,8 +113,8 @@ def train(num_jobs: int = 4):
                                                                 methods[3]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                          calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=False,
-                         calculate_hstatistic=False, bin_KS_pvalues=True, feature_weight=feature_weight,
-                         weight_range=weight_range)
+                         calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues, 
+                         feature_weight=feature_weight, weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -128,8 +129,8 @@ def train(num_jobs: int = 4):
                                                                 methods[4]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                          calculate_deltaiqr=True, calculate_fisher=False, calculate_profile=True,
-                         calculate_hstatistic=False, bin_KS_pvalues=True, feature_weight=feature_weight,
-                         weight_range=weight_range)
+                         calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues,
+                         feature_weight=feature_weight, weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -144,8 +145,8 @@ def train(num_jobs: int = 4):
                                                                 methods[5]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                          calculate_deltaiqr=False, calculate_fisher=True, calculate_profile=True,
-                         calculate_hstatistic=False, bin_KS_pvalues=True, feature_weight=feature_weight,
-                         weight_range=weight_range)
+                         calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues, 
+                         feature_weight=feature_weight, weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -209,8 +210,7 @@ def train(num_jobs: int = 4):
     # Plot boxplot
     print("## Plot boxplot using top k features...")
     plt.figure(figsize=(14, 8))
-    bplot = sns.boxplot(y='Scores', x='Methods', data=df, width=0.5,
-                        palette=palette)
+    sns.boxplot(data=df, x='Methods', y='Scores', width=0.5, palette=palette)
     plt.xticks(fontsize=18, rotation=45)
     plt.yticks(fontsize=18)
     plt.xlabel('Methods', fontsize=22)

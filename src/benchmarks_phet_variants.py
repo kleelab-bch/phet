@@ -30,8 +30,12 @@ def train(num_jobs: int = 4):
     is_filter = True
     max_clusters = 10
     cluster_type = "kmeans"
-    methods = ["ΔIQR", "PHet", "PHet (Binning)"]
-    methods_save_name = ["DeltaIQR", "PHet", "PHet_b"]
+    bin_KS_pvalues = False
+    methods = ["ΔIQR", "PHet (ΔIQR)", "PHet (Fisher)", "PHet (Profile)", "PHet (ΔIQR+Fisher)",
+               "PHet (ΔIQR+Profile)", "PHet (Fisher+Profile)", "PHet (no Binning)",
+               "PHet"]
+    methods_save_name = ["DeltaIQR", "PHet_r", "PHet_f", "PHet_o", "PHet_rf", "PHet_ro", "PHet_fo",
+                         "PHet_nb", "PHet_b"]
 
     # 1. Micro-array datasets: allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89,
     # braintumor, cmlgse2535, colon, dlbcl, ewsgse967, gastricgse2685, glioblastoma, leukemia_golub,
@@ -177,6 +181,66 @@ def train(num_jobs: int = 4):
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             methods[1]), end="\r")
     estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
+                     calculate_deltaiqr=True, calculate_fisher=False, calculate_profile=False,
+                     calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues, 
+                     feature_weight=feature_weight, weight_range=weight_range)
+    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+    methods_dict.update({methods[1]: df})
+    current_progress += 1
+
+    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
+                                                            methods[2]), end="\r")
+    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
+                     calculate_deltaiqr=False, calculate_fisher=True, calculate_profile=False,
+                     calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues, 
+                     feature_weight=feature_weight, weight_range=weight_range)
+    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+    methods_dict.update({methods[2]: df})
+    current_progress += 1
+
+    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
+                                                            methods[3]), end="\r")
+    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
+                     calculate_deltaiqr=False, calculate_fisher=False, calculate_profile=True,
+                     calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues, 
+                     feature_weight=feature_weight, weight_range=weight_range)
+    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+    methods_dict.update({methods[3]: df})
+    current_progress += 1
+
+    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
+                                                            methods[4]), end="\r")
+    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
+                     calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=False,
+                     calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues, 
+                     feature_weight=feature_weight, weight_range=weight_range)
+    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+    methods_dict.update({methods[4]: df})
+    current_progress += 1
+
+    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
+                                                            methods[5]), end="\r")
+    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
+                     calculate_deltaiqr=True, calculate_fisher=False, calculate_profile=True,
+                     calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues, 
+                     feature_weight=feature_weight, weight_range=weight_range)
+    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+    methods_dict.update({methods[5]: df})
+    current_progress += 1
+
+    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
+                                                            methods[6]), end="\r")
+    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
+                     calculate_deltaiqr=False, calculate_fisher=True, calculate_profile=True,
+                     calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues, 
+                     feature_weight=feature_weight, weight_range=weight_range)
+    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+    methods_dict.update({methods[6]: df})
+    current_progress += 1
+
+    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
+                                                            methods[7]), end="\r")
+    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                      calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=True,
                      calculate_hstatistic=False, bin_KS_pvalues=False, feature_weight=feature_weight,
                      weight_range=weight_range)
@@ -184,7 +248,7 @@ def train(num_jobs: int = 4):
     methods_dict.update({methods[7]: df})
     current_progress += 1
 
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, methods[2]))
+    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, methods[8]))
     estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                      calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=True,
                      calculate_hstatistic=False, bin_KS_pvalues=True, feature_weight=feature_weight,

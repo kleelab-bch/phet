@@ -290,6 +290,8 @@ class PHeT:
                     # Mixed change
                     else:
                         O[feature_idx, 3] = 1
+            # TODO: define gradient bounds and a boolean indicator
+            # O = (.1 - .4) * (((O - np.min(O)) / (np.max(O) - np.min(O)))) + .4
             if self.bin_KS_pvalues:
                 temp = KBinsDiscretizer(n_bins=len(self.feature_weight), encode="ordinal",
                                         strategy="uniform").fit_transform(O)

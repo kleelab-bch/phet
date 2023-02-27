@@ -13,10 +13,10 @@ sns.set_style(style='white')
 
 ######################## Real data ###########################
 
-result_path = os.path.join(RESULT_PATH, "scRNA")
+result_path = os.path.join(RESULT_PATH, "microarray")
 methods_name = {"ttest": "t-statistic", "COPA": "COPA", "OS": "OS", "ORT": "ORT",
                 "MOST": "MOST", "LSOSS": "LSOSS", "DIDS": "DIDS", "DECO": "DECO",
-                "DeltaIQR": "ΔIQR", "PHet": "PHet"}
+                "DeltaIQR": "ΔIQR", "PHet_b": "PHet"}
 
 # Use static colors
 palette = mcolors.TABLEAU_COLORS
@@ -48,11 +48,11 @@ total_features = []
 for lst_files in feature_files:
     temp = list()
     for f in lst_files:
-        df = pd.read_csv(os.path.join(result_path, f), sep=',')
-        temp.append(len(df["features"].to_list()))
+        df = pd.read_csv(os.path.join(result_path, f), sep=',', header=None)
+        temp.append(len(df.values.tolist()))
     total_features.append(temp)
 total_features[7] = deco_features
-total_features = np.log(total_features)
+total_features = np.log10(total_features)
 
 # Change names scores
 # methods = ["ΔIQR" if item == "DeltaIQR" else item for item in methods]
@@ -72,7 +72,7 @@ df_features.columns = ["Methods", "Features"]
 plt.figure(figsize=(14, 8))
 ax = sns.boxplot(y='Features', x='Methods', data=df_features, width=0.85, palette=palette)
 ax.set_xlabel("")
-ax.set_ylabel("Number of significant features  \n  found by each method (log scale)", fontsize=36)
+ax.set_ylabel("Number of significant features  \n  found by each method (log10 scale)", fontsize=36)
 ax.set_xticklabels([])
 ax.tick_params(axis='both', labelsize=30)
 plt.suptitle("6 single cell RNA-seq datasets", fontsize=36)

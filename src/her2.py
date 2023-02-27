@@ -199,12 +199,10 @@ def train(num_jobs: int = 4):
         else:
             print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                     "PHet"), end="\r")
-        estimator = PHeT(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=1000, subsampling_size=None,
-                         alpha_subsample=0.05, partition_by_anova=False, bin_KS_pvalues=False,
-                         feature_weight=[0.4, 0.3, 0.2, 0.1],
-                         weight_range=[0.1, 0.4, 0.8], calculate_hstatistic=False, num_components=10,
-                         num_subclusters=10,
-                         binary_clustering=True, permutation_test=False, num_rounds=50, num_jobs=num_jobs)
+        estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
+                         calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=True,
+                         calculate_hstatistic=False, bin_KS_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                         weight_range=[0.1, 0.4, 0.8])
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -224,23 +222,17 @@ def train(num_jobs: int = 4):
     df = pd.melt(df.reset_index(), id_vars='Batch', value_vars=methods, var_name="Methods",
                  value_name="Scores")
     df.to_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',', index=False)
-    df = pd.read_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',')
+    df = pd.read_csv(os.path.join(RESULT_PATH, "her2_phet_10000_scores.csv"), sep=',')
     temp = [idx for idx, item in enumerate(df["Methods"].tolist()) if item != "DECO"]
     df = df.iloc[temp]
-    #     temp = ["ΔIQR" if item == "DeltaIQR" else item for item in df["Methods"].tolist()]
-    #     temp = ["t-statistic" if item == "ttest" else item for item in temp]
-    df["Methods"] = temp
     palette = mcolors.TABLEAU_COLORS
-    #     methods = ["ΔIQR" if item == "DeltaIQR" else item for item in methods]
-    #     methods = ["t-statistic" if item == "ttest" else item for item in methods]
     palette = dict([(methods[idx], item[1]) for idx, item in enumerate(palette.items())
                     if idx + 1 <= len(methods) and methods[idx] != "DECO"])
 
     # Plot boxplot
     print("## Plot boxplot using top k features...")
     plt.figure(figsize=(14, 8))
-    bplot = sns.boxplot(y='Scores', x='Methods', data=df, width=0.5,
-                        palette=palette)
+    sns.boxplot(data=df, x='Methods', y='Scores', width=0.5, palette=palette)
     plt.xticks(fontsize=18, rotation=45)
     plt.yticks(fontsize=18)
     plt.xlabel('Methods', fontsize=22)
