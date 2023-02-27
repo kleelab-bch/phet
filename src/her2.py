@@ -222,7 +222,7 @@ def train(num_jobs: int = 4):
     df = pd.melt(df.reset_index(), id_vars='Batch', value_vars=methods, var_name="Methods",
                  value_name="Scores")
     df.to_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',', index=False)
-    df = pd.read_csv(os.path.join(RESULT_PATH, "her2_phet_10000_scores.csv"), sep=',')
+    df = pd.read_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',')
     temp = [idx for idx, item in enumerate(df["Methods"].tolist()) if item != "DECO"]
     df = df.iloc[temp]
     palette = mcolors.TABLEAU_COLORS

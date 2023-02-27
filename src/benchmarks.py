@@ -38,7 +38,7 @@ def train(num_jobs: int = 4):
     bin_KS_pvalues = True
     feature_metric = "f1"
     cluster_type = "kmeans"
-    # cluster_type = "spectral"
+    cluster_type = "spectral"
     methods = ["t-statistic", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "ΔIQR", "PHet"]
     methods_save_name = ["ttest", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "DeltaIQR"]
     if bin_KS_pvalues:
@@ -181,7 +181,7 @@ def train(num_jobs: int = 4):
                                                             methods[9]))
     estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                      calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=True,
-                     calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues, 
+                     calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues,
                      feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.1, 0.4, 0.8])
     df_phet = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
 
@@ -227,7 +227,8 @@ def train(num_jobs: int = 4):
                 if feature in df['features'][:selected_regulated_features].tolist()]
         top_features_pred = np.zeros((len(top_features_true)))
         top_features_pred[temp] = 1
-        score = comparative_score(pred_features=top_features_pred, true_features=top_features_true, metric=feature_metric)
+        score = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
+                                  metric=feature_metric)
         list_scores.append(score)
 
     df = pd.DataFrame(list_scores, columns=["Scores"], index=methods)

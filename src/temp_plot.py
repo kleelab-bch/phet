@@ -72,8 +72,10 @@ df_features.columns = ["Methods", "Features"]
 plt.figure(figsize=(14, 8))
 ax = sns.boxplot(y='Features', x='Methods', data=df_features, width=0.85, palette=palette)
 ax.set_xlabel("")
-ax.set_ylabel("Number of significant features  \n  found by each method (log10 scale)", fontsize=36)
+ax.set_ylabel("Number of significant features  \n  found by each method", fontsize=36)
 ax.set_xticklabels([])
+ax.set_yticks([0, 1, 2, 3, 4, 5])
+ax.set_yticklabels(["1", "10", "100", "1000", "10000", "100000"])
 ax.tick_params(axis='both', labelsize=30)
 plt.suptitle("6 single cell RNA-seq datasets", fontsize=36)
 sns.despine()
@@ -135,13 +137,11 @@ overall_scores.append(1 / np.array(df_features.groupby(["Methods"])["Features"].
 
 ######################## Simulated ###########################
 
-df = pd.read_csv(os.path.join(RESULT_PATH, "simulated_normal_methods_outliers_scores.csv"),
+# F1 scores
+df = pd.read_csv(os.path.join(RESULT_PATH, "simulated",
+                              "simulated_normal_methods_outliers_scores.csv"),
                  sep=',', index_col=0)
 data_name = df.columns.to_list()
-methods_name = df.index.to_list()
-methods_name = ["ΔIQR" if item == "DeltaIQR" else item for item in methods_name]
-methods_name = ["t-statistic" if item == "ttest" else item for item in methods_name]
-df.index = methods_name
 
 temp = [1, 0, 0, 0] * int(len(data_name) / 4)
 df_minority = df[[data_name[idx] for idx, item in enumerate(temp) if item == 1]]
@@ -161,13 +161,11 @@ ax.set_xticklabels(["2/40", "6/40", "10/40", "14/40", "18/40"])
 ax.tick_params(axis='both', labelsize=24)
 
 # Features
-df = pd.read_csv(os.path.join(RESULT_PATH, "simulated_normal_methods_features.csv"),
+df = pd.read_csv(os.path.join(RESULT_PATH, "simulated",
+                              "simulated_normal_methods_features.csv"),
                  sep=',', index_col=0)
 data_name = df.columns.to_list()
-methods_name = df.index.to_list()
-methods_name = ["ΔIQR" if item == "DeltaIQR" else item for item in methods_name]
-methods_name = ["t-statistic" if item == "ttest" else item for item in methods_name]
-df.index = methods_name
+df = np.log10(df)
 
 temp = [1, 0, 0, 0] * int(len(data_name) / 4)
 df_minority = df[[data_name[idx] for idx, item in enumerate(temp) if item == 1]]
@@ -177,12 +175,16 @@ df_mixed = df[[data_name[idx] for idx, item in enumerate(temp) if item == 1]]
 ax = df_minority.T.plot.bar(rot=0, legend=False, align='center', width=0.85, figsize=(8, 6))
 ax.set_xlabel("Number of outliers (case samples)", fontsize=24)
 ax.set_ylabel("Number of significant features \n found by each method", fontsize=24)
+ax.set_yticks([0, 1, 2, 3])
+ax.set_yticklabels(["1", "10", "100", "1000"])
 ax.set_xticklabels(["1/20", "3/20", "5/20", "7/20", "9/20"])
 ax.tick_params(axis='both', labelsize=24)
 
 ax = df_mixed.T.plot.bar(rot=0, legend=False, align='center', width=0.85, figsize=(8, 6))
 ax.set_xlabel("Number of outliers (case and control samples)", fontsize=22)
 ax.set_ylabel("Number of significant features \n found by each method", fontsize=24)
+ax.set_yticks([0, 1, 2, 3])
+ax.set_yticklabels(["1", "10", "100", "1000"])
 ax.set_xticklabels(["2/40", "6/40", "10/40", "14/40", "18/40"])
 ax.tick_params(axis='both', labelsize=24)
 
