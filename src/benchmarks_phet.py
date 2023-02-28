@@ -21,7 +21,7 @@ def train(num_jobs: int = 4):
     weight_range = [0.1, 0.4, 0.8]
     pvalue = 0.01
     sort_by_pvalue = True
-    export_spring = False
+    export_spring = True
     topKfeatures = 100
     plot_topKfeatures = False
     if not sort_by_pvalue:
@@ -29,7 +29,7 @@ def train(num_jobs: int = 4):
     is_mtx = False
     is_filter = True
     max_clusters = 10
-    cluster_type = "kmeans"
+    cluster_type = "spectral"
     methods = ["ΔIQR", "PHet (no Binning)", "PHet"]
     methods_save_name = ["DeltaIQR", "PHet_nb", "PHet_b"]
 
@@ -57,21 +57,22 @@ def train(num_jobs: int = 4):
     # plasschaert_human_basal_vs_ciliated, plasschaert_human_secretory_vs_secretory2ciliated, 
     # plasschaert_human_secretory2ciliated_vs_ciliated, plasschaert_human_secretoryand2ciliated_vs_ciliated, 
     # plasschaert_human_secretory_vs_ciliated, plasschaert_human_secretory_vs_rare, 
-    # plasschaert_human_secretory_vs_ionocytes, plasschaert_human_ciliated_vs_ionocytes
+    # plasschaert_human_secretory_vs_ionocytes, plasschaert_human_ciliated_vs_ionocytes, 
+    # plasschaert_human_d1_vs_d2and3
 
     # 5. Plasschaert-Mouse (csv): plasschaert_mouse, plasschaert_mouse_basalandplus_vs_secretoryandkrt4, 
     # plasschaert_mouse_basalandpreciliated_vs_ciliated, plasschaert_mouse_preandciliated_vs_rare, 
-    # plasschaert_mouse_secretory_vs_rare
+    # plasschaert_mouse_secretory_vs_rare, plasschaert_mouse_uninjured_vs_injured
 
-    file_name = "allgse412"
-    suptitle_name = "GSE412"
+    file_name = "plasschaert_mouse_uninjured_vs_injured"
+    suptitle_name = "Uninjured vs Injured"
     expression_file_name = file_name + "_matrix"
     regulated_features_file = file_name + "_features"
     subtypes_file = file_name + "_types"
     donors_file = file_name + "_donors"
     timepoints_file = file_name + "_timepoints"
-    control_name = "Control"
-    case_name = "Case"
+    control_name = "Uninjured"
+    case_name = "Injured"
 
     # Load expression data
     if not is_mtx:

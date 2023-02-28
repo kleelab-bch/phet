@@ -13,7 +13,7 @@ sns.set_style(style='white')
 
 ######################## Real data ###########################
 
-result_path = os.path.join(RESULT_PATH, "microarray")
+result_path = os.path.join(RESULT_PATH, "scRNA")
 methods_name = {"ttest": "t-statistic", "COPA": "COPA", "OS": "OS", "ORT": "ORT",
                 "MOST": "MOST", "LSOSS": "LSOSS", "DIDS": "DIDS", "DECO": "DECO",
                 "DeltaIQR": "ΔIQR", "PHet_b": "PHet"}
@@ -54,13 +54,9 @@ for lst_files in feature_files:
 total_features[7] = deco_features
 total_features = np.log10(total_features)
 
-# Change names scores
-# methods = ["ΔIQR" if item == "DeltaIQR" else item for item in methods]
-# methods = ["t-statistic" if item == "ttest" else item for item in methods]
-
 # Dataframe 
 df = pd.DataFrame([methods, scores]).T
-df.columns = ["Methods", "F1 scores"]
+df.columns = ["Methods", "Scores"]
 methods = [list(np.repeat(m, total_features.shape[1])) for _, m in methods_name.items()]
 methods = np.reshape(methods, (total_features.shape[0] * total_features.shape[1]))
 total_features = total_features.reshape((total_features.shape[0] * total_features.shape[1]))
@@ -71,6 +67,7 @@ df_features.columns = ["Methods", "Features"]
 # Plot the number of features
 plt.figure(figsize=(14, 8))
 ax = sns.boxplot(y='Features', x='Methods', data=df_features, width=0.85, palette=palette)
+# ax = sns.violinplot(y='Features', x='Methods', data=df_features, palette=palette)
 ax.set_xlabel("")
 ax.set_ylabel("Number of significant features  \n  found by each method", fontsize=36)
 ax.set_xticklabels([])
@@ -83,7 +80,8 @@ plt.tight_layout()
 
 # Plot F1 scores
 plt.figure(figsize=(14, 8))
-ax = sns.boxplot(y='F1 scores', x='Methods', data=df, width=0.85, palette=palette)
+ax = sns.boxplot(y='Scores', x='Methods', data=df, width=0.85, palette=palette)
+# ax = sns.violinplot(y='Scores', x='Methods', data=df_features, scale="count", palette=palette)
 ax.set_xlabel("")
 ax.set_ylabel("F1 scores of each method", fontsize=36)
 ax.set_xticklabels([])
@@ -107,6 +105,7 @@ df_ari.groupby(["Methods"])["ARI"].median()
 # Plot ARI
 plt.figure(figsize=(14, 8))
 ax = sns.boxplot(y='ARI', x='Methods', data=df_ari, width=0.85, palette=palette)
+# ax = sns.violinplot(y='ARI', x='Methods', data=df_features, scale="count", palette=palette)
 ax.set_xlabel("")
 ax.set_ylabel("ARI of each method", fontsize=36)
 ax.set_xticklabels([])
