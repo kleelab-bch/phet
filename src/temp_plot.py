@@ -133,9 +133,9 @@ overall_scores.append(1 / np.array(df_features.groupby(["Methods"])["Features"].
 # sns.despine()
 # plt.tight_layout()
 
-
+##############################################################
 ######################## Simulated ###########################
-
+##############################################################
 # F1 scores
 df = pd.read_csv(os.path.join(RESULT_PATH, "simulated",
                               "simulated_normal_methods_outliers_scores.csv"),
@@ -192,3 +192,174 @@ ax = df_mixed.T.plot.bar(rot=0, figsize=(20, 10))
 ax.legend(title="Methods", title_fontsize=30, fontsize=26, ncol=5,
           loc="lower right", bbox_to_anchor=(1.0, 1.0),
           facecolor="None")
+
+##############################################################
+######################## Plasschaert #########################
+##############################################################
+
+######################## Human
+df = pd.read_csv(os.path.join(RESULT_PATH, "plasschaert_human",
+                              "plasschaert_human_groups.csv"),
+                 sep=',', index_col=0, header=None)
+df = df.T
+temp = {"secretory>ciliated": "Secretory>Ciliated", "basal": "Basal", "ciliated": "Ciliated",
+        "slc16a7+": "SLC16A7+", "basal>secretory": "Basal>Secretory", "secretory": "Secretory",
+        "brush+pnec": "Brush+PNEC", "ionocytes": "Ionocytes", "foxn4+": "FOXN4+"}
+temp = [temp[item] for item in df["subtypes"].tolist()]
+df["subtypes"] = temp
+
+# Use static colors
+palette = {"Secretory>Ciliated": "#1f77b4", "Basal": "#ff7f0e", "Ciliated": "#2ca02c",
+           "SLC16A7+": "#d62728", "Basal>Secretory": "#9467bd", "Secretory": "#8c564b",
+           "Brush+PNEC": "#e377c2", "Ionocytes": "#7f7f7f", "FOXN4+": "#bcbd22"}
+distribution = pd.crosstab(df["donors"], df["subtypes"], normalize='index')
+
+plt.figure(figsize=(6, 8))
+ax = sns.barplot(data=distribution.iloc[:, ::-1].cumsum(axis=1)
+                 .stack().reset_index(name='Dist'),
+                 x='donors', y='Dist', hue='subtypes',
+                 hue_order=distribution.columns, width=0.8,
+                 dodge=False, palette=palette)
+ax.set_xlabel(None)
+ax.set_ylabel("Percentage of all cells", fontsize=32)
+ticks = [str(float(t.get_text()) * 100) for t in ax.get_yticklabels()]
+ax.set_yticklabels(ticks, fontsize=28)
+ax.set_xticklabels(["Donor 1", "Donor 2", "Donor 3"], rotation=45, fontsize=32)
+ax.legend_.remove()
+sns.despine()
+plt.tight_layout()
+
+plt.figure(figsize=(4, 2))
+ax = sns.barplot(data=distribution.iloc[:, ::-1].cumsum(axis=1)
+                 .stack().reset_index(name='Dist'),
+                 x='donors', y='Dist', hue='subtypes',
+                 hue_order=distribution.columns, width=0.9,
+                 dodge=False, palette=palette)
+ax.set_xlabel(None)
+ax.set_ylabel(None)
+# manually generate legend
+ax.legend(title=None, fontsize=30, ncol=1, bbox_to_anchor=(1.005, 1),
+          loc=2, borderaxespad=0., frameon=False)
+sns.despine()
+plt.tight_layout()
+
+######################## Mouse
+df = pd.read_csv(os.path.join(RESULT_PATH, "plasschaert_mouse",
+                              "plasschaert_mouse_groups.csv"),
+                 sep=',', index_col=0, header=None)
+df = df.T
+temp = {"secretory": "Secretory", "basal": "Basal", "ciliated": "Ciliated",
+        "brush": "Brush", "pnec": "PNEC", "krt4/13+": "KRT4/13+",
+        "cycling basal (homeostasis)": "Cycling basal (homeostasis)",
+        "ionocytes": "Ionocytes",
+        "cycling basal (regeneration)": "Cycling basal (regeneration)",
+        "pre-ciliated": "Pre-ciliated"}
+temp = [temp[item] for item in df["subtypes"].tolist()]
+df["subtypes"] = temp
+
+# Use static colors
+palette = {"Secretory": "#1f77b4", "Basal": "#ff7f0e", "Ciliated": "#2ca02c",
+           "Brush": "#d62728", "PNEC": "#9467bd", "KRT4/13+": "#8c564b",
+           "Cycling basal (homeostasis)": "#e377c2", "Ionocytes": "#7f7f7f",
+           "Cycling basal (regeneration)": "#bcbd22", "Pre-ciliated": "#17becf"}
+distribution = pd.crosstab(df["timepoints"], df["subtypes"], normalize='index')
+
+plt.figure(figsize=(10, 8))
+ax = sns.barplot(data=distribution.iloc[:, ::-1].cumsum(axis=1)
+                 .stack().reset_index(name='Dist'),
+                 x='timepoints', y='Dist', hue='subtypes',
+                 hue_order=distribution.columns, width=0.8,
+                 dodge=False, palette=palette)
+ax.set_xlabel(None)
+ax.set_ylabel("Percentage of all cells", fontsize=32)
+ticks = [str(float(t.get_text()) * 100) for t in ax.get_yticklabels()]
+ax.set_yticklabels(ticks, fontsize=28)
+ticks = [t.get_text().capitalize() for t in ax.get_xticklabels()]
+ax.set_xticklabels(ticks, rotation=45, fontsize=32)
+ax.legend_.remove()
+sns.despine()
+plt.tight_layout()
+
+plt.figure(figsize=(4, 2))
+ax = sns.barplot(data=distribution.iloc[:, ::-1].cumsum(axis=1)
+                 .stack().reset_index(name='Dist'),
+                 x='timepoints', y='Dist', hue='subtypes',
+                 hue_order=distribution.columns, width=0.9,
+                 dodge=False, palette=palette)
+ax.set_xlabel(None)
+ax.set_ylabel(None)
+# manually generate legend
+ax.legend(title=None, fontsize=30, ncol=2, bbox_to_anchor=(1.005, 1),
+          loc=2, borderaxespad=0., frameon=False)
+sns.despine()
+plt.tight_layout()
+
+##############################################################
+########################## Pulseseq ##########################
+##############################################################
+top_down_features = 30
+features = pd.read_csv(os.path.join(RESULT_PATH, "pulseseq",
+                                    "pulseseq_tuft_vs_ionocyte_phet_b_features.csv"),
+                       sep=',', header=None)
+features = np.squeeze(features.values.tolist())
+enriched_idx = pd.read_csv(os.path.join(RESULT_PATH, "pulseseq",
+                                        "enriched_terms_ionocytes.txt"),
+                           sep='\t', header=None)
+enriched_idx.columns = ["Features", "Scores"]
+enriched_idx = enriched_idx["Features"].to_list()
+temp = []
+while len(temp) < top_down_features:
+    f = enriched_idx.pop(0)
+    if f.startswith("Rp"):
+        continue
+    temp.append(f)
+# while len(temp) < top_down_features:
+#     f = enriched_idx.pop(-1)
+#     if f.startswith("Rp"):
+#         continue
+#     temp.append(f)
+enriched_idx = [idx for idx, f in enumerate(features) if f in temp]
+features = features[enriched_idx]
+
+# load positive true ionocytes and novel one
+pos_samples = pd.read_csv(os.path.join(RESULT_PATH, "pulseseq",
+                                       "pos_ionocytes.txt"),
+                          sep=',', index_col=0, header=None)
+pos_samples = np.squeeze(pos_samples.values.tolist())
+neg_samples = pd.read_csv(os.path.join(RESULT_PATH, "pulseseq",
+                                       "neg_ionocytes.txt"),
+                          sep=',', index_col=0, header=None)
+neg_samples = np.squeeze(neg_samples.values.tolist())
+selected_samples = np.append(pos_samples, neg_samples)
+
+# load expression
+df = pd.read_csv(os.path.join(RESULT_PATH, "pulseseq",
+                              "pulseseq_tuft_vs_ionocyte_phet_b_expression.csv"),
+                 sep=',', header=None)
+df = df.iloc[selected_samples, enriched_idx]
+df.columns = features
+
+plt.figure(figsize=(10, 14))
+cg = sns.clustermap(df.T, col_cluster=True, cbar_pos=(.95, .08, .03, .7),
+                    cmap="Greys")
+cg.ax_row_dendrogram.set_visible(False)
+cg.ax_col_dendrogram.set_visible(False)
+cg.ax_cbar.tick_params(labelsize=30)
+cg.ax_cbar.set_ylabel('Expressions', fontsize=30)
+cg.ax_heatmap.set_yticklabels(cg.ax_heatmap.get_ymajorticklabels(), fontsize=22)
+cg.ax_heatmap.set_xticklabels("")
+ax = cg.ax_heatmap
+# ax.set_xlabel('Samples', fontsize=30)
+# ax.set_ylabel('Features', fontsize=30)
+ax.yaxis.set_label_position("left")
+ax.yaxis.tick_left()
+
+df = df.T
+temp = {"secretory": "Secretory", "basal": "Basal", "ciliated": "Ciliated",
+        "brush": "Brush", "pnec": "PNEC", "krt4/13+": "KRT4/13+",
+        "cycling basal (homeostasis)": "Cycling basal (homeostasis)",
+        "ionocytes": "Ionocytes",
+        "cycling basal (regeneration)": "Cycling basal (regeneration)",
+        "pre-ciliated": "Pre-ciliated"}
+temp = [temp[item] for item in df["subtypes"].tolist()]
+df["subtypes"] = temp
