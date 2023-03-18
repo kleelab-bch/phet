@@ -22,7 +22,11 @@ def train(num_jobs: int = 4):
     topKfeatures = 100
     num_batches = 1000
     subsample_size = 10
-    bin_KS_pvalues = False
+    bin_KS_pvalues = True
+    if bin_KS_pvalues:
+        phet_name = "phet_b"
+    else:
+        phet_name = "phet_nb"
     methods = ["PHet (ΔIQR)", "PHet (Fisher)", "PHet (Profile)", "PHet (ΔIQR+Fisher)",
                "PHet (ΔIQR+Profile)", "PHet (Fisher+Profile)", "PHet (no Binning)",
                "PHet"]
@@ -201,8 +205,8 @@ def train(num_jobs: int = 4):
     df.index.name = 'Batch'
     df = pd.melt(df.reset_index(), id_vars='Batch', value_vars=methods, var_name="Methods",
                  value_name="Scores")
-    df.to_csv(os.path.join(RESULT_PATH, "her2_phet_scores.csv"), sep=',', index=False)
-    df = pd.read_csv(os.path.join(RESULT_PATH, "her2_phet_scores.csv"), sep=',')
+    df.to_csv(os.path.join(RESULT_PATH, "her2_" + phet_name + "_scores.csv"), sep=',', index=False)
+    df = pd.read_csv(os.path.join(RESULT_PATH, "her2_" + phet_name + "_scores.csv"), sep=',')
     palette = mcolors.TABLEAU_COLORS
     palette = dict([(methods[idx], item[1]) for idx, item in enumerate(palette.items())
                     if idx + 1 <= len(methods)])
@@ -218,7 +222,7 @@ def train(num_jobs: int = 4):
     plt.suptitle("Results using Her2 data", fontsize=26)
     sns.despine()
     plt.tight_layout()
-    file_path = os.path.join(RESULT_PATH, "her2_phet_boxplot.png")
+    file_path = os.path.join(RESULT_PATH, "her2_" + phet_name + "_b_boxplot.png")
     plt.savefig(file_path)
     plt.clf()
     plt.cla()

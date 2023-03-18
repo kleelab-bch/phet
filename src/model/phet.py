@@ -256,7 +256,22 @@ class PHeT:
                         examples_j = np.where(y == j)[0]
                         examples_i = X[examples_i, feature_idx]
                         examples_j = X[examples_j, feature_idx]
-                        pvalue = ks_2samp(examples_i, examples_j)[1]
+                        # TODO: experiment this
+                        temp = []
+                        min_size = np.min((examples_i.shape[0], examples_j.shape[0]))
+                        # subsampling_size = min_size // 2
+                        examples_i = np.random.permutation(examples_i)
+                        examples_j = np.random.permutation(examples_j)
+                        for slice in np.arange(0, min_size, subsampling_size):
+                            if slice + subsampling_size < min_size:
+                                pvalue = ks_2samp(examples_i[slice: slice + subsampling_size],
+                                                  examples_j[slice: slice + subsampling_size])[1]
+                            else:
+                                pvalue = ks_2samp(examples_i[slice:], examples_j[slice:])[1]
+                            temp.append(pvalue)
+                        pvalue = np.min(temp)
+                        ####
+                        # pvalue = ks_2samp(examples_i, examples_j)[1]
                         temp_pvalues.append(pvalue)
                     if self.bin_KS_pvalues:
                         O[feature_idx] = np.mean(temp_pvalues)

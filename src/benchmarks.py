@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import pandas as pd
+import scanpy as sc
 import seaborn as sns
 
 from model.copa import COPA
@@ -38,43 +39,42 @@ def train(num_jobs: int = 4):
     bin_KS_pvalues = True
     feature_metric = "f1"
     cluster_type = "kmeans"
-    cluster_type = "spectral"
+    # cluster_type = "spectral"
     methods = ["t-statistic", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "ΔIQR", "PHet"]
     methods_save_name = ["ttest", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "DeltaIQR"]
     if bin_KS_pvalues:
         methods_save_name.append("PHet_b")
     else:
         methods_save_name.append("PHet_nb")
-    # 1. Microarray datasets: allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89,
-    # braintumor, cmlgse2535, colon, dlbcl, ewsgse967, gastricgse2685, glioblastoma, leukemia_golub, 
-    # ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, mll, myelodysplastic_mds1, 
-    # myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
-    # 2. scRNA datasets: camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
-    ### For the paper: 
-    # 1. Microarray datasets: allgse412, bc_ccgse3726, bladdergse89, braintumor, gastricgse2685, glioblastoma, 
-    # leukemia_golub, lung, lunggse1987, mll, srbct
-    # 2. scRNA datasets: darmanis, yan, camp1, baron, li, and patel
-    file_name = "baron"
-    suptitle_name = "Baron"
-    expression_file_name = file_name + "_matrix"
-    regulated_features_file = file_name + "_features"
-    subtypes_file = file_name + "_types"
 
-    # Load expression data
-    X = pd.read_csv(os.path.join(DATASET_PATH, expression_file_name + ".csv"), sep=',').dropna(axis=1)
-    y = X["class"].to_numpy()
-    features_name = X.drop(["class"], axis=1).columns.to_list()
-    X = X.drop(["class"], axis=1).to_numpy()
-    np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+    # descriptions of the data
+    file_name = "srbct"
+    suptitle_name = "srbct"
+
+    # Exprssion, classes, subtypes, donors, timepoints Files
+    expression_file_name = file_name + "_matrix.mtx"
+    features_file_name = file_name + "_feature_names.csv"
+    classes_file_name = file_name + "_classes.csv"
+    subtypes_file = file_name + "_types.csv"
+    differential_features_file = file_name + "_diff_features.csv"
 
     # Load subtypes file
-    subtypes = pd.read_csv(os.path.join(DATASET_PATH, subtypes_file + ".csv"), sep=',').dropna(axis=1)
+    subtypes = pd.read_csv(os.path.join(DATASET_PATH, subtypes_file), sep=',').dropna(axis=1)
     subtypes = [str(item[0]).lower() for item in subtypes.values.tolist()]
     num_clusters = len(np.unique(subtypes))
 
+    # Load features, expression, and class data
+    features_name = pd.read_csv(os.path.join(DATASET_PATH, features_file_name), sep=',')
+    features_name = features_name["features"].to_list()
+    y = pd.read_csv(os.path.join(DATASET_PATH, classes_file_name), sep=',')
+    y = y["classes"].to_numpy()
+    X = sc.read_mtx(os.path.join(DATASET_PATH, expression_file_name))
+    X = X.to_df().to_numpy()
+    np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+
     # Filter data based on counts (CPM)
     example_sums = np.absolute(X).sum(1)
-    examples_ids = np.where(example_sums >= 5)[0]
+    examples_ids = np.where(example_sums >= 5)[0]  # filter out cells below 5
     X = X[examples_ids]
     y = y[examples_ids]
     subtypes = np.array(subtypes)[examples_ids].tolist()
@@ -101,7 +101,7 @@ def train(num_jobs: int = 4):
         del df
 
     # Load up/down regulated features
-    top_features_true = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file + ".csv"), sep=',',
+    top_features_true = pd.read_csv(os.path.join(DATASET_PATH, differential_features_file), sep=',',
                                     index_col="ID")
     temp = [feature for feature in top_features_true.index.to_list() if str(feature) in features_name]
     top_features_true = top_features_true.loc[temp]
@@ -208,7 +208,7 @@ def train(num_jobs: int = 4):
         methods_dict[method_name] = temp
     del df_copa, df_os, df_ort, df_most, df_lsoss, df_dids, df_iqr, df_phet
 
-    print("## Scoring results using known regulated features...")
+    print("## Scoring results using up/down regulated features...")
     selected_regulated_features = topKfeatures
     temp = np.sum(top_features_true)
     if selected_regulated_features > temp:

@@ -21,11 +21,16 @@ sns.set_theme()
 sns.set_style(style='white')
 
 
-def construct_data(X, y, features_name: list, regulated_features: list, control_class: int = 0, num_outliers: int = 5,
-                   num_features_changes: int = 5, file_name: str = "synset",
+def construct_data(X, y, features_name: list, regulated_features: list, control_class: int = 0,
+                   num_outliers: int = 5, num_features_changes: int = 5, file_name: str = "synset",
                    save_path: str = "."):
     y = np.reshape(y, (y.shape[0], 1))
     regulated_features_idx = np.where(regulated_features != 0)[0]
+    if num_features_changes > len(regulated_features_idx):
+        temp = [idx for idx in range(X.shape[1]) if idx not in regulated_features_idx]
+        temp = np.random.choice(a=temp, size=num_features_changes - len(regulated_features_idx),
+                                replace=False)
+        regulated_features_idx = np.append(regulated_features_idx, temp)
 
     # Change feature expression for selected case samples
     X_temp = np.copy(X)
@@ -39,7 +44,7 @@ def construct_data(X, y, features_name: list, regulated_features: list, control_
         sigma = np.std(X_temp[sample_idx], axis=0)
         choice_idx = np.random.choice(a=sample_idx, size=num_outliers, replace=False)
         for idx in choice_idx:
-            X_temp[idx, picked_features] += sigma[picked_features]
+            X_temp[idx, picked_features] += sigma[picked_features] * 1.5
     df = pd.DataFrame(np.hstack((y, X_temp)), columns=["class"] + features_name)
     df.to_csv(path_or_buf=os.path.join(save_path, file_name + "_minority_features.csv"), sep=",", index=False)
     df = pd.DataFrame(choice_idx, columns=["samples"])
@@ -59,7 +64,7 @@ def construct_data(X, y, features_name: list, regulated_features: list, control_
         choice_idx = np.random.choice(a=sample_idx, size=num_outliers, replace=False)
         temp_list.extend(choice_idx)
         for idx in choice_idx:
-            X_temp[idx, picked_features] += sigma[picked_features]
+            X_temp[idx, picked_features] += sigma[picked_features] * 1.5
     df = pd.DataFrame(np.hstack((y, X_temp)), columns=["class"] + features_name)
     df.to_csv(path_or_buf=os.path.join(save_path, file_name + "_mixed_features.csv"), sep=",", index=False)
     df = pd.DataFrame(temp_list, columns=["samples"])
@@ -68,14 +73,14 @@ def construct_data(X, y, features_name: list, regulated_features: list, control_
     df.to_csv(path_or_buf=os.path.join(save_path, file_name + "_mixed_features_idx.csv"), sep=",", index=False)
 
 
-def train(num_jobs: int = 4):
+def train():
     # Actions
     build_simulation = False
 
     # Arguments
     direction = "both"
     pvalue = 0.01
-    num_features_changes = 46
+    num_features_changes = 100
     list_data = list(range(1, 11))
     data_type = ["minority_features", "mixed_features"]
     methods = ["t-statistic", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "ΔIQR", "PHet"]
@@ -85,19 +90,20 @@ def train(num_jobs: int = 4):
     regulated_features_file = "simulated_normal_features.csv"
 
     # Load up/down regulated features
-    true_regulated_features = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file), sep=',')
-    true_regulated_features = true_regulated_features.to_numpy().squeeze()
-    true_regulated_features[true_regulated_features < 0] = 1
+    regulated_features = pd.read_csv(os.path.join(DATASET_PATH, regulated_features_file), sep=',')
+    regulated_features = regulated_features.to_numpy().squeeze()
+    regulated_features[regulated_features < 0] = 1
 
     if build_simulation:
         # Load expression data
-        X = pd.read_csv(os.path.join(DATASET_PATH, file_name + ".csv"), sep=',')
+        X = pd.read_csv(os.path.join(
+            DATASET_PATH, file_name + ".csv"), sep=',')
         y = X["class"].to_numpy()
         features_name = X.drop(["class"], axis=1).columns.to_list()
         X = X.drop(["class"], axis=1).to_numpy()
         num_examples, num_features = X.shape
         for n_outliers in list_data:
-            construct_data(X=X, y=y, features_name=features_name, regulated_features=true_regulated_features,
+            construct_data(X=X, y=y, features_name=features_name, regulated_features=regulated_features,
                            control_class=0, num_outliers=n_outliers, num_features_changes=num_features_changes,
                            file_name=file_name + "%.2d" % n_outliers, save_path=DATASET_PATH)
 
@@ -249,4 +255,4 @@ if __name__ == "__main__":
     # for mac and linux(here, os.name is 'posix')
     else:
         _ = os.system('clear')
-    train(num_jobs=10)
+    train()

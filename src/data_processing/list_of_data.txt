@@ -1,0 +1,59 @@
+1. Micro-array datasets: 
+allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89, braintumor, cmlgse2535, colon, dlbcl, ewsgse967, 
+gastricgse2685, glioblastoma, leukemia_golub, ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, mll, 
+myelodysplastic_mds1, myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
+
+2. scRNA datasets: 
+camp2, chew, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
+
+3. Plasschaert-Human: 
+plasschaert_human, plasschaert_human_basaland2secretory_vs_others, plasschaert_human_basal_vs_basal2secretory, 
+plasschaert_human_basal2secretory_vs_secretory, plasschaert_human_basaland2secretory_vs_secretory, 
+plasschaert_human_basal_vs_secretory, plasschaert_human_basal2secretory_vs_ionocytes, 
+plasschaert_human_basal_vs_ionocytes plasschaert_human_basal_vs_ciliated, plasschaert_human_secretory_vs_secretory2ciliated, 
+plasschaert_human_secretory2ciliated_vs_ciliated, plasschaert_human_secretoryand2ciliated_vs_ciliated, 
+plasschaert_human_secretory_vs_ciliated, plasschaert_human_secretory_vs_rare, plasschaert_human_secretory_vs_ionocytes, 
+plasschaert_human_ciliated_vs_ionocytes, plasschaert_human_d1_vs_d2and3
+
+4. Plasschaert-Mouse: 
+plasschaert_mouse, plasschaert_mouse_basalandplus_vs_secretoryandkrt4, plasschaert_mouse_basalandpreciliated_vs_ciliated, 
+plasschaert_mouse_preandciliated_vs_rare, plasschaert_mouse_secretory_vs_rare, plasschaert_mouse_uninjured_vs_injured
+
+5. Pulseseq data: 
+pulseseq, pulseseq_basal_vs_clubandlineage, pulseseq_basal_vs_nonclublineage, pulseseq_basal_vs_neuroendocrine, 
+pulseseq_basal_vs_tuft, pulseseq_basal_vs_ionocyte, pulseseq_clubandlineage_vs_rare, pulseseq_club_vs_clublineage, 
+pulseseq_club_vs_ciliated, pulseseq_club_vs_goblet, pulseseq_ciliated_vs_goblet, pulseseq_tuft_vs_pnecandionocyte, 
+pulseseq_tuft_vs_ionocyte, pulseseq_tuft_vs_ionocyte_exclude
+
+6. GSE134174 Processed invitro data: 
+gse134174_invitro, gse134174_invitro_basal_vs_secretory, gse134174_invitro_basal_vs_ciliated, gse134174_invitro_basal_vs_rare, 
+gse134174_invitro_secretory_vs_ciliated, gse134174_invitro_secretory_vs_rare, gse134174_invitro_ciliated_vs_rare
+
+7. GSE134174 Processed invivo data (non smokers): 
+gse134174_invivo_nonsmokers_basal_vs_basallineages, gse134174_invivo_nonsmokers_basal_vs_secretory, 
+gse134174_invivo_nonsmokers_smgbasal_vs_smgsecretory, gse134174_invivo_nonsmokers_basal_vs_ciliated, 
+gse134174_invivo_nonsmokers_basal_vs_rare, gse134174_invivo_nonsmokers_secretory_vs_ciliated, 
+gse134174_invivo_nonsmokers_secretory_vs_rare, gse134174_invivo_nonsmokers_mucussecretory_vs_smgsecretory, 
+gse134174_invivo_nonsmokers_mucussecretory_vs_krt8, gse134174_invivo_nonsmokers_ciliated_vs_rare, 
+gse134174_invivo_nonsmokers_ionocyteandtuft_vs_pnec
+
+8. GSE134174 Processed invivo data (smokers): 
+gse134174_invivo_smokers_basal_vs_basallineages, gse134174_invivo_smokers_basal_vs_secretory, 
+gse134174_invivo_smokers_smgbasal_vs_smgsecretory, gse134174_invivo_smokers_basal_vs_ciliated, 
+gse134174_invivo_smokers_basal_vs_rare, gse134174_invivo_smokers_secretory_vs_ciliated, gse134174_invivo_smokers_secretory_vs_rare, 
+gse134174_invivo_smokers_mucussecretory_vs_smgsecretory, gse134174_invivo_smokers_mucussecretory_vs_krt8, 
+gse134174_invivo_smokers_ciliated_vs_rare, gse134174_invivo_smokers_ionocyteandtuft_vs_pnec
+
+9. GSE134174 Processed invivo data (non smokers vs smokers): 
+gse134174_invivo_nonsmokers_vs_smokers, gse134174_invivo_smgbasalandnon_vs_smgbasalandsmokers, 
+gse134174_invivo_mucussecretoryandnon_vs_mucussecretoryandsmokers
+
+10. GSE134174 Processed invivo data (combined smokers and non smokers): 
+gse134174_invivo_combined_basal_vs_basallineages
+
+#### For the paper: 
+1. Microarray datasets: allgse412, bc_ccgse3726, bladdergse89, braintumor, gastricgse2685, glioblastoma, leukemia_golub, lung, lunggse1987, mll, srbct
+2. scRNA datasets: darmanis, yan, camp1, baron, li, and patel
+3. Plasschaert-Human: plasschaert_human
+4. Plasschaert-Mouse: plasschaert_mouse
+5. Pulseseq data: pulseseq, pulseseq_tuft_vs_ionocyte, pulseseq_tuft_vs_ionocyte_exclude

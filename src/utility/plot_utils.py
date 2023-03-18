@@ -48,8 +48,10 @@ def plot_barplot(X, methods_name, metric: str = "f1", suptitle: str = "temp", fi
         temp = "Jaccard"
     elif metric == "ari":
         temp = "ARI"
+    elif metric == "ami":
+        temp = "AMI"
     else:
-        raise Exception("Please provide a valid metric:f1, auc, jaccard, and ari")
+        raise Exception("Please provide a valid metric:f1, auc, jaccard, ari, and ami")
     plt.ylabel(temp + " scores of each method", fontsize=22)
     plt.title("Results using {0} data".format(suptitle), fontsize=26)
     file_path = os.path.join(save_path, file_name + "_" + temp.lower() + ".png")
@@ -126,21 +128,23 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
                      save_path=save_path)
 
     if perform_cluster:
-        # Perform Silhoette Analysis
-        silhouette_avg_n_clusters = []
+        y_true = np.unique(subtypes)
+        y_true = dict([(item, idx) for idx, item in enumerate(y_true)])
+        y_true = [y_true[item] for item in subtypes]
+        scores_list = []
         if num_clusters == 0:
             for i in range(2, max_clusters):
-                cluster_labels = clustering(X=X_reducer, cluster_type=cluster_type, num_clusters=i, num_jobs=num_jobs,
+                cluster_labels = clustering(X=X, cluster_type=cluster_type, num_clusters=i, num_jobs=num_jobs,
                                             predict=True)
-                silhouette_avg = silhouette_score(X_reducer, cluster_labels)
-                silhouette_avg_n_clusters.append(silhouette_avg)
-            # use highest silhoette score for clusters
-            temp = max(silhouette_avg_n_clusters)
-            num_clusters = silhouette_avg_n_clusters.index(temp) + 2
-            cluster_labels = clustering(X=X_reducer, cluster_type=cluster_type, num_clusters=num_clusters,
+                score = silhouette_score(X, cluster_labels)
+                scores_list.append(score)
+            # use highest score for clusters
+            temp = max(scores_list)
+            num_clusters = scores_list.index(temp) + 2
+            cluster_labels = clustering(X=X, cluster_type=cluster_type, num_clusters=num_clusters,
                                         num_jobs=num_jobs, predict=True)
         else:
-            cluster_labels = clustering(X=X_reducer, cluster_type=cluster_type, num_clusters=num_clusters,
+            cluster_labels = clustering(X=X, cluster_type=cluster_type, num_clusters=num_clusters,
                                         num_jobs=num_jobs, predict=True)
         df = pd.DataFrame(cluster_labels, columns=["Cluster"])
         df.to_csv(os.path.join(save_path, file_name + "_clusters.csv"), sep=',')
@@ -150,9 +154,6 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
                      suptitle=suptitle, file_name=file_name + "_clusters_umap.png", save_path=save_path)
 
         if subtypes is not None:
-            y_true = np.unique(subtypes)
-            y_true = dict([(item, idx) for idx, item in enumerate(y_true)])
-            y_true = [y_true[item] for item in subtypes]
             if apply_hungarian:
                 # Match cluster labels to true labels
                 cm = confusion_matrix(y_true=y_true, y_pred=cluster_labels)
@@ -163,6 +164,13 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
                 score = np.trace(cm) / np.sum(cm)
             else:
                 score = adjusted_rand_score(labels_true=y_true, labels_pred=cluster_labels)
+                # score = adjusted_mutual_info_score(labels_true=y_true, labels_pred=cluster_labels)
+                temp = np.unique(cluster_labels).shape[0]
+                if temp > np.unique(y_true).shape[0]:
+                    temp = np.unique(y_true).shape[0] / temp
+                else:
+                    temp /= np.unique(y_true).shape[0]
+                score = score * temp
 
     if heatmap_plot and perform_cluster:
         # print heatmap if true
