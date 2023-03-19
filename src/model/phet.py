@@ -259,7 +259,6 @@ class PHeT:
                         # TODO: experiment this
                         temp = []
                         min_size = np.min((examples_i.shape[0], examples_j.shape[0]))
-                        # subsampling_size = min_size // 2
                         examples_i = np.random.permutation(examples_i)
                         examples_j = np.random.permutation(examples_j)
                         for slice in np.arange(0, min_size, subsampling_size):

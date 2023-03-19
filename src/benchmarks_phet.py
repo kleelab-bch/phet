@@ -32,10 +32,10 @@ def train(num_jobs: int = 4):
     methods_save_name = ["PHet_nb", "PHet_b"]
 
     # descriptions of the data
-    file_name = "pulseseq"
-    suptitle_name = "Basal vs non Basal"
-    control_name = "Basal"
-    case_name = "non Basal"
+    file_name = "pulseseq_tuft_vs_ionocyte_exclude"
+    suptitle_name = "Tuft vs Ionocyte"
+    control_name = "Tuft"
+    case_name = "Ionocyte"
 
     # Exprssion, classes, subtypes, donors, timepoints Files
     expression_file_name = file_name + "_matrix.mtx"
