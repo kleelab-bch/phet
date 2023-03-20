@@ -1,7 +1,6 @@
-import os
-
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
@@ -22,14 +21,14 @@ df = pd.read_csv(os.path.join(RESULT_PATH, "plasschaert_human",
 df = df.T
 temp = {"secretory>ciliated": "Secretory>Ciliated", "basal": "Basal", "ciliated": "Ciliated",
         "slc16a7+": "SLC16A7+", "basal>secretory": "Basal>Secretory", "secretory": "Secretory",
-        "brush+pnec": "Brush+PNEC", "ionocytes": "Ionocytes", "foxn4+": "FOXN4+"}
+        "brush+pnec": "Brush+PNEC", "ionocytes": "Ionocyte", "foxn4+": "FOXN4+"}
 temp = [temp[item] for item in df["subtypes"].tolist()]
 df["subtypes"] = temp
 
 # Use static colors
 palette = {"Secretory>Ciliated": "#1f77b4", "Basal": "#ff7f0e", "Ciliated": "#2ca02c",
            "SLC16A7+": "#d62728", "Basal>Secretory": "#9467bd", "Secretory": "#8c564b",
-           "Brush+PNEC": "#e377c2", "Ionocytes": "#7f7f7f", "FOXN4+": "#bcbd22"}
+           "Brush+PNEC": "#e377c2", "Ionocyte": "#7f7f7f", "FOXN4+": "#bcbd22"}
 distribution = pd.crosstab(df["donors"], df["subtypes"], normalize='index')
 
 plt.figure(figsize=(6, 8))

@@ -2,9 +2,8 @@
 Hierarchical DeteCtion of celluLar hEterogeneity by anAlyzing variatioNs of cElls.
 '''
 
-from itertools import combinations
-
 import numpy as np
+from itertools import combinations
 from mlxtend.evaluate import permutation_test
 from scipy.stats import f_oneway, ks_2samp
 from scipy.stats import iqr, ttest_ind, pearsonr

@@ -1,6 +1,5 @@
-import os
-
 import numpy as np
+import os
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
@@ -143,8 +142,7 @@ def train(num_jobs: int = 4):
                                                             methods[0]), end="\r")
     estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                      calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=True,
-                     calculate_hstatistic=False, bin_KS_pvalues=False, feature_weight=feature_weight,
-                     weight_range=weight_range)
+                     bin_KS_pvalues=False, feature_weight=feature_weight, weight_range=weight_range)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({methods[0]: df})
     current_progress += 1
@@ -152,8 +150,7 @@ def train(num_jobs: int = 4):
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, methods[1]))
     estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                      calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=True,
-                     calculate_hstatistic=False, bin_KS_pvalues=True, feature_weight=feature_weight,
-                     weight_range=weight_range)
+                     bin_KS_pvalues=True, feature_weight=feature_weight, weight_range=weight_range)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({methods[1]: df})
 

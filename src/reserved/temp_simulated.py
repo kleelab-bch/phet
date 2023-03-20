@@ -1,6 +1,5 @@
-import os
-
 import numpy as np
+import os
 import pandas as pd
 import seaborn as sns
 from model.copa import COPA
@@ -205,7 +204,7 @@ def train(num_jobs: int = 4):
                                                             "PHeT"))
     estimator = PHeT(normalize="zscore", q=0.75, iqr_range=(25, 75), num_subsamples=5000, subsampling_size=None,
                      alpha_subsample=0.05, partition_by_anova=False, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                     weight_range=[0.1, 0.4, 0.8], calculate_hstatistic=calculate_hstatistic, num_components=10,
+                     weight_range=[0.1, 0.4, 0.8], calculate_hvf=calculate_hstatistic, num_components=10,
                      num_subclusters=10, binary_clustering=True, permutation_test=False, num_rounds=50,
                      num_jobs=num_jobs)
     df_phet = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)

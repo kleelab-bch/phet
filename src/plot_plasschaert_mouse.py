@@ -1,7 +1,6 @@
-import os
-
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
@@ -23,7 +22,7 @@ df = df.T
 temp = {"secretory": "Secretory", "basal": "Basal", "ciliated": "Ciliated",
         "brush": "Brush", "pnec": "PNEC", "krt4/13+": "KRT4/13+",
         "cycling basal (homeostasis)": "Cycling basal (homeostasis)",
-        "ionocytes": "Ionocytes",
+        "ionocytes": "Ionocyte",
         "cycling basal (regeneration)": "Cycling basal (regeneration)",
         "pre-ciliated": "Pre-ciliated"}
 temp = [temp[item] for item in df["subtypes"].tolist()]
@@ -32,7 +31,7 @@ df["subtypes"] = temp
 # Use static colors
 palette = {"Secretory": "#1f77b4", "Basal": "#ff7f0e", "Ciliated": "#2ca02c",
            "Brush": "#d62728", "PNEC": "#9467bd", "KRT4/13+": "#8c564b",
-           "Cycling basal (homeostasis)": "#e377c2", "Ionocytes": "#7f7f7f",
+           "Cycling basal (homeostasis)": "#e377c2", "Ionocyte": "#7f7f7f",
            "Cycling basal (regeneration)": "#bcbd22", "Pre-ciliated": "#17becf"}
 distribution = pd.crosstab(df["timepoints"], df["subtypes"], normalize='index')
 

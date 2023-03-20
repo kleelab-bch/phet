@@ -1,8 +1,7 @@
-import os
-
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pandas as pd
 import seaborn as sns
 from sklearn.preprocessing import LabelBinarizer
@@ -15,7 +14,7 @@ sns.set_theme()
 sns.set_style(style='white')
 
 
-def train(num_jobs: int = 4):
+def train():
     # Arguments
     feature_weight = [0.4, 0.3, 0.2, 0.1]
     weight_range = [0.1, 0.4, 0.8]
@@ -69,8 +68,8 @@ def train(num_jobs: int = 4):
                                                                 methods[0]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                          calculate_deltaiqr=True, calculate_fisher=False, calculate_profile=False,
-                         calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues,
-                         feature_weight=feature_weight, weight_range=weight_range)
+                         bin_KS_pvalues=bin_KS_pvalues, feature_weight=feature_weight,
+                         weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -85,8 +84,8 @@ def train(num_jobs: int = 4):
                                                                 methods[1]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                          calculate_deltaiqr=False, calculate_fisher=True, calculate_profile=False,
-                         calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues,
-                         feature_weight=feature_weight, weight_range=weight_range)
+                         bin_KS_pvalues=bin_KS_pvalues, feature_weight=feature_weight,
+                         weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -101,8 +100,8 @@ def train(num_jobs: int = 4):
                                                                 methods[2]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                          calculate_deltaiqr=False, calculate_fisher=False, calculate_profile=True,
-                         calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues,
-                         feature_weight=feature_weight, weight_range=weight_range)
+                         bin_KS_pvalues=bin_KS_pvalues, feature_weight=feature_weight,
+                         weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -117,8 +116,8 @@ def train(num_jobs: int = 4):
                                                                 methods[3]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                          calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=False,
-                         calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues,
-                         feature_weight=feature_weight, weight_range=weight_range)
+                         bin_KS_pvalues=bin_KS_pvalues, feature_weight=feature_weight,
+                         weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -133,8 +132,8 @@ def train(num_jobs: int = 4):
                                                                 methods[4]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                          calculate_deltaiqr=True, calculate_fisher=False, calculate_profile=True,
-                         calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues,
-                         feature_weight=feature_weight, weight_range=weight_range)
+                         bin_KS_pvalues=bin_KS_pvalues, feature_weight=feature_weight,
+                         weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -149,8 +148,8 @@ def train(num_jobs: int = 4):
                                                                 methods[5]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                          calculate_deltaiqr=False, calculate_fisher=True, calculate_profile=True,
-                         calculate_hstatistic=False, bin_KS_pvalues=bin_KS_pvalues,
-                         feature_weight=feature_weight, weight_range=weight_range)
+                         bin_KS_pvalues=bin_KS_pvalues, feature_weight=feature_weight,
+                         weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -165,8 +164,7 @@ def train(num_jobs: int = 4):
                                                                 methods[6]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                          calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=True,
-                         calculate_hstatistic=False, bin_KS_pvalues=False, feature_weight=feature_weight,
-                         weight_range=weight_range)
+                         bin_KS_pvalues=False, feature_weight=feature_weight, weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -185,8 +183,7 @@ def train(num_jobs: int = 4):
                                                                     methods[7]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
                          calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=True,
-                         calculate_hstatistic=False, bin_KS_pvalues=True, feature_weight=feature_weight,
-                         weight_range=weight_range)
+                         bin_KS_pvalues=True, feature_weight=feature_weight, weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -236,4 +233,4 @@ if __name__ == "__main__":
     # for mac and linux(here, os.name is 'posix')
     else:
         _ = os.system('clear')
-    train(num_jobs=10)
+    train()

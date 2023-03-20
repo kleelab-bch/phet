@@ -1,7 +1,6 @@
-import os
-
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
@@ -38,7 +37,6 @@ enriched_idx = pd.read_csv(os.path.join(RESULT_PATH, "pulseseq",
                            sep='\t', header=None)
 enriched_idx.columns = ["Features", "Scores"]
 enriched_idx = enriched_idx["Features"].to_list()
-
 top_down_features = 25
 to_add = (2 * top_down_features - len(temp)) // 2 + len(temp)
 while len(temp) < to_add:
@@ -53,7 +51,6 @@ while len(temp) < top_down_features * 2:
     temp.append(f)
 enriched_idx = [idx for idx, f in enumerate(phet_features) if f in temp or f.lower() in ionocytes_features]
 phet_features = phet_features[enriched_idx]
-
 # load positive true ionocytes and novel one
 pos_samples = pd.read_csv(os.path.join(RESULT_PATH, "pulseseq",
                                        "pulseseq_pos_ionocytes.txt"),
@@ -78,8 +75,8 @@ df.columns = [f.upper() for f in phet_features]
 
 # plot heatmap
 cg = sns.clustermap(df, figsize=(24, 20), method="average", metric="correlation",
-                    z_score=0, row_cluster=False, col_cluster=True, row_colors=row_colors,
-                    cmap="rocket_r", cbar_pos=(1, .08, .01, .35))
+                    z_score=0, row_cluster=False, col_cluster=True,
+                    row_colors=row_colors, cmap="rocket_r", cbar_pos=(1, .08, .01, .35))
 cg.ax_row_dendrogram.set_visible(False)
 cg.ax_col_dendrogram.set_visible(False)
 cg.ax_cbar.tick_params(labelsize=30)
@@ -91,28 +88,39 @@ ax = cg.ax_heatmap
 ax.yaxis.tick_left()
 
 ##############################################################
-########### Pulseseq Positive & negative Ionocytes ###########
+######### Pulseseq mature & unconventional Ionocytes #########
 ##############################################################
 full_features = pd.read_csv(os.path.join(DATASET_PATH,
                                          "pulseseq_tuft_vs_ionocyte_feature_names.csv"), sep=',')
 full_features = full_features["features"].to_list()
-ionocytes_features = pd.read_csv(os.path.join(DATASET_PATH,
-                                              "cell_type_category_human_rna_ionocytes.tsv"),
-                                 sep='\t')
-ionocytes_features = ionocytes_features["Gene"].to_list()
-ionocytes_features = [item.lower() for item in ionocytes_features]
-temp = pd.read_csv(os.path.join(DATASET_PATH, "pulseseq_markers.csv"), sep=',').replace(np.nan, -1)
-temp = temp["Ionocyte"].to_list()
-temp = [item.lower() for item in temp if item != -1]
-ionocytes_features.extend(temp)
-ionocytes_features = np.unique(ionocytes_features)
+full_features = [f.upper() for f in full_features]
 phet_features = pd.read_csv(os.path.join(RESULT_PATH, "pulseseq",
                                          "pulseseq_tuft_vs_ionocyte_phet_b_features.csv"),
                             sep=',', header=None)
 phet_features = np.squeeze(phet_features.values.tolist())
-marker_features = [f.upper() for f in phet_features if f.lower() in ionocytes_features]
-marker_features.extend(["CFTR", "FOXI1", "POU2F3", "EGR1"])
-marker_features = np.unique(marker_features)
+phet_features = [f.upper() for f in phet_features]
+# Load markers
+markers_dict = pd.read_csv(os.path.join(DATASET_PATH, "pulseseq_markers.csv"), sep=',').replace(np.nan, -1)
+temp_dict = {}
+for key, items in markers_dict.items():
+    temp = []
+    for item in items:
+        if item == -1:
+            continue
+        if item.upper() in phet_features:
+            temp.append(item.upper())
+    if len(temp) > 0:
+        temp_dict[key] = temp
+markers_dict = temp_dict
+ionocytes_features = pd.read_csv(os.path.join(DATASET_PATH,
+                                              "cell_type_category_human_rna_ionocytes.tsv"),
+                                 sep='\t')
+ionocytes_features = ionocytes_features["Gene"].to_list()
+ionocytes_features = [item.upper() for item in ionocytes_features]
+ionocytes_features.extend(markers_dict['Ionocyte'])
+ionocytes_features = [f for f in phet_features if f in ionocytes_features]
+ionocytes_features = list(set(ionocytes_features))
+# Load samples indices
 pos_samples = pd.read_csv(os.path.join(RESULT_PATH, "pulseseq",
                                        "pulseseq_pos_ionocytes.txt"),
                           sep=',', index_col=0, header=None)
@@ -122,12 +130,11 @@ neg_samples = pd.read_csv(os.path.join(RESULT_PATH, "pulseseq",
                           sep=',', index_col=0, header=None)
 neg_samples = np.squeeze(neg_samples.values.tolist())
 samples_idx = np.append(pos_samples, neg_samples)
-samples_name = ["Ionocytes"] * len(pos_samples) + ["Unknown"] * len(neg_samples)
-
+samples_name = ["Ionocyte"] * len(pos_samples) + ["Unconventional"] * len(neg_samples)
 # Load data
 adata = sc.read_mtx(os.path.join(DATASET_PATH,
                                  "pulseseq_tuft_vs_ionocyte_matrix.mtx"))
-adata = adata.T[samples_idx][:, [idx for idx, f in enumerate(full_features) if f in phet_features]]
+adata = adata[samples_idx][:, [idx for idx, f in enumerate(full_features) if f in phet_features]]
 adata.var_names = [f.upper() for idx, f in enumerate(full_features) if f in phet_features]
 samples_name = pd.Series(samples_name, dtype="category")
 samples_name.index = adata.obs.index
@@ -157,7 +164,7 @@ sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
 # Clustering the neighborhood graph
 sc.tl.leiden(adata, resolution=0.4, key_added="clusters")
 # Rename clusters
-new_cluster_names = ['Ionocytes', 'Unknown']
+new_cluster_names = ['Ionocyte', 'Unconventional']
 adata.rename_categories('clusters', new_cluster_names)
 # Find differentially expressed features
 sc.tl.rank_genes_groups(adata, 'clusters', method='wilcoxon')
@@ -190,41 +197,51 @@ for feature in phet_features:
     res = permutation_test((x, y), statistic, vectorized=True,
                            n_resamples=10000, alternative='two-sided')
     pvalues.append(res.pvalue)
-rejected, pvals_corrected, _, _ = multipletests(pvals=pvalues, method="fdr_bh")
+rejected, pvals_corrected, _, _ = multipletests(pvals=pvalues, alpha=0.01, method="fdr_bh")
 temp = np.nan_to_num(pvals_corrected, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+significant_features = []
+for idx, condition in enumerate(rejected):
+    if condition:
+        significant_features.append((phet_features[idx], pvals_corrected[idx]))
+significant_features = pd.DataFrame(significant_features, columns=["Feature", "Adj_pvalue_FDR"])
+significant_features.sort_values("Adj_pvalue_FDR", inplace=True)
+significant_features.to_csv(os.path.join(RESULT_PATH, "pulseseq",
+                                         "pulseseq_ionocytes_features_permutaion.csv"),
+                            sep=',', index=False, header=False)
 shape, loc, scale = gamma.fit(temp)
 significant_features = np.where((1 - gamma.cdf(zscore(temp), shape, loc=loc, scale=scale)) <= 0.01)[0]
 significant_features = np.array(phet_features)[significant_features].tolist()
 significant_features = [f.upper() for f in significant_features]
 significant_features = pd.DataFrame(significant_features)
-significant_features.to_csv(os.path.join(RESULT_PATH, "pulseseq", "permutaion_pulseseq_ionocytes_features.csv"),
-                            sep=',',
-                            index=False, header=False)
-# Visualize plots
-markers_dict = {'Basal': ['KRT5', "KRT8"],
-                'Club': ["NFIA", "MUC5B", "SCGB1A1", "NOTCH2"],
-                'Tuft': ["RGS13", "ALOX5AP", "PTPRC", "POU2F3"],
-                'PNEC': ['ASCL1', 'ASCL2'],
-                'Ionocyte': ['CFTR', 'FOXI1', 'ASCL3'],
-                'Ciliated': ["FOXJ1", "CETN2", "TUBA1A", 'CDHR3'],
-                'Goblet': ['FOXQ1']}
+significant_features.to_csv(os.path.join(RESULT_PATH, "pulseseq",
+                                         "pulseseq_ionocytes_features_permutaion_gamma.csv"),
+                            sep=',', index=False, header=False)
+# Filter markers
+selected_markers_dict = {'Basal': ['KRT5', "KRT8"],
+                         'Club': ["NFIA", "MUC5B", "SCGB1A1", "NOTCH2"],
+                         'Tuft': ["RGS13", "ALOX5AP", "PTPRC", "POU2F3"],
+                         'PNEC': ['ASCL1', 'ASCL2'],
+                         'Ionocyte': ['CFTR', 'FOXI1', 'ASCL3'],
+                         'Ciliated': ["FOXJ1", "CETN2", "TUBA1A", 'CDHR3'],
+                         'Goblet': ['FOXQ1']}
 temp_dict = {}
-for key, items in markers_dict.items():
+for key, items in selected_markers_dict.items():
     temp = []
     for item in items:
         if item in adata.var_names:
             temp.append(item)
     if len(temp) > 0:
         temp_dict[key] = temp
-markers_dict = temp_dict
-marker_features = [item for item in marker_features if item in adata.var.index]
-
-# Visualize UMAP
+selected_markers_dict = temp_dict
+ionocytes_features.extend(["CFTR", "FOXI1", "POU2F3", "EGR1"])
+ionocytes_features = np.unique(ionocytes_features)
+ionocytes_features = [item for item in ionocytes_features if item in adata.var.index]
+# Plot UMAP
 with plt.rc_context({'figure.figsize': (8, 5), 'axes.titlesize': '24'}):
     sc.pl.umap(adata, color=['clusters'],
-               use_raw=False, add_outline=False, legend_loc=None,
-               frameon=False, title='Clusters',
-               palette={"Ionocytes": "black", "Unknown": "red"})
+               use_raw=False, add_outline=False, legend_loc='on data',
+               frameon=False, title='Clusters', legend_fontsize=24,
+               palette={"Ionocyte": "black", "Unconventional": "red"})
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
     sc.pl.umap(adata, color=['CFTR', 'FOXI1', 'ASCL3', 'EGR1'],
                use_raw=False, add_outline=False, legend_loc='on data',
@@ -251,9 +268,9 @@ with plt.rc_context({'figure.figsize': (12, 6), 'figure.labelsize': '30',
 with plt.rc_context({'figure.figsize': (12, 6), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '20',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
-    sc.pl.tracksplot(adata, marker_features, groupby='clusters',
+    sc.pl.tracksplot(adata, ionocytes_features, groupby='clusters',
                      dendrogram=False)
-    sc.pl.tracksplot(adata, markers_dict, groupby='clusters',
+    sc.pl.tracksplot(adata, selected_markers_dict, groupby='clusters',
                      dendrogram=False)
     sc.pl.tracksplot(adata, significant_features, groupby='clusters',
                      dendrogram=False)
@@ -265,26 +282,26 @@ with plt.rc_context({'figure.figsize': (8, 5), 'figure.labelsize': '20',
 with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
-    sc.pl.dotplot(adata, marker_features, groupby='clusters', title=None,
+    sc.pl.dotplot(adata, ionocytes_features, groupby='clusters', title=None,
                   colorbar_title="Mean expression values",
                   size_title="Fraction of cells (%)")
-    sc.pl.dotplot(adata, markers_dict, groupby='clusters', title=None,
+    sc.pl.dotplot(adata, selected_markers_dict, groupby='clusters', title=None,
                   colorbar_title="Mean expression values",
                   size_title="Fraction of cells (%)")
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
                      'axes.labelsize': '30', 'xtick.labelsize': '35',
-                     'ytick.labelsize': '20'}):
-    sc.pl.heatmap(adata, marker_features, groupby='clusters',
+                     'ytick.labelsize': '12'}):
+    sc.pl.heatmap(adata, ionocytes_features, groupby='clusters',
                   layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
                   swap_axes=False, figsize=(11, 8))
     sc.pl.heatmap(adata, markers_dict, groupby='clusters',
                   layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
+                  swap_axes=False, figsize=(11, 3))
+    sc.pl.heatmap(adata, selected_markers_dict, groupby='clusters',
+                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
                   swap_axes=True, figsize=(11, 4))
-    # sc.pl.heatmap(adata, selected_features, groupby='clusters', 
-    #             layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False, 
-    #             swap_axes=True, figsize=(11, 10))
 
 ##############################################################
 ########## Remove Pulseseq Negative Tuft & Ionocytes #########
@@ -297,7 +314,6 @@ pos_samples = np.squeeze(pos_samples.values.tolist())
 X = sc.read_mtx(os.path.join(DATASET_PATH, "pulseseq_tuft_vs_ionocyte_matrix.mtx"))
 X = X.T[pos_samples].to_df().to_numpy()
 X = coo_matrix(X)
-
 # Save data
 mmwrite(target=os.path.join(DATASET_PATH, "pulseseq_tuft_vs_ionocyte_exclude_matrix.mtx"), a=X)
 df = pd.read_csv(os.path.join(DATASET_PATH, "pulseseq_tuft_vs_ionocyte_classes.csv"),
@@ -344,11 +360,13 @@ phet_features = pd.read_csv(os.path.join(DATASET_PATH, "pulseseq_tuft_vs_ionocyt
 phet_features = [f.upper() for f in phet_features]
 markers = pd.read_csv(os.path.join(DATASET_PATH, "pulseseq_tuft_vs_ionocyte_markers.csv"), sep=',').replace(np.nan, -1)
 # Load ionocytes markers
-ionocyte_markers = np.unique(np.squeeze(phet_features[["Ionocyte"]].values.tolist()).flatten())[1:]
+ionocyte_markers = np.squeeze(phet_features[["Ionocyte"]].values.tolist()).flatten()[1:]
 ionocyte_markers = [f.upper() for f in ionocyte_markers if f.upper() in phet_features]
+ionocyte_markers = np.unique(ionocyte_markers)
 # Tuft markers
-tuft_markers = np.unique(np.squeeze(markers[["Tuft", "Tuft-1", "Tuft-2"]].values.tolist()).flatten())[1:]
+tuft_markers = np.squeeze(markers[["Tuft", "Tuft-1", "Tuft-2"]].values.tolist()).flatten()[1:]
 tuft_markers = [f.upper() for f in tuft_markers if f.upper() in phet_features]
+tuft_markers = np.unique(tuft_markers)
 # Selected markers
 markers_dict = {'Tuft': ['POU2F3', 'GNAT3', 'TRPM5', 'HCK', 'LRMP',
                          'RGS13', 'GNG13', 'ALOX5AP', "PTPRC", ""],
@@ -374,7 +392,6 @@ tuft_samples = np.where(classes == 0)[0]
 ionocyte_samples = np.where(classes == 1)[0]
 samples_idx = np.append(tuft_samples, ionocyte_samples)
 samples_name = ["Tuft"] * len(tuft_samples) + ["Ionocyte"] * len(ionocyte_samples)
-
 # Load data
 adata = sc.read_mtx(os.path.join(DATASET_PATH, "pulseseq_tuft_vs_ionocyte_exclude_matrix.mtx"))
 adata = adata[samples_idx][:, [idx for idx, f in enumerate(full_features) if f in phet_features]]
@@ -402,7 +419,7 @@ sc.tl.umap(adata, min_dist=0.1, spread=1.0, n_components=2,
 # Clustering the neighborhood graph
 sc.tl.leiden(adata, resolution=0.85, key_added="clusters")
 # Rename clusters
-new_cluster_names = ['Tuft-1', 'Ionocytes', 'Tuft-2', 'Tuft-3']
+new_cluster_names = ['Tuft-1', 'Ionocyte', 'Tuft-2', 'Tuft-3']
 adata.rename_categories('clusters', new_cluster_names)
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
     sc.pl.umap(adata, color=['clusters', 'CFTR', 'GNG13', 'ALOX5AP', 'IL25', 'DCLK1'],
@@ -459,7 +476,7 @@ with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
                   swap_axes=True, figsize=(11, 4))
 
 ##############################################################
-############# Pulseseq Tuft vs Ionocytes (PHet) ##############
+######### Pulseseq Tuft vs Ionocytes Exclude (PHet) ##########
 ##############################################################
 full_features = pd.read_csv(os.path.join(DATASET_PATH,
                                          "pulseseq_tuft_vs_ionocyte_exclude_feature_names.csv"), sep=',')
@@ -476,14 +493,16 @@ ionocyte_markers = np.unique(np.squeeze(markers[["Ionocyte"]].values.tolist()).f
 temp = pd.read_csv(os.path.join(DATASET_PATH,
                                 "cell_type_category_human_rna_ionocytes.tsv"),
                    sep='\t')["Gene"].to_list()
-ionocyte_markers = np.unique(np.append(ionocyte_markers, temp))
+ionocyte_markers = np.append(ionocyte_markers, temp)
 ionocyte_markers = [f.upper() for f in ionocyte_markers if f.upper() in phet_features]
+ionocyte_markers = np.unique(ionocyte_markers)
 # Tuft markers
-tuft_markers = np.unique(np.squeeze(markers[["Tuft", "Tuft-1", "Tuft-2"]].values.tolist()).flatten())[1:]
+tuft_markers = np.squeeze(markers[["Tuft", "Tuft-1", "Tuft-2"]].values.tolist()).flatten()[1:]
 tuft_markers = [f.upper() for f in tuft_markers if f.upper() in phet_features]
+tuft_markers = np.unique(tuft_markers)
 # selected markers
 markers_dict = {'Tuft': ['POU2F3', 'GNAT3', 'TRPM5', 'HCK', 'LRMP',
-                         'RGS13', 'GNG13', 'ALOX5AP', "PTPRC", ""],
+                         'RGS13', 'GNG13', 'ALOX5AP', "PTPRC"],
                 'Ionocyte': ['CFTR', 'FOXI1', 'ASCL3']}
 temp_dict = {}
 for key, items in markers_dict.items():
@@ -532,9 +551,9 @@ sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
 # Clustering the neighborhood graph
 sc.tl.leiden(adata, resolution=0.4, key_added="clusters")
 # Rename clusters
-new_cluster_names = ['Tuft-1', 'Ionocytes', 'Tuft-2', 'Tuft-3']
+new_cluster_names = ['Tuft-1', 'Ionocyte', 'Tuft-2', 'Tuft-3']
 adata.rename_categories('clusters', new_cluster_names)
-# Visualize UMAP 
+# Plot UMAP 
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
     sc.pl.umap(adata, color=['clusters', 'POU2F3', 'GNAT3', 'TRPM5', 'HCK', 'LRMP',
                              'RGS13', 'GNG13', 'ALOX5AP', 'CFTR', 'FOXI1', 'ASCL3'],
@@ -569,17 +588,18 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
     sc.pl.dotplot(adata, markers_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
                   size_title="Fraction of cells (%)")
-
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
                      'axes.labelsize': '30', 'xtick.labelsize': '35',
                      'ytick.labelsize': '12'}):
-    sc.pl.rank_genes_groups_heatmap(adata, n_genes=15, groupby='clusters',
-                                    dendrogram=False)
+    # sc.pl.rank_genes_groups_heatmap(adata, n_genes=15, groupby='clusters',
+    #                                 dendrogram=False)
     sc.pl.heatmap(adata, tuft_markers, groupby='clusters',
                   layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
                   swap_axes=False, figsize=(12, 6))
-    sc.pl.heatmap(adata, markers_dict, groupby='clusters',
+    sc.pl.heatmap(adata, ionocyte_markers, groupby='clusters',
                   layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
-                  swap_axes=True, figsize=(12, 3))
+                  swap_axes=False, figsize=(12, 6))
+    sc.pl.heatmap(adata, markers_dict, groupby='clusters', layer='scaled', vmin=-2,
+                  vmax=2, cmap='RdBu_r', dendrogram=True, swap_axes=True, figsize=(12, 3))
