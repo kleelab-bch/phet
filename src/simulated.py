@@ -123,10 +123,10 @@ def train():
             # Load outliers
             X_outlier = pd.read_csv(os.path.join(DATASET_PATH, temp_name + "_outliers.csv"), sep=',')
             X_outlier = np.array(X_outlier["samples"])
-            temp = pd.read_csv(os.path.join(DATASET_PATH, temp_name + "_idx.csv"), sep=',')
-            temp = np.array(temp["features"])
+            temp_sign = pd.read_csv(os.path.join(DATASET_PATH, temp_name + "_idx.csv"), sep=',')
+            temp_sign = np.array(temp_sign["features"])
             true_changed_features = np.zeros((num_features))
-            true_changed_features[temp] = 1
+            true_changed_features[temp_sign] = 1
 
             current_idx = (data_idx * len(data_type)) + type_idx
             print("\t>> Sample size: {0}; Feature size: {1}; Class size: {2}".format(num_examples, num_features,
@@ -178,10 +178,10 @@ def train():
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                       methods[7]), end="\r")
-            temp = pd.read_csv(os.path.join(DATASET_PATH, temp_name + "_deco.csv"), sep=',')
+            temp_sign = pd.read_csv(os.path.join(DATASET_PATH, temp_name + "_deco.csv"), sep=',')
             df_deco = pd.DataFrame([(features_name[int(item[1][0])], item[1][1])
-                                    for item in temp.iterrows()], columns=["features", "score"])
-            del temp
+                                    for item in temp_sign.iterrows()], columns=["features", "score"])
+            del temp_sign
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
@@ -203,38 +203,30 @@ def train():
                                  methods[3]: df_ort, methods[4]: df_most, methods[5]: df_lsoss,
                                  methods[6]: df_dids, methods[7]: df_deco, methods[8]: df_iqr,
                                  methods[9]: df_phet})
-
-            print("\t>> Sort features by the score statistic...".format())
-            for method_idx, item in enumerate(methods_dict.items()):
-                method_name, df = item
-                if methods[method_idx] == "DECO":
-                    temp = [idx for idx, feature in enumerate(features_name)
-                            if feature in df['features'].tolist()]
-                else:
-                    temp = significant_features(X=df, features_name=features_name, pvalue=pvalue,
-                                                X_map=None, map_genes=False, ttest=False)
-                    temp = [idx for idx, feature in enumerate(features_name)
-                            if feature in temp['features'].tolist()]
-                methods_features[method_idx, current_idx] = len(temp)
-                temp = sort_features(X=df, features_name=features_name, X_map=None,
-                                     map_genes=False, ttest=False)
-                methods_dict[method_name] = temp
             del df_copa, df_os, df_ort, df_most, df_lsoss, df_dids, df_deco, df_iqr, df_phet
-
             print("\t>> Scoring results using known regulated features and outliers...")
             for method_idx, item in enumerate(methods_dict.items()):
+                method_name, df = item
                 if method_idx + 1 == len(methods):
                     print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format(
-                        ((method_idx + 1) / len(methods)) * 100,
-                        methods[method_idx]))
+                        ((method_idx + 1) / len(methods)) * 100, method_name))
                 else:
                     print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((method_idx / len(methods)) * 100,
-                                                                              methods[method_idx]), end="\r")
-                method_name, df = item
-                temp = [idx for idx, feature in enumerate(features_name)
-                        if feature in df['features'].tolist()[:num_features_changes]]
+                                                                              method_name), end="\r")
+                if method_name == "DECO":
+                    temp_sign = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
+                else:
+                    temp_sign = significant_features(X=df, features_name=features_name, pvalue=pvalue,
+                                                     X_map=None, map_genes=False, ttest=False)
+                    temp_sign = [idx for idx, feature in enumerate(features_name)
+                                 if feature in temp_sign['features'].tolist()]
+                    temp_sort = sort_features(X=df, features_name=features_name, X_map=None, 
+                                              map_genes=False, ttest=False)
+                    temp_sort = [features_name.index(item) for item in temp_sort['features'].tolist()]
+                methods_features[method_idx, current_idx] = len(temp_sign)
+                temp_sort = temp_sort[:num_features_changes]
                 pred_changed_features = np.zeros((num_features))
-                pred_changed_features[temp] = 1
+                pred_changed_features[temp_sort] = 1
                 score = comparative_score(pred_features=pred_changed_features,
                                           true_features=true_changed_features,
                                           metric="f1")
