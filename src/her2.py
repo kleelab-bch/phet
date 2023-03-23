@@ -49,9 +49,11 @@ def train(num_jobs: int = 4):
     X_humchr17 = X_humchr17.iloc[temp]["Gene name"].tolist()
 
     # Load top k features that are differentially expressed
-    top_features_true = pd.read_csv(os.path.join(DATASET_PATH, "her2_topfeatures.csv"), sep=',')
+    top_features_true = pd.read_csv(os.path.join(DATASET_PATH, "her2_topfeatures.csv"), 
+                                    sep=',', header=0)
     temp = [idx for idx, item in enumerate(top_features_true["Gene.symbol"])
-            if item in X_humchr17 and idx <= topKfeatures]
+            if item in X_humchr17 and top_features_true.iloc[idx]["adj.P.Val"] <= 0.01]
+    selected_features = np.unique(top_features_true.iloc[temp]["Gene.symbol"].tolist()).shape[0]
     top_features_true = top_features_true.iloc[temp]["ID"].tolist()
     top_features_true = lb.transform(top_features_true).sum(axis=0).astype(int)
     topKfeatures = sum(top_features_true).astype(int)
@@ -65,7 +67,7 @@ def train(num_jobs: int = 4):
 
     print("## Perform simulation studies using HER2 data...")
     print("\t >> Control size: {0}; Case size: {1}; Feature size: {2}; True feature size: {3}".format(X_control.shape[0], X_case.shape[0],
-                                                                                                      len(features_name), topKfeatures))
+                                                                                                      len(features_name), selected_features))
     list_scores = list()
     current_progress = 1
     total_progress = num_batches * len(methods)
