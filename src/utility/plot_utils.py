@@ -1,10 +1,11 @@
+import os
+import warnings
+
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import pandas as pd
 import pyCompare
 import seaborn as sns
-import warnings
 from scipy.optimize import linear_sum_assignment as linear_assignment
 from scipy.stats import zscore
 from sklearn.metrics import confusion_matrix

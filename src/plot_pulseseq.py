@@ -1,6 +1,7 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
@@ -619,8 +620,8 @@ markers = np.unique(np.squeeze(markers[["ID"]].values.tolist()).flatten())
 markers = [f.upper() for f in markers]
 # Classes
 samples_name = pd.read_csv(os.path.join(DATASET_PATH,
-                                   "baron_types.csv"),
-                      sep=',').values.tolist()
+                                        "baron_types.csv"),
+                           sep=',').values.tolist()
 samples_name = np.squeeze(classes)
 samples_name = pd.Series(samples_name, dtype="category")
 # Load data
@@ -651,6 +652,6 @@ sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
            maxiter=2000)
 # Plot UMAP 
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
-    sc.pl.umap(adata, color=['clusters'], use_raw=False, add_outline=False, 
-               legend_loc='on data', legend_fontsize=12, legend_fontoutline=2, 
+    sc.pl.umap(adata, color=['clusters'], use_raw=False, add_outline=False,
+               legend_loc='on data', legend_fontsize=12, legend_fontoutline=2,
                frameon=False)

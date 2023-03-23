@@ -1,5 +1,6 @@
-import numpy as np
 import os
+
+import numpy as np
 import pandas as pd
 import seaborn as sns
 
@@ -220,7 +221,7 @@ def train():
                                                      X_map=None, map_genes=False, ttest=False)
                     temp_sign = [idx for idx, feature in enumerate(features_name)
                                  if feature in temp_sign['features'].tolist()]
-                    temp_sort = sort_features(X=df, features_name=features_name, X_map=None, 
+                    temp_sort = sort_features(X=df, features_name=features_name, X_map=None,
                                               map_genes=False, ttest=False)
                     temp_sort = [features_name.index(item) for item in temp_sort['features'].tolist()]
                 methods_features[method_idx, current_idx] = len(temp_sign)

@@ -2,8 +2,9 @@
 DeteCtion of celluLar hEterogeneity by anAlyzing variatioNs of cElls.
 '''
 
-import numpy as np
 from itertools import combinations
+
+import numpy as np
 from mlxtend.evaluate import permutation_test
 from prince import CA
 from scipy.stats import f_oneway, ks_2samp

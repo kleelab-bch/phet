@@ -1,10 +1,11 @@
+import os
+import time
+
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import pandas as pd
 import seaborn as sns
-import time
 
 from model.copa import COPA
 from model.deltaiqr import DeltaIQR

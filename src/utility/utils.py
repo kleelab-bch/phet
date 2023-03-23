@@ -1,8 +1,9 @@
+import warnings
+
 import hdbscan
 import numpy as np
 import pandas as pd
 import umap
-import warnings
 from scipy.stats import zscore, gamma
 from sklearn.cluster import AffinityPropagation, AgglomerativeClustering
 from sklearn.cluster import SpectralClustering, MiniBatchKMeans
