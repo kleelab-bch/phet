@@ -2,7 +2,7 @@
 require(GEOquery)
 require(limma)
 require(umap)
-
+require(Matrix)
 working_dir <- file.path("R:/GeneAnalysis/data")
 file_name <- "her2"
 
@@ -14,18 +14,105 @@ case <- getGEO(GEO = "GSE41656", destdir = working_dir, GSEMatrix = TRUE,
                AnnotGPL = TRUE)
 case <- case[[1]]
 
-# save files
-ex <- exprs(control)
-df <- as.data.frame(t(ex))
-write.table(df, file = file.path(working_dir, "her2_negative_matrix.csv", sep = ""),
-            sep = ",", quote = FALSE, row.names = FALSE)
-ex <- exprs(case)
-df <- as.data.frame(t(ex))
-write.table(df, file = file.path(working_dir, "her2_positive_matrix.csv", sep = ""),
-            sep = ",", quote = FALSE, row.names = FALSE)
-remove(ex)
-remove(df)
+#########################################################
+######################## Control ########################
+#########################################################
+file_name <- "her2_negative"
+# group membership for all samples
+# 0 (ER positive): "LumB", "LumA", "Normal", "Her2"
+# 1 (ER negative): "Basal" 
+metadata <- control@phenoData@data[["intrinsic molecular subtype:ch1"]]
+gsms <- c(0, 0, 0, 0, 1)
+names(gsms) <- unique(metadata)
+gsms <- gsms[metadata]
+gsms <- paste0(gsms, collapse = "")
+sml <- strsplit(gsms, split = "")[[1]]
 
+# save subtypes 
+write.table(data.frame(subtypes = metadata), 
+            file = file.path(working_dir, 
+                             paste(file_name, "_types.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save classes
+classes <- as.numeric(sml)
+write.table(as.data.frame(classes), 
+            file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save feature names
+features <- row.names(exprs(control))
+write.table(as.data.frame(features), 
+            file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save donors
+write.table(data.frame(donors = control@phenoData@data[["clinical subtype:ch1"]]), 
+            file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save features data
+ex <- exprs(control)
+ex <- as.data.frame(t(ex))
+write.table(ex, 
+            file = file.path(working_dir, paste(file_name, "_matrix.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+ex <- data.matrix(ex)
+ex <- as(ex, "dgCMatrix")
+writeMM(ex, 
+        file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
+remove(ex)
+
+#########################################################
+########################## Case #########################
+#########################################################
+file_name <- "her2_positive"
+# group membership for all samples
+# 0 (ER positive): "LumB", "LumA", "Normal", "Her2"
+# 1 (ER negative): "Basal" 
+metadata <- case@phenoData@data[["intrinsic molecular subtype:ch1"]]
+gsms <- c(0, 0, 0, 0, 1)
+names(gsms) <- unique(metadata)
+gsms <- gsms[metadata]
+gsms <- paste0(gsms, collapse = "")
+sml <- strsplit(gsms, split = "")[[1]]
+
+# save subtypes 
+write.table(data.frame(subtypes = metadata), 
+            file = file.path(working_dir, 
+                             paste(file_name, "_types.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save classes
+classes <- as.numeric(sml)
+write.table(as.data.frame(classes), 
+            file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save feature names
+features <- row.names(exprs(case))
+write.table(as.data.frame(features), 
+            file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save donors
+write.table(data.frame(donors = case@phenoData@data[["clinical subtype:ch1"]]), 
+            file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save features data
+ex <- exprs(case)
+ex <- as.data.frame(t(ex))
+write.table(ex, 
+            file = file.path(working_dir, paste(file_name, "_matrix.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+ex <- data.matrix(ex)
+ex <- as(ex, "dgCMatrix")
+writeMM(ex, 
+        file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
+remove(ex)
+
+################################################################
 # group membership for all samples
 gsms <- paste0(append(rep(0, ncol(control)), rep(1, ncol(case))), collapse = "")
 sml <- strsplit(gsms, split = "")[[1]]
@@ -49,7 +136,7 @@ qx <- as.numeric(quantile(ex, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm = T))
 LogC <- (qx[5] > 100) ||
   (qx[6] - qx[1] > 50 && qx[2] > 0)
 if (LogC) { ex[which(ex <= 0)] <- NaN
-  exprs(gset) <- log2(ex) }
+exprs(gset) <- log2(ex) }
 
 # assign samples to groups and set up design matrix
 gs <- factor(sml)
@@ -100,22 +187,8 @@ volcanoplot(fit2, coef = ct, main = colnames(fit2)[ct], pch = 20,
 # highlight statistically significant (p-adj < 0.05) probes
 plotMD(fit2, column = ct, status = dT[, ct], legend = F, pch = 20, cex = 1)
 abline(h = 0)
-
-################################################################
 # General expression data analysis
 ex <- exprs(gset)
-
-# box-and-whisker plot
-dev.new(width = 3 + ncol(gset) / 6, height = 5)
-ord <- order(gs)  # order samples by group
-palette(c("#1B9E77", "#7570B3", "#E7298A", "#E6AB02", "#D95F02",
-          "#66A61E", "#A6761D", "#B32424", "#B324B3", "#666666"))
-par(mar = c(7, 4, 2, 1))
-title <- paste("GSE34138", "/", annotation(gset), sep = "")
-boxplot(ex[, ord], boxwex = 0.6, notch = T, main = title, outline = FALSE, las = 2, col = gs[ord])
-legend("topleft", groups, fill = palette(), bty = "n")
-dev.off()
-
 # expression value distribution
 par(mar = c(4, 4, 2, 1))
 title <- paste("GSE34138", "/", annotation(gset), " value distribution", sep = "")
@@ -129,9 +202,6 @@ par(mar = c(3, 3, 2, 6), xpd = TRUE)
 plot(ump$layout, main = "UMAP plot, nbrs=15", xlab = "", ylab = "", col = gs, pch = 20, cex = 1.5)
 legend("topright", inset = c(-0.15, 0), legend = levels(gs), pch = 20,
        col = 1:nlevels(gs), title = "Group", pt.cex = 1.5)
-library("maptools")  # point labels without overlaps
-pointLabel(ump$layout, labels = rownames(ump$layout), method = "SANN", cex = 0.6)
 
 # mean-variance trend, helps to see if precision weights are needed
 plotSA(fit2, main = "Mean variance trend, GSE34138")
-

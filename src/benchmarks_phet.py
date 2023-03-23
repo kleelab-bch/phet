@@ -32,7 +32,7 @@ def train(num_jobs: int = 4):
     methods_save_name = ["PHet_nb", "PHet_b"]
 
     # descriptions of the data
-    file_name = "pulseseq_tuft_vs_ionocyte_exclude"
+    file_name = "her2_positive"
     suptitle_name = "Tuft vs Ionocyte"
     control_name = "Tuft"
     case_name = "Ionocyte"

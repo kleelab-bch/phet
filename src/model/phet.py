@@ -138,7 +138,10 @@ class PHeT:
                 for class_idx in range(num_classes):
                     examples_idx = np.where(y == class_idx)[0]
                     temp.append(len(examples_idx))
-                temp = int(np.sqrt(np.min(temp)))
+                if np.min(temp) <= 2:
+                    temp = int(np.min(temp))
+                else:
+                    temp = int(np.sqrt(np.min(temp)))
             else:
                 temp = int(np.sqrt(num_examples))
             subsampling_size = temp
