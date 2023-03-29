@@ -193,8 +193,8 @@ def train():
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                       methods[9]))
-            estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True, 
-                             calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=True, 
+            estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
+                             calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=True,
                              feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.1, 0.4, 0.8])
             df_phet = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             current_progress += 1

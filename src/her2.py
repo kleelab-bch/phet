@@ -49,7 +49,7 @@ def train(num_jobs: int = 4):
     X_humchr17 = X_humchr17.iloc[temp]["Gene name"].tolist()
 
     # Load top k features that are differentially expressed
-    top_features_true = pd.read_csv(os.path.join(DATASET_PATH, "her2_topfeatures.csv"), 
+    top_features_true = pd.read_csv(os.path.join(DATASET_PATH, "her2_topfeatures.csv"),
                                     sep=',', header=0)
     temp = [idx for idx, item in enumerate(top_features_true["Gene.symbol"])
             if item in X_humchr17 and top_features_true.iloc[idx]["adj.P.Val"] <= 0.01]
@@ -66,8 +66,11 @@ def train(num_jobs: int = 4):
         raise Exception(temp)
 
     print("## Perform simulation studies using HER2 data...")
-    print("\t >> Control size: {0}; Case size: {1}; Feature size: {2}; True feature size: {3}".format(X_control.shape[0], X_case.shape[0],
-                                                                                                      len(features_name), selected_features))
+    print(
+        "\t >> Control size: {0}; Case size: {1}; Feature size: {2}; True feature size: {3}".format(X_control.shape[0],
+                                                                                                    X_case.shape[0],
+                                                                                                    len(features_name),
+                                                                                                    selected_features))
     list_scores = list()
     current_progress = 1
     total_progress = num_batches * len(methods)
@@ -88,7 +91,7 @@ def train(num_jobs: int = 4):
         for top_features in range_topfeatures:
             pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
             temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                    metric="f1")
+                                     metric="f1")
             temp_range.append(temp)
         list_scores.append(temp_range)
         current_progress += 1
@@ -104,7 +107,7 @@ def train(num_jobs: int = 4):
         for top_features in range_topfeatures:
             pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
             temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                    metric="f1")
+                                     metric="f1")
             temp_range.append(temp)
         list_scores.append(temp_range)
         current_progress += 1
@@ -121,7 +124,7 @@ def train(num_jobs: int = 4):
         for top_features in range_topfeatures:
             pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
             temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                    metric="f1")
+                                     metric="f1")
             temp_range.append(temp)
         list_scores.append(temp_range)
         current_progress += 1
@@ -137,7 +140,7 @@ def train(num_jobs: int = 4):
         for top_features in range_topfeatures:
             pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
             temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                    metric="f1")
+                                     metric="f1")
             temp_range.append(temp)
         list_scores.append(temp_range)
         current_progress += 1
@@ -153,7 +156,7 @@ def train(num_jobs: int = 4):
         for top_features in range_topfeatures:
             pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
             temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                    metric="f1")
+                                     metric="f1")
             temp_range.append(temp)
         list_scores.append(temp_range)
         current_progress += 1
@@ -169,7 +172,7 @@ def train(num_jobs: int = 4):
         for top_features in range_topfeatures:
             pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
             temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                    metric="f1")
+                                     metric="f1")
             temp_range.append(temp)
         list_scores.append(temp_range)
         current_progress += 1
@@ -185,7 +188,7 @@ def train(num_jobs: int = 4):
         for top_features in range_topfeatures:
             pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
             temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                    metric="f1")
+                                     metric="f1")
             temp_range.append(temp)
         list_scores.append(temp_range)
         current_progress += 1
@@ -203,7 +206,7 @@ def train(num_jobs: int = 4):
         for top_features in range_topfeatures:
             pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
             temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                    metric="f1")
+                                     metric="f1")
             temp_range.append(temp)
         list_scores.append(temp_range)
         current_progress += 1
@@ -219,7 +222,7 @@ def train(num_jobs: int = 4):
         for top_features in range_topfeatures:
             pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
             temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                    metric="f1")
+                                     metric="f1")
             temp_range.append(temp)
         list_scores.append(temp_range)
         current_progress += 1
@@ -230,8 +233,8 @@ def train(num_jobs: int = 4):
         else:
             print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                     "PHet"), end="\r")
-        estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True, 
-                         calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=True, 
+        estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
+                         calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=True,
                          feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.1, 0.4, 0.8])
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -241,7 +244,7 @@ def train(num_jobs: int = 4):
         for top_features in range_topfeatures:
             pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
             temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                    metric="f1")
+                                     metric="f1")
             temp_range.append(temp)
         list_scores.append(temp_range)
         current_progress += 1
@@ -302,6 +305,7 @@ def train(num_jobs: int = 4):
     plt.clf()
     plt.cla()
     plt.close(fig="all")
+
 
 if __name__ == "__main__":
     # for windows

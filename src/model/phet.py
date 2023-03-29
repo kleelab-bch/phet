@@ -18,7 +18,7 @@ SEED_VALUE = 0.001
 class PHeT:
     def __init__(self, normalize: str = "zscore", iqr_range: int = (25, 75), num_subsamples: int = 1000,
                  subsampling_size: int = None, partition_by_anova: bool = False, calculate_deltaiqr: bool = True,
-                 calculate_deltamean: bool = True, calculate_fisher: bool = True, calculate_profile: bool = True, 
+                 calculate_deltamean: bool = True, calculate_fisher: bool = True, calculate_profile: bool = True,
                  binary_clustering: bool = True, bin_KS_pvalues: bool = False, feature_weight: list = None,
                  weight_range: list = None, permutation_test: bool = False, num_rounds: int = 10000, num_jobs: int = 2):
         self.normalize = normalize  # robust or zscore
@@ -176,7 +176,7 @@ class PHeT:
                         iq_range_i = iqr(X[examples_i], axis=0, rng=self.iqr_range, scale=1.0)
                         iq_range_j = iqr(X[examples_j], axis=0, rng=self.iqr_range, scale=1.0)
                         iq_range = np.absolute(iq_range_i - iq_range_j)
-                        diff_means = 0                        
+                        diff_means = 0
                         if not self.calculate_deltamean:
                             mean_i = np.mean(X[examples_i], axis=0)
                             mean_j = np.mean(X[examples_j], axis=0)

@@ -164,7 +164,7 @@ for f in files:
     df = pd.read_csv(os.path.join(result_path, f), sep=',')
     scores.extend(df.loc[1:]["Scores"].to_numpy())
     methods.extend(df.iloc[1:, 0].to_list())
-methods = ["DeltaIQR" if item =="ΔIQR" else item for item in methods]
+methods = ["DeltaIQR" if item == "ΔIQR" else item for item in methods]
 df_ari = pd.DataFrame([methods, scores]).T
 df_ari.columns = ["Methods", "ARI"]
 df_ari["Methods"] = df_ari["Methods"].astype(str)
@@ -174,9 +174,9 @@ df_ari.groupby(["Methods"])["ARI"].median()
 
 # Plot ARI
 y_values = df_ari["ARI"].values
-y_lim=(np.min(y_values),np.max(y_values))
+y_lim = (np.min(y_values), np.max(y_values))
 plt.figure(figsize=(14, 8))
-ax = sns.boxplot(y='ARI', x='Methods', data=df_ari, width=0.85, 
+ax = sns.boxplot(y='ARI', x='Methods', data=df_ari, width=0.85,
                  showfliers=False, palette=palette)
 # ax = sns.violinplot(y='ARI', x='Methods', data=df_ari, linewidth = 2,
 #                     style ="count", palette=palette)
