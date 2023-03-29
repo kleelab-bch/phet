@@ -26,7 +26,7 @@ sns.set_style(style='white')
 def train(num_jobs: int = 4):
     # Arguments
     direction = "both"
-    topKfeatures = 100
+    topKfeatures = 500
     range_topfeatures = list(range(0, topKfeatures + 5, 5))
     range_topfeatures[0] = 1
     num_batches = 1000
@@ -230,9 +230,9 @@ def train(num_jobs: int = 4):
         else:
             print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                     "PHet"), end="\r")
-        estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
-                         calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=True,
-                         bin_KS_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.1, 0.4, 0.8])
+        estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True, 
+                         calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=True, 
+                         feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.1, 0.4, 0.8])
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -260,11 +260,14 @@ def train(num_jobs: int = 4):
     df["Range"] = temp_range
     df.to_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',', index=False)
     df = pd.read_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',')
-    temp = [idx for idx, item in enumerate(df["Methods"].tolist()) if item != "DECO"]
+    temp = [idx for idx, item in enumerate(df["Methods"].tolist())]
+    # temp = [idx for idx, item in enumerate(df["Methods"].tolist()) if item != "DECO"]
     df = df.iloc[temp]
     palette = mcolors.TABLEAU_COLORS
     palette = dict([(methods[idx], item[1]) for idx, item in enumerate(palette.items())
-                    if idx + 1 <= len(methods) and methods[idx] != "DECO"])
+                    if idx + 1 <= len(methods)])
+    # palette = dict([(methods[idx], item[1]) for idx, item in enumerate(palette.items())
+    #                 if idx + 1 <= len(methods) and methods[idx] != "DECO"])
 
     # Plot lineplot
     print("## Plot lineplot using top k features...")

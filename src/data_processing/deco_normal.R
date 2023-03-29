@@ -1,5 +1,9 @@
 require(deco, quietly = TRUE)
 require(dplyr, quietly = TRUE)
+require(BiocParallel) # for parallel computation
+
+# Computing in shared memory
+bpparam <- MulticoreParam()
 
 working_dir <- file.path("R:/GeneAnalysis/data")
 
@@ -33,7 +37,7 @@ for (per in outlier_per) {
     
     subSampling <- decoRDA(data = assay(gset), classes = classes, q.val = q.val,
                            rm.xy = FALSE, r = NULL, control = "0", annot = FALSE,
-                           iterations = iterations, bpparam = MulticoreParam())
+                           iterations = iterations, bpparam = bpparam)
     StatFeature <- subSampling[["subStatFeature"]]
     StatFeature <- StatFeature[c("ID", "Standard.Chi.Square")]
     colnames(StatFeature) <- c("features", "score")

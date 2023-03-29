@@ -35,11 +35,11 @@ def train(num_jobs: int = 4):
     plot_topKfeatures = False
     if not sort_by_pvalue:
         plot_topKfeatures = True
+    num_neighbors = 10
     max_clusters = 10
     bin_KS_pvalues = True
     feature_metric = "f1"
-    cluster_type = "kmeans"
-    # cluster_type = "spectral"
+    cluster_type = "kmeans" # "kmeans" or "spectral"
     methods = ["t-statistic", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "ΔIQR", "PHet"]
     methods_save_name = ["ttest", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "DeltaIQR"]
     if bin_KS_pvalues:
@@ -48,8 +48,8 @@ def train(num_jobs: int = 4):
         methods_save_name.append("PHet_nb")
 
     # descriptions of the data
-    file_name = "srbct"
-    suptitle_name = "srbct"
+    file_name = "darmanis"
+    suptitle_name = "Darmanis"
 
     # Exprssion, classes, subtypes, donors, timepoints Files
     expression_file_name = file_name + "_matrix.mtx"
@@ -179,10 +179,9 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             methods[9]))
-    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
-                     calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=True,
-                     bin_KS_pvalues=bin_KS_pvalues, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                     weight_range=[0.1, 0.4, 0.8])
+    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True, 
+                     calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=bin_KS_pvalues, 
+                     feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.1, 0.4, 0.8])
     df_phet = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
 
     methods_dict = dict({methods[0]: df_ttest, methods[1]: df_copa, methods[2]: df_os,
@@ -240,9 +239,10 @@ def train(num_jobs: int = 4):
     list_scores = list()
     print("## Plot UMAP using all features ({0})...".format(num_features))
     score = plot_umap(X=X, y=y, subtypes=subtypes, features_name=features_name, num_features=num_features,
-                      standardize=True, num_neighbors=5, min_dist=0, perform_cluster=True, cluster_type=cluster_type,
-                      num_clusters=num_clusters, max_clusters=max_clusters, apply_hungarian=False, heatmap_plot=False,
-                      num_jobs=num_jobs, suptitle=suptitle_name + "\nAll", file_name=file_name + "_all",
+                      standardize=True, num_neighbors=num_neighbors, min_dist=0, perform_cluster=True, 
+                      cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters, 
+                      apply_hungarian=False, heatmap_plot=False, num_jobs=num_jobs, 
+                      suptitle=suptitle_name + "\nAll", file_name=file_name + "_all",
                       save_path=RESULT_PATH)
     list_scores.append(score)
 
@@ -270,7 +270,7 @@ def train(num_jobs: int = 4):
             temp_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
         num_features = len(temp)
         score = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
-                          standardize=True, num_neighbors=5, min_dist=0.0, perform_cluster=True,
+                          standardize=True, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,
                           cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
                           apply_hungarian=False, heatmap_plot=False, num_jobs=num_jobs,
                           suptitle=suptitle_name + "\n" + method_name, file_name=file_name + "_" + save_name.lower(),

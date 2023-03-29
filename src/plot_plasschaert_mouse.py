@@ -259,7 +259,7 @@ sc.pp.normalize_total(adata, target_sum=1e4)
 # Logarithmize the data:
 sc.pp.log1p(adata)
 # Identify highly-variable genes.
-sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
+# sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
 # adata = adata[:, adata.var.highly_variable]
 # Regress out effects of total counts per cell 
 sc.pp.regress_out(adata, ['total_counts'])

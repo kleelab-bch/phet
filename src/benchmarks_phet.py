@@ -16,8 +16,6 @@ sns.set_theme(style="white")
 
 def train(num_jobs: int = 4):
     # Arguments
-    feature_weight = [0.4, 0.3, 0.2, 0.1]
-    weight_range = [0.1, 0.4, 0.8]
     pvalue = 0.01
     sort_by_pvalue = True
     topKfeatures = 100
@@ -26,16 +24,17 @@ def train(num_jobs: int = 4):
         plot_topKfeatures = True
     is_filter = True
     max_clusters = 10
-    cluster_type = "kmeans"
+    num_neighbors = 30
+    cluster_type = "spectral" # "kmeans" or "spectral"
     export_spring = False
     methods = ["PHet (no Binning)", "PHet"]
     methods_save_name = ["PHet_nb", "PHet_b"]
 
     # descriptions of the data
-    file_name = "her2_positive"
-    suptitle_name = "Tuft vs Ionocyte"
-    control_name = "Tuft"
-    case_name = "Ionocyte"
+    file_name = "darmanis"
+    suptitle_name = "Darmanis"
+    control_name = "0"
+    case_name = "1"
 
     # Exprssion, classes, subtypes, donors, timepoints Files
     expression_file_name = file_name + "_matrix.mtx"
@@ -141,17 +140,17 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             methods[0]), end="\r")
-    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
-                     calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=True,
-                     bin_KS_pvalues=False, feature_weight=feature_weight, weight_range=weight_range)
+    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True, 
+                     calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=False, 
+                     feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.2, 0.4, 0.8])
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({methods[0]: df})
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, methods[1]))
-    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
-                     calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=True,
-                     bin_KS_pvalues=True, feature_weight=feature_weight, weight_range=weight_range)
+    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True, 
+                     calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=True, 
+                     feature_weight=[0.4, 0.7, 0.2])
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({methods[1]: df})
 
@@ -210,21 +209,19 @@ def train(num_jobs: int = 4):
     score = 0
     print("## Plot UMAP using all features ({0})...".format(num_features))
     score = plot_umap(X=X, y=y, subtypes=subtypes, features_name=features_name, num_features=num_features,
-                      standardize=True, num_neighbors=5, min_dist=0, perform_cluster=True, cluster_type=cluster_type,
-                      num_clusters=num_clusters, max_clusters=max_clusters, apply_hungarian=False, heatmap_plot=False,
-                      num_jobs=num_jobs, suptitle=suptitle_name + "\nAll", file_name=file_name + "_all",
-                      save_path=RESULT_PATH)
+                      standardize=True, num_neighbors=num_neighbors, min_dist=0, perform_cluster=True, 
+                      cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters, 
+                      apply_hungarian=False, heatmap_plot=False, num_jobs=num_jobs, suptitle=suptitle_name + "\nAll", 
+                      file_name=file_name + "_all", save_path=RESULT_PATH)
     list_scores.append(score)
     if top_features_true != -1:
         print("## Plot UMAP using marker features ({0})...".format(sum(top_features_true)))
         temp = np.where(np.array(top_features_true) == 1)[0]
         score = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=features_name, num_features=temp.shape[0],
-                          standardize=True, num_neighbors=5, min_dist=0, perform_cluster=True,
-                          cluster_type=cluster_type,
-                          num_clusters=num_clusters, max_clusters=max_clusters, apply_hungarian=False,
-                          heatmap_plot=False,
-                          num_jobs=num_jobs, suptitle=suptitle_name + "\nMarkers", file_name=file_name + "_markers",
-                          save_path=RESULT_PATH)
+                          standardize=True, num_neighbors=num_neighbors, min_dist=0, perform_cluster=True, 
+                          cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters, 
+                          apply_hungarian=False, heatmap_plot=False, num_jobs=num_jobs, suptitle=suptitle_name + "\nMarkers", 
+                          file_name=file_name + "_markers", save_path=RESULT_PATH)
         list_scores.append(score)
 
     if plot_topKfeatures:
@@ -251,7 +248,7 @@ def train(num_jobs: int = 4):
             temp_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
         num_features = len(temp)
         score = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
-                          standardize=True, num_neighbors=5, min_dist=0.0, perform_cluster=True,
+                          standardize=True, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,
                           cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
                           apply_hungarian=False, heatmap_plot=False, num_jobs=num_jobs,
                           suptitle=suptitle_name + "\n" + method_name, file_name=file_name + "_" + save_name.lower(),

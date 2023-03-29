@@ -1,5 +1,9 @@
 require(deco, quietly = TRUE)
 require(dplyr, quietly = TRUE)
+require(BiocParallel) # for parallel computation
+
+# Computing in shared memory
+bpparam <- MulticoreParam()
 
 working_dir <- file.path("R:/GeneAnalysis/data")
 
@@ -10,7 +14,9 @@ iterations <- 1000
 q.val <- 0.01
 
 # load positive and negative HER2 data
-X_control <- read.csv(file.path(working_dir, paste(file_name, "_negative_matrix.csv", sep = "")), header = T)
+X_control <- read.csv(file.path(working_dir, 
+                                paste(file_name, "_negative_matrix.csv", sep = "")), 
+                      header = T)
 X_control <- as.data.frame(t(X_control))
 X_control <- data.matrix(X_control)
 X_control <- X_control[!rowSums(!is.finite(X_control)),]
@@ -18,7 +24,9 @@ featureIDs <- seq(0, nrow(X_control) - 1)
 rownames(X_control) <- featureIDs
 X_control <- SummarizedExperiment(assays = list(counts = X_control))
 
-X_case <- read.csv(file.path(working_dir, paste(file_name, "_positive_matrix.csv", sep = "")), header = T)
+X_case <- read.csv(file.path(working_dir, 
+                             paste(file_name, "_positive_matrix.csv", sep = "")), 
+                   header = T)
 X_case <- as.data.frame(t(X_case))
 X_case <- data.matrix(X_case)
 X_case <- X_case[!rowSums(!is.finite(X_case)),]
@@ -49,7 +57,7 @@ for (batch_idx in 1:num_batches) {
                                           q.val = q.val, rm.xy = FALSE, r = NULL,
                                           control = "0", annot = FALSE,
                                           iterations = iterations,
-                                          bpparam = MulticoreParam()))
+                                          bpparam = bpparam))
   remove(gset)
   subSampling <- subSampling[["subStatFeature"]]["ID"]
   subSampling <- as.numeric(unlist(subSampling))

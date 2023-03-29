@@ -1,3 +1,4 @@
+# Golub, T.R., Slonim, D.K., Tamayo, P., Huard, C., Gaasenbeek, M., Mesirov, J.P., Coller, H., Loh, M.L., Downing, J.R., Caligiuri, M.A. and Bloomfield, C.D., 1999. Molecular classification of cancer: class discovery and class prediction by gene expression monitoring. science, 286(5439), pp.531-537.
 # Differential expression analysis with limma
 require(limma)
 require(umap)

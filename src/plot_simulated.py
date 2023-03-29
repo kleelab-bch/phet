@@ -77,9 +77,9 @@ ax.legend(title="Methods", title_fontsize=30, fontsize=26, ncol=5,
 ##############################################################
 ######################### Benchmarks #########################
 ##############################################################
-result_path = os.path.join(RESULT_PATH, "microarray")
-# suptitle = "6 single cell RNA-seq datasets"
-suptitle = "11 microarray gene expression datasets"
+result_path = os.path.join(RESULT_PATH, "scRNA")
+suptitle = "6 single cell RNA-seq datasets"
+# suptitle = "11 microarray gene expression datasets"
 methods_name = {"ttest": "t-statistic", "COPA": "COPA", "OS": "OS", "ORT": "ORT",
                 "MOST": "MOST", "LSOSS": "LSOSS", "DIDS": "DIDS", "DECO": "DECO",
                 "DeltaIQR": "ΔIQR", "PHet_b": "PHet"}
@@ -123,6 +123,8 @@ total_features = np.log10(total_features)
 # Dataframe 
 df = pd.DataFrame([methods, scores]).T
 df.columns = ["Methods", "Scores"]
+df["Methods"] = df["Methods"].astype(str)
+df["Scores"] = df["Scores"].astype(np.float64)
 methods = [list(np.repeat(m, total_features.shape[1])) for _, m in methods_name.items()]
 methods = np.reshape(methods, (total_features.shape[0] * total_features.shape[1]))
 total_features = total_features.reshape((total_features.shape[0] * total_features.shape[1]))
@@ -133,7 +135,6 @@ df_features.columns = ["Methods", "Features"]
 # Plot F1 scores
 plt.figure(figsize=(14, 8))
 ax = sns.boxplot(y='Scores', x='Methods', data=df, width=0.85, palette=palette)
-# ax = sns.violinplot(y='Scores', x='Methods', data=df_features, scale="count", palette=palette)
 ax.set_xlabel("")
 ax.set_ylabel("F1 scores of each method", fontsize=36)
 ax.set_xticklabels([])
@@ -145,7 +146,6 @@ plt.tight_layout()
 # Plot the number of features
 plt.figure(figsize=(14, 8))
 ax = sns.boxplot(y='Features', x='Methods', data=df_features, width=0.85, palette=palette)
-# ax = sns.violinplot(y='Features', x='Methods', data=df_features, palette=palette)
 ax.set_xlabel("")
 ax.set_ylabel("Number of significant features  \n  found by each method", fontsize=36)
 ax.set_xticklabels([])
@@ -164,14 +164,23 @@ for f in files:
     df = pd.read_csv(os.path.join(result_path, f), sep=',')
     scores.extend(df.loc[1:]["Scores"].to_numpy())
     methods.extend(df.iloc[1:, 0].to_list())
+methods = ["DeltaIQR" if item =="ΔIQR" else item for item in methods]
 df_ari = pd.DataFrame([methods, scores]).T
 df_ari.columns = ["Methods", "ARI"]
+df_ari["Methods"] = df_ari["Methods"].astype(str)
+df_ari["ARI"] = df_ari["ARI"].astype(np.float64)
+palette["DeltaIQR"] = palette["ΔIQR"]
 df_ari.groupby(["Methods"])["ARI"].median()
 
 # Plot ARI
+y_values = df_ari["ARI"].values
+y_lim=(np.min(y_values),np.max(y_values))
 plt.figure(figsize=(14, 8))
-ax = sns.boxplot(y='ARI', x='Methods', data=df_ari, width=0.85, palette=palette)
-# ax = sns.violinplot(y='ARI', x='Methods', data=df_features, scale="count", palette=palette)
+ax = sns.boxplot(y='ARI', x='Methods', data=df_ari, width=0.85, 
+                 showfliers=False, palette=palette)
+# ax = sns.violinplot(y='ARI', x='Methods', data=df_ari, linewidth = 2,
+#                     style ="count", palette=palette)
+# ax.set_ylim(y_lim) 
 ax.set_xlabel("")
 ax.set_ylabel("ARI of each method", fontsize=36)
 ax.set_xticklabels([])

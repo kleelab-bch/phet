@@ -188,8 +188,6 @@ neg.to_csv(os.path.join(RESULT_PATH, "pulseseq", "pulseseq_neg_ionocytes_feature
 # because our statistic is vectorized, we pass `vectorized=True`
 def statistic(x, y, axis):
     return np.mean(x, axis=axis) - np.mean(y, axis=axis)
-
-
 pvalues = []
 for feature in phet_features:
     item = adata.to_df()[feature.upper()]

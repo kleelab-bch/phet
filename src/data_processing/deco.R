@@ -1,10 +1,15 @@
 require(deco, quietly = TRUE)
 require(dplyr, quietly = TRUE)
+require(SummarizedExperiment)
+require(Matrix)
+require(BiocParallel) # for parallel computation
+
+# Computing in shared memory
+bpparam <- MulticoreParam()
 
 working_dir <- file.path("R:/GeneAnalysis/data")
 
 # Simulated Datasets:
-# remove _matrix in 27
 # 1. simulated_normal, simulated_normal_minority, simulated_normal_minority_features,
 # simulated_normal_mixed, simulated_normal_mixed_features
 # 2. simulated_weak, simulated_weak_minority, simulated_weak_minority_features,
@@ -19,21 +24,22 @@ working_dir <- file.path("R:/GeneAnalysis/data")
 # scRNA datasets:
 # camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
 
-file_name <- "segerstolpe"
+file_name <- "her2_combined"
 iterations <- 1000
 q.val <- 0.01
 
 # load data
-gset <- read.csv(file.path(working_dir, paste(file_name, "_matrix.csv", sep = "")), header = T)
-classes <- gset$class
-gset <- gset[!(names(gset) %in% c("class"))]
-gset <- as.data.frame(t(gset))
-names(classes) <- colnames(gset)
+gset <- readMM(file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
+gset <- as.data.frame(data.matrix(gset))
+gset <- data.frame(t(gset))
 gset <- data.matrix(gset)
 gset <- gset[!rowSums(!is.finite(gset)),]
-colnames(gset) <- names(classes)
 featureIDs <- seq(0, nrow(gset) - 1)
 rownames(gset) <- featureIDs
+classes <- read.csv(file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
+                    header = T)
+classes <- classes$classes
+names(classes) <- colnames(gset)
 gset <- SummarizedExperiment(assays = list(counts = gset))
 
 
@@ -43,7 +49,7 @@ gset <- SummarizedExperiment(assays = list(counts = gset))
 
 subSampling <- decoRDA(data = assay(gset), classes = classes, q.val = q.val,
                        rm.xy = FALSE, r = NULL, control = "0", annot = FALSE,
-                       iterations = iterations, bpparam = MulticoreParam())
+                       iterations = iterations, bpparam = bpparam)
 StatFeature <- subSampling[["subStatFeature"]]
 StatFeature <- StatFeature[c("ID", "Standard.Chi.Square")]
 colnames(StatFeature) <- c("features", "score")
@@ -56,15 +62,15 @@ remove(StatFeature, gset)
 # RUNNING NSCA STEP: Looking for subclasses within a category/class of samples compared #
 #########################################################################################
 
-# subClasses <- decoNSCA(sub = subSampling, v = 80, method = "ward.D", 
-#                        bpparam = MulticoreParam(), k.control = 2, k.case = 2, 
-#                        samp.perc = 0.05, rep.thr = 3)
+subClasses <- decoNSCA(sub = subSampling, v = 80, method = "ward.D",
+                       bpparam = bpparam, k.control = 2, k.case = 2,
+                       samp.perc = 0.05, rep.thr = 3)
 
 ########################################################
 # PDF report with feature-sample patterns or subgroups #
 ########################################################
 
-# working_dir <- file.path("R:/GeneAnalysis/result")
-# path = file.path(working_dir, paste(file_name, "_deco.pdf", sep = ""))
-# decoReport(subClasses, subSampling, pdf.file = path, cex.names = 0.3,
-#            print.annot = TRUE)
+working_dir <- file.path("R:/GeneAnalysis/result")
+path = file.path(working_dir, paste(file_name, "_deco.pdf", sep = ""))
+decoReport(subClasses, subSampling, pdf.file = path, cex.names = 0.3,
+           print.annot = TRUE)

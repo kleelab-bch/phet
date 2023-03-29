@@ -17,18 +17,17 @@ SEED_VALUE = 0.001
 
 class PHeT:
     def __init__(self, normalize: str = "zscore", iqr_range: int = (25, 75), num_subsamples: int = 1000,
-                 subsampling_size: int = None, alpha_subsample: float = 0.05, partition_by_anova: bool = False,
-                 calculate_deltaiqr: bool = True, calculate_fisher: bool = True, calculate_profile: bool = True,
+                 subsampling_size: int = None, partition_by_anova: bool = False, calculate_deltaiqr: bool = True,
+                 calculate_deltamean: bool = True, calculate_fisher: bool = True, calculate_profile: bool = True, 
                  binary_clustering: bool = True, bin_KS_pvalues: bool = False, feature_weight: list = None,
-                 weight_range: list = None, permutation_test: bool = False, num_rounds: int = 10000,
-                 num_jobs: int = 2):
+                 weight_range: list = None, permutation_test: bool = False, num_rounds: int = 10000, num_jobs: int = 2):
         self.normalize = normalize  # robust or zscore
         self.iqr_range = iqr_range
         self.num_subsamples = num_subsamples
         self.subsampling_size = subsampling_size
-        self.alpha_subsample = alpha_subsample
         self.partition_by_anova = partition_by_anova
         self.calculate_deltaiqr = calculate_deltaiqr
+        self.calculate_deltamean = calculate_deltamean
         self.calculate_fisher = calculate_fisher
         self.calculate_profile = calculate_profile
         if calculate_deltaiqr and calculate_fisher and calculate_profile:
@@ -176,8 +175,13 @@ class PHeT:
                         examples_j = np.random.choice(a=examples_j, size=subsampling_size, replace=False)
                         iq_range_i = iqr(X[examples_i], axis=0, rng=self.iqr_range, scale=1.0)
                         iq_range_j = iqr(X[examples_j], axis=0, rng=self.iqr_range, scale=1.0)
-                        iq_range = iq_range_i - iq_range_j
-                        temp[:, combination_idx] += np.absolute(iq_range) / num_subsamples
+                        iq_range = np.absolute(iq_range_i - iq_range_j)
+                        diff_means = 0                        
+                        if not self.calculate_deltamean:
+                            mean_i = np.mean(X[examples_i], axis=0)
+                            mean_j = np.mean(X[examples_j], axis=0)
+                            diff_means = np.absolute(mean_i - mean_j)
+                        temp[:, combination_idx] += (iq_range + diff_means) / num_subsamples
                         if subsampling_size < 30:
                             _, pvalue = ttest_ind(X[examples_i], X[examples_j])
                         else:

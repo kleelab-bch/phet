@@ -112,15 +112,52 @@ writeMM(ex,
         file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 remove(ex)
 
-################################################################
+#########################################################
+######################### Merge #########################
+#########################################################
+file_name <- "her2_combined"
 # group membership for all samples
+# 0 (Negative): "Her2-"
+# 1 (Positive): "Her2+" 
 gsms <- paste0(append(rep(0, ncol(control)), rep(1, ncol(case))), collapse = "")
 sml <- strsplit(gsms, split = "")[[1]]
 
 #combine them
 gset <- combine(control, case)
+metadata <- gset@phenoData@data[["intrinsic molecular subtype:ch1"]]
 remove(control)
 remove(case)
+
+# save subtypes 
+write.table(data.frame(subtypes = metadata), 
+            file = file.path(working_dir, 
+                             paste(file_name, "_types.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save classes
+classes <- as.numeric(sml)
+write.table(as.data.frame(classes), 
+            file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save feature names
+features <- row.names(exprs(gset))
+write.table(as.data.frame(features), 
+            file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save donors
+write.table(data.frame(donors = gset@phenoData@data[["clinical subtype:ch1"]]), 
+            file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+
+# save features data
+ex <- exprs(gset)
+ex <- data.matrix(ex)
+ex <- as(ex, "dgCMatrix")
+writeMM(t(ex), 
+        file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
+remove(ex)
 
 # make proper column names to match toptable 
 fvarLabels(gset) <- make.names(fvarLabels(gset))
@@ -157,7 +194,8 @@ fit2 <- contrasts.fit(fit, cont.matrix)
 fit2 <- eBayes(fit2, 0.01)
 tT <- topTable(fit2, adjust = "fdr", sort.by = "B", number = 10000)
 tT <- subset(tT, select = c("ID", "adj.P.Val", "P.Value", "t", "B", "logFC", "Gene.symbol"))
-write.table(tT, file = file.path(working_dir, paste(file_name, "_topfeatures.csv", sep = "")),
+write.table(tT, file = file.path(working_dir, 
+                                 paste(file_name, "_diff_features.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # Visualize and quality control test results.
@@ -169,7 +207,6 @@ hist(tT2$adj.P.Val, col = "grey", border = "white", xlab = "P-adj",
 
 # summarize test results as "up", "down" or "not expressed"
 dT <- decideTests(fit2, adjust.method = "fdr", p.value = 0.05)
-
 # Venn diagram of results
 vennDiagram(dT, circle.col = palette())
 
@@ -199,7 +236,8 @@ ex <- na.omit(ex) # eliminate rows with NAs
 ex <- ex[!duplicated(ex),]  # remove duplicates
 ump <- umap(t(ex), n_neighbors = 15, random_state = 123)
 par(mar = c(3, 3, 2, 6), xpd = TRUE)
-plot(ump$layout, main = "UMAP plot, nbrs=15", xlab = "", ylab = "", col = gs, pch = 20, cex = 1.5)
+plot(ump$layout, main = "UMAP plot, nbrs=15", xlab = "", ylab = "", 
+     col = gs, pch = 20, cex = 1.5)
 legend("topright", inset = c(-0.15, 0), legend = levels(gs), pch = 20,
        col = 1:nlevels(gs), title = "Group", pt.cex = 1.5)
 

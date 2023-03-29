@@ -60,7 +60,7 @@ def clustering(X, cluster_type: str = "spectral", affinity: str = "nearest_neigh
     elif cluster_type == "cocluster":
         cls = SpectralCoclustering(n_clusters=num_clusters, svd_method="arpack", random_state=12345)
     elif cluster_type == "agglomerative":
-        cls = AgglomerativeClustering(n_clusters=num_clusters, affinity=affinity)
+        cls = AgglomerativeClustering(n_clusters=num_clusters, metric=None)
     elif cluster_type == "affinity":
         cls = AffinityPropagation(affinity=affinity, random_state=12345)
     if predict:
@@ -70,7 +70,7 @@ def clustering(X, cluster_type: str = "spectral", affinity: str = "nearest_neigh
     return cls
 
 
-def significant_features(X, features_name, pvalue: float = 0.05, X_map=None, map_genes: bool = True,
+def significant_features(X, features_name, pvalue: float = 0.01, X_map=None, map_genes: bool = True,
                          ttest: bool = False):
     tempX = np.copy(X)
     if X.shape[1] != 1:

@@ -22,7 +22,7 @@ def train():
     topKfeatures = 100
     range_topfeatures = list(range(0, topKfeatures + 5, 5))
     range_topfeatures[0] = 1
-    num_batches = 3
+    num_batches = 1000
     subsample_size = 10
     bin_KS_pvalues = True
     if bin_KS_pvalues:
@@ -98,6 +98,7 @@ def train():
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
         top_features_pred = top_features_pred["features"].to_list()
+        # 
         temp_range = list()
         for top_features in range_topfeatures:
             pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
@@ -207,9 +208,9 @@ def train():
         else:
             print("\t >> Progress: {0:.4f}%; Method: {1:35}".format((current_progress / total_progress) * 100,
                                                                     methods[7]), end="\r")
-        estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, alpha_subsample=0.05,
-                         calculate_deltaiqr=True, calculate_fisher=True, calculate_profile=True,
-                         bin_KS_pvalues=True, feature_weight=feature_weight, weight_range=weight_range)
+        estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True, 
+                         calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=True, 
+                         feature_weight=feature_weight, weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)

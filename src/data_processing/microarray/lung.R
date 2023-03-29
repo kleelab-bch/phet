@@ -1,3 +1,4 @@
+# Bhattacharjee, A., Richards, W.G., Staunton, J., Li, C., Monti, S., Vasa, P., Ladd, C., Beheshti, J., Bueno, R., Gillette, M. and Loda, M., 2001. Classification of human lung carcinomas by mRNA expression profiling reveals distinct adenocarcinoma subclasses. Proceedings of the National Academy of Sciences, 98(24), pp.13790-13795.
 # Differential expression analysis with limma
 require(limma)
 require(umap)
