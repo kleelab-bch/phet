@@ -350,41 +350,42 @@ df.to_csv(os.path.join(DATASET_PATH, "pulseseq_tuft_vs_ionocyte_exclude_types.cs
           sep=',', index=False)
 
 ##############################################################
-############ Pulseseq Tuft vs Ionocytes (Markers) ############
+####### Pulseseq Tuft vs Ionocytes Exclude (Markers) #########
 ##############################################################
 full_features = pd.read_csv(os.path.join(DATASET_PATH,
                                          "pulseseq_tuft_vs_ionocyte_exclude_feature_names.csv"), sep=',')
 full_features = full_features["features"].to_list()
 full_features = [f.upper() for f in full_features]
-phet_features = pd.read_csv(os.path.join(DATASET_PATH, "pulseseq_tuft_vs_ionocyte_markers.csv"), sep=',').replace(
-    np.nan, -1)
-phet_features = [f.upper() for f in phet_features]
-markers = pd.read_csv(os.path.join(DATASET_PATH, "pulseseq_tuft_vs_ionocyte_markers.csv"), sep=',').replace(np.nan, -1)
-# Load ionocytes markers
-ionocyte_markers = np.squeeze(phet_features[["Ionocyte"]].values.tolist()).flatten()[1:]
-ionocyte_markers = [f.upper() for f in ionocyte_markers if f.upper() in phet_features]
+# Ionocytes markers
+markers = pd.read_csv(os.path.join(DATASET_PATH, 
+                                   "pulseseq_tuft_vs_ionocyte_markers.csv"), sep=',').replace(np.nan, -1)
+ionocyte_markers = np.unique(np.squeeze(markers[["Ionocyte"]].values.tolist()).flatten())[1:]
+ionocyte_markers = [f.upper() for f in ionocyte_markers]
 ionocyte_markers = np.unique(ionocyte_markers)
+ionocyte_markers = [f for f in ionocyte_markers if f in full_features]
 # Tuft markers
 tuft_markers = np.squeeze(markers[["Tuft", "Tuft-1", "Tuft-2"]].values.tolist()).flatten()[1:]
-tuft_markers = [f.upper() for f in tuft_markers if f.upper() in phet_features]
-tuft_markers = np.unique(tuft_markers)
-# Selected markers
+tuft_markers = [f.upper() for f in tuft_markers]
+tuft_markers = np.unique(tuft_markers)[1:]
+tuft_markers = [f for f in tuft_markers if f in full_features]
+# Extract all pulseseq tuft and ionocytes markers
+markers = np.unique(np.concatenate((ionocyte_markers, tuft_markers)))
+markers = [f for f in markers if f in full_features]
+# selected markers
 markers_dict = {'Tuft': ['POU2F3', 'GNAT3', 'TRPM5', 'HCK', 'LRMP',
-                         'RGS13', 'GNG13', 'ALOX5AP', "PTPRC", ""],
+                         'RGS13', 'GNG13', 'ALOX5AP', "PTPRC"],
                 'Ionocyte': ['CFTR', 'FOXI1', 'ASCL3']}
 temp_dict = {}
 for key, items in markers_dict.items():
     temp = []
     for item in items:
-        if item in phet_features:
+        if item in markers:
             temp.append(item)
     if len(temp) > 0:
         temp_dict[key] = temp
 markers_dict = temp_dict
 del temp, temp_dict
-# Extract all pulseseq tuft and ionocytes markers
-phet_features = np.unique(np.array(phet_features.values.tolist()).flatten())[1:]
-
+# Classes
 classes = pd.read_csv(os.path.join(DATASET_PATH,
                                    "pulseseq_tuft_vs_ionocyte_exclude_classes.csv"),
                       sep=',').values.tolist()
@@ -394,9 +395,10 @@ ionocyte_samples = np.where(classes == 1)[0]
 samples_idx = np.append(tuft_samples, ionocyte_samples)
 samples_name = ["Tuft"] * len(tuft_samples) + ["Ionocyte"] * len(ionocyte_samples)
 # Load data
-adata = sc.read_mtx(os.path.join(DATASET_PATH, "pulseseq_tuft_vs_ionocyte_exclude_matrix.mtx"))
-adata = adata[samples_idx][:, [idx for idx, f in enumerate(full_features) if f in phet_features]]
-adata.var_names = [f for idx, f in enumerate(full_features) if f in phet_features]
+adata = sc.read_mtx(os.path.join(DATASET_PATH, 
+                                 "pulseseq_tuft_vs_ionocyte_exclude_matrix.mtx"))
+adata = adata[samples_idx][:, [idx for idx, f in enumerate(full_features) if f in markers]]
+adata.var_names = [f for idx, f in enumerate(full_features) if f in markers]
 samples_name = pd.Series(samples_name, dtype="category")
 samples_name.index = adata.obs.index
 adata.obs["clusters"] = samples_name
@@ -406,8 +408,6 @@ sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
 sc.pp.normalize_total(adata, target_sum=1e4)
 # Logarithmize the data:
 sc.pp.log1p(adata)
-# Identify highly-variable features.
-sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
 # Regress out effects of total counts per cell 
 sc.pp.regress_out(adata, ['total_counts'])
 # Scale each gene to unit variance. Clip values exceeding standard deviation 10.
@@ -415,66 +415,63 @@ sc.pp.scale(adata, max_value=10)
 # Computing the neighborhood graph
 sc.pp.neighbors(adata, n_neighbors=30, n_pcs=50)
 # UMAP (Embedding the neighborhood graph)
-sc.tl.umap(adata, min_dist=0.1, spread=1.0, n_components=2,
+sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
            maxiter=2000)
 # Clustering the neighborhood graph
-sc.tl.leiden(adata, resolution=0.85, key_added="clusters")
+sc.tl.leiden(adata, resolution=0.8, key_added="clusters")
 # Rename clusters
-new_cluster_names = ['Tuft-1', 'Ionocyte', 'Tuft-2', 'Tuft-3']
+new_cluster_names = ['Tuft-1', 'Tuft-2', 'Ionocyte', 'Tuft-3']
 adata.rename_categories('clusters', new_cluster_names)
+# Plot UMAP 
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
-    sc.pl.umap(adata, color=['clusters', 'CFTR', 'GNG13', 'ALOX5AP', 'IL25', 'DCLK1'],
+    sc.pl.umap(adata, color=['clusters', 'POU2F3', 'GNAT3', 'TRPM5', 'HCK', 'LRMP',
+                             'RGS13', 'GNG13', 'ALOX5AP', 'CFTR', 'FOXI1', 'ASCL3'],
                use_raw=False, add_outline=False, legend_loc='on data',
                legend_fontsize=40, legend_fontoutline=2, frameon=False)
 # Find differentially expressed features
 sc.tl.rank_genes_groups(adata, 'clusters', method='wilcoxon',
-                        corr_method="benjamini-hochberg",
-                        tie_correct=True)
+                        corr_method='benjamini-hochberg', tie_correct=True)
 # Violin plot
 with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
-    sc.pl.violin(adata, ['CFTR', 'FOXI1', 'ASCL3', 'RGS13', 'GNG13', 'ALOX5AP'],
+    sc.pl.violin(adata, ['POU2F3', 'GNAT3', 'TRPM5', 'HCK', 'LRMP', 'RGS13',
+                         'GNG13', 'ALOX5AP', 'CFTR', 'FOXI1', 'ASCL3'],
                  groupby='clusters', xlabel="Clusters", stripplot=False,
                  inner='box')
 # Tracksplot
 with plt.rc_context({'figure.figsize': (12, 6), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '20',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
-    sc.pl.rank_genes_groups_tracksplot(adata, n_genes=10, dendrogram=True,
+    sc.pl.rank_genes_groups_tracksplot(adata, n_genes=15, dendrogram=True,
                                        xlabel="Clusters")
 with plt.rc_context({'figure.figsize': (12, 6), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '20',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
-    sc.pl.tracksplot(adata, tuft_markers, groupby='clusters',
-                     dendrogram=True)
     sc.pl.tracksplot(adata, markers_dict, groupby='clusters',
-                     dendrogram=False)
+                     dendrogram=True)
 # Dotplot
 with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
-    sc.pl.dotplot(adata, tuft_markers, groupby='clusters', title=None,
-                  colorbar_title="Mean expression values",
+    sc.pl.dotplot(adata, markers_dict, groupby='clusters',
+                  title=None, colorbar_title="Mean expression values",
                   size_title="Fraction of cells (%)")
-    sc.pl.dotplot(adata, markers_dict, groupby='clusters', title=None,
-                  colorbar_title="Mean expression values",
-                  size_title="Fraction of cells (%)")
-
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
                      'axes.labelsize': '30', 'xtick.labelsize': '35',
-                     'ytick.labelsize': '20'}):
-    sc.pl.heatmap(adata, ionocyte_markers, groupby='clusters',
-                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=True,
-                  swap_axes=False, figsize=(11, 8))
+                     'ytick.labelsize': '12'}):
+    # sc.pl.rank_genes_groups_heatmap(adata, n_genes=15, groupby='clusters',
+    #                                 dendrogram=False)
     sc.pl.heatmap(adata, tuft_markers, groupby='clusters',
-                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=True,
-                  swap_axes=False, figsize=(11, 8))
-    sc.pl.heatmap(adata, markers_dict, groupby='clusters',
                   layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
-                  swap_axes=True, figsize=(11, 4))
+                  swap_axes=False, figsize=(12, 6))
+    sc.pl.heatmap(adata, ionocyte_markers, groupby='clusters',
+                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
+                  swap_axes=False, figsize=(12, 6))
+    sc.pl.heatmap(adata, markers_dict, groupby='clusters', layer='scaled', vmin=-2,
+                  vmax=2, cmap='RdBu_r', dendrogram=True, swap_axes=True, figsize=(12, 3))
 
 ##############################################################
 ######### Pulseseq Tuft vs Ionocytes Exclude (PHet) ##########
@@ -501,6 +498,9 @@ ionocyte_markers = np.unique(ionocyte_markers)
 tuft_markers = np.squeeze(markers[["Tuft", "Tuft-1", "Tuft-2"]].values.tolist()).flatten()[1:]
 tuft_markers = [f.upper() for f in tuft_markers if f.upper() in phet_features]
 tuft_markers = np.unique(tuft_markers)
+# Extract all pulseseq tuft and ionocytes markers
+markers = np.unique(np.concatenate((ionocyte_markers, tuft_markers)))
+markers = [f for f in markers if f in full_features]
 # selected markers
 markers_dict = {'Tuft': ['POU2F3', 'GNAT3', 'TRPM5', 'HCK', 'LRMP',
                          'RGS13', 'GNG13', 'ALOX5AP', "PTPRC"],
@@ -529,6 +529,8 @@ adata = sc.read_mtx(os.path.join(DATASET_PATH,
                                  "pulseseq_tuft_vs_ionocyte_exclude_matrix.mtx"))
 adata = adata[samples_idx][:, [idx for idx, f in enumerate(full_features) if f in phet_features]]
 adata.var_names = [f for idx, f in enumerate(full_features) if f in phet_features]
+# adata = adata[samples_idx][:, [idx for idx, f in enumerate(full_features) if f in markers]]
+# adata.var_names = [f for idx, f in enumerate(full_features) if f in markers]
 samples_name = pd.Series(samples_name, dtype="category")
 samples_name.index = adata.obs.index
 adata.obs["clusters"] = samples_name
@@ -538,8 +540,6 @@ sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
 sc.pp.normalize_total(adata, target_sum=1e4)
 # Logarithmize the data:
 sc.pp.log1p(adata)
-# Identify highly-variable features.
-sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
 # Regress out effects of total counts per cell 
 sc.pp.regress_out(adata, ['total_counts'])
 # Scale each gene to unit variance. Clip values exceeding standard deviation 10.
