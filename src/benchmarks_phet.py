@@ -26,15 +26,15 @@ def train(num_jobs: int = 4):
     max_clusters = 10
     num_neighbors = 30
     cluster_type = "spectral"  # "kmeans" or "spectral"
-    export_spring = False
+    export_spring = True
     methods = ["PHet (no Binning)", "PHet"]
     methods_save_name = ["PHet_nb", "PHet_b"]
 
     # descriptions of the data
-    file_name = "darmanis"
-    suptitle_name = "Darmanis"
-    control_name = "0"
-    case_name = "1"
+    file_name = "plasschaert_mouse"
+    suptitle_name = "Basal vs non Basal"
+    control_name = "Basal"
+    case_name = "non Basal"
 
     # Exprssion, classes, subtypes, donors, timepoints Files
     expression_file_name = file_name + "_matrix.mtx"
@@ -131,6 +131,14 @@ def train(num_jobs: int = 4):
             topKfeatures = len(top_features_true)
         top_features_true = [1 if feature in top_features_true else 0 for idx, feature in enumerate(features_name)]
 
+    # temp = [idx for idx, feature in enumerate(features_name) if top_features_true[idx] == 1]
+    # temp_feature = [feature for idx, feature in enumerate(features_name) if top_features_true[idx] == 1]
+    # df = pd.DataFrame(temp_feature, columns=["features"])
+    # df.to_csv(os.path.join(RESULT_PATH, file_name + "_markers.csv"), sep=',', index=False, header=False)
+    # df = pd.DataFrame(X[:, temp])
+    # df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_markers_expression.csv"),
+    #           sep=",", index=False, header=False)
+        
     print("## Perform experimental studies using {0} data...".format(file_name))
     print("\t >> Sample size: {0}; Feature size: {1}; Subtype size: {2}".format(X.shape[0], X.shape[1],
                                                                                 len(np.unique(subtypes))))
