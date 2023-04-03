@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
-
 from utility.file_path import RESULT_PATH, DATASET_PATH
 
 sc.settings.verbosity = 0  # verbosity: errors (0), warnings (1), info (2), hints (3)
@@ -14,7 +13,7 @@ sns.set_theme()
 sns.set_style(style='white')
 
 ##############################################################
-#################### Plasschaert (Mouse) #####################
+######################## Plasschaert #########################
 ##############################################################
 df = pd.read_csv(os.path.join(RESULT_PATH, "plasschaert_mouse",
                               "plasschaert_mouse_groups.csv"),
@@ -137,7 +136,7 @@ ax = cg.ax_heatmap
 ax.yaxis.tick_left()
 
 ##############################################################
-######### Plasschaert (Mouse) Top vs Bottom (PHet) ###########
+############# Plasschaert Top vs Bottom (PHet) ###############
 ##############################################################
 full_features = pd.read_csv(os.path.join(DATASET_PATH,
                                          "plasschaert_mouse_feature_names.csv"), sep=',')
@@ -259,8 +258,6 @@ sc.pp.normalize_total(adata, target_sum=1e4)
 # Logarithmize the data:
 sc.pp.log1p(adata)
 # Identify highly-variable genes.
-# sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
-# adata = adata[:, adata.var.highly_variable]
 # Regress out effects of total counts per cell 
 sc.pp.regress_out(adata, ['total_counts'])
 # Scale each gene to unit variance. Clip values exceeding standard deviation 10.
@@ -326,23 +323,23 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
     sc.pl.dotplot(adata, selected_features_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of cells (%)")
+                  size_title="Fraction of expressed cells (%)")
     selected_samples = adata.obs['clusters'] == "Top cluster"
     median_expressions = adata[selected_samples, markers_dict["Ciliated"]].to_df().median()
     median_expressions = np.where(median_expressions > 0.5)[0]
     sc.pl.dotplot(adata, np.array(markers_dict["Ciliated"])[median_expressions],
                   groupby='clusters', title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of cells (%)")
+                  size_title="Fraction of expressed cells (%)")
     median_expressions = adata[selected_samples, markers_dict["Secretory"]].to_df().median()
     median_expressions = np.where(median_expressions > 0.5)[0]
     sc.pl.dotplot(adata, np.array(markers_dict["Secretory"])[median_expressions],
                   groupby='clusters', title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of cells (%)")
+                  size_title="Fraction of expressed cells (%)")
     median_expressions = adata[selected_samples, markers_dict["Cycling basal"]].to_df().median()
     median_expressions = np.where(median_expressions > 0.5)[0]
     sc.pl.dotplot(adata, np.array(markers_dict["Cycling basal"])[median_expressions],
                   groupby='clusters', title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of cells (%)")
+                  size_title="Fraction of expressed cells (%)")
 
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
@@ -431,7 +428,7 @@ ax.legend(title=None, fontsize=26, ncol=1, bbox_to_anchor=(1.005, 1),
 plt.tight_layout()
 
 ##############################################################
-############## Plasschaert (Mouse) Basal (PHet) ##############
+################## Plasschaert Basal (PHet) ##################
 ##############################################################
 full_features = pd.read_csv(os.path.join(DATASET_PATH,
                                          "plasschaert_mouse_feature_names.csv"), sep=',')
@@ -504,6 +501,7 @@ adata = adata[samples_idx][:, [idx for idx, f in enumerate(full_features)
 adata.var_names = [f for idx, f in enumerate(full_features) if f in phet_features]
 donors.index = adata.obs.index
 adata.obs["donors"] = donors
+X = copy.deepcopy(adata.X)
 # QC calculations
 sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
 # Total-count normalize (library-size correct) the data matrix X to 10,000 reads per cell, so that counts become comparable among cells.
@@ -528,6 +526,7 @@ adata.obs["clusters"] = pd.Series(adata.obs["clusters"], name="clusters", dtype=
 # Rename clusters
 new_cluster_names = ['Basal-1', 'Basal-2', 'Basal-3', 'Basal-4']
 adata.rename_categories('clusters', new_cluster_names)
+adata.X = X
 # Find differentially expressed features
 sc.tl.rank_genes_groups(adata, 'clusters', method='wilcoxon',
                         corr_method='benjamini-hochberg', tie_correct=True)
@@ -595,18 +594,18 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
 with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
-    # sc.pl.dotplot(adata, basal_subsets_markers, groupby='clusters', 
-    #               title=None, colorbar_title="Mean expression values",
-    #               size_title="Fraction of cells (%)")
+    sc.pl.dotplot(adata, basal_subsets_markers, groupby='clusters',
+                  title=None, colorbar_title="Mean expression values",
+                  size_title="Fraction of expressed cells (%)")
     sc.pl.dotplot(adata, markers_dict["Basal"], groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of cells (%)")
+                  size_title="Fraction of expressed cells (%)")
     sc.pl.dotplot(adata, markers_dict["Secretory"], groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of cells (%)")
+                  size_title="Fraction of expressed cells (%)")
     sc.pl.dotplot(adata, selected_features_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of cells (%)")
+                  size_title="Fraction of expressed cells (%)")
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
@@ -617,7 +616,7 @@ with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
                   swap_axes=False, figsize=(10, 2))
 
 ##############################################################
-###### Plasschaert (Mouse) Basal Top vs Bottom (PHet) ########
+########## Plasschaert Basal Top vs Bottom (PHet) ############
 ##############################################################
 full_features = pd.read_csv(os.path.join(DATASET_PATH,
                                          "plasschaert_mouse_feature_names.csv"), sep=',')
@@ -742,10 +741,10 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
     sc.pl.dotplot(adata, selected_features_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of cells (%)")
+                  size_title="Fraction of expressed cells (%)")
     sc.pl.dotplot(adata, markers_dict["Basal"], groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of cells (%)")
+                  size_title="Fraction of expressed cells (%)")
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
@@ -759,7 +758,7 @@ with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
                   swap_axes=False, figsize=(8, 2))
 
 ##############################################################
-#### Plasschaert (Mouse) Basal Bottom vs Transition (PHet) ###
+####### Plasschaert Basal Bottom vs Transition (PHet) ########
 ##############################################################
 full_features = pd.read_csv(os.path.join(DATASET_PATH,
                                          "plasschaert_mouse_feature_names.csv"), sep=',')
@@ -888,7 +887,7 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
     sc.pl.dotplot(adata, selected_features_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of cells (%)")
+                  size_title="Fraction of expressed cells (%)")
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
@@ -902,7 +901,7 @@ with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
                   swap_axes=False, figsize=(6, 2))
 
 ##############################################################
-#### Plasschaert (Mouse) Basal Trans T vs Trans B (PHet) #####
+######## Plasschaert Basal Trans T vs Trans B (PHet) #########
 ##############################################################
 full_features = pd.read_csv(os.path.join(DATASET_PATH,
                                          "plasschaert_mouse_feature_names.csv"), sep=',')
@@ -1029,7 +1028,7 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
     sc.pl.dotplot(adata, selected_features_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of cells (%)")
+                  size_title="Fraction of expressed cells (%)")
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',

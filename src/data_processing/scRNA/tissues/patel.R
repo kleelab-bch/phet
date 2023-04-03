@@ -4,7 +4,7 @@
 require(limma)
 require(umap)
 require(Matrix)
-source("R:/GeneAnalysis/phet/src/utility/create_sce.R")
+source("R:/GeneAnalysis/phet/src/data_processing/create_sce.R")
 working_dir <- file.path("R:/GeneAnalysis/data")
 
 file_name <- "patel"
@@ -127,11 +127,17 @@ plotDensities(gset, group = gs, main = title, legend = "topright")
 # UMAP plot (dimensionality reduction)
 gset <- na.omit(gset) # eliminate rows with NAs
 gset <- gset[!duplicated(gset),]  # remove duplicates
-ump <- umap(t(gset), n_neighbors = 5, random_state = 123)
+temp <- tT[tT$adj.P.Val <= 0.01, ]$ID
+gset <- gset[temp, ]
+classes <- factor(classes)
+ump <- umap(t(gset), n_neighbors = 5, min_dist = 0.01, n_epochs = 2000, 
+            random_state = 123)
 par(mar = c(3, 3, 2, 6), xpd = TRUE)
-plot(ump$layout, main = "UMAP plot, nbrs=5", xlab = "", ylab = "", col = gs, pch = 20, cex = 1.5)
-legend("topright", inset = c(-0.15, 0), legend = levels(gs), pch = 20,
-       col = 1:nlevels(gs), title = "Group", pt.cex = 1.5)
+plot(ump$layout, main = paste(toupper(file_name), "\nFeatures: ", length(temp)), 
+     xlab = "", ylab = "", 
+     col = classes, pch = 20, cex = 1.5)
+legend("topright", inset = c(-0.15, 0), legend = levels(classes), pch = 20,
+       col = 1:nlevels(classes), title = "Group", pt.cex = 1.5)
 
 # mean-variance trend, helps to see if precision weights are needed
 plotSA(fit2, main = paste("Mean variance trend,", toupper(file_name)))

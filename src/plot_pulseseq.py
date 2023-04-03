@@ -1,3 +1,4 @@
+import copy
 import os
 
 import matplotlib.pyplot as plt
@@ -285,10 +286,10 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
     sc.pl.dotplot(adata, ionocytes_features, groupby='clusters', title=None,
                   colorbar_title="Mean expression values",
-                  size_title="Fraction of cells (%)")
+                  size_title="Fraction of expressed cells (%)")
     sc.pl.dotplot(adata, selected_markers_dict, groupby='clusters', title=None,
                   colorbar_title="Mean expression values",
-                  size_title="Fraction of cells (%)")
+                  size_title="Fraction of expressed cells (%)")
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
@@ -357,7 +358,7 @@ full_features = pd.read_csv(os.path.join(DATASET_PATH,
 full_features = full_features["features"].to_list()
 full_features = [f.upper() for f in full_features]
 # Ionocytes markers
-markers = pd.read_csv(os.path.join(DATASET_PATH, 
+markers = pd.read_csv(os.path.join(DATASET_PATH,
                                    "pulseseq_tuft_vs_ionocyte_markers.csv"), sep=',').replace(np.nan, -1)
 ionocyte_markers = np.unique(np.squeeze(markers[["Ionocyte"]].values.tolist()).flatten())[1:]
 ionocyte_markers = [f.upper() for f in ionocyte_markers]
@@ -395,13 +396,14 @@ ionocyte_samples = np.where(classes == 1)[0]
 samples_idx = np.append(tuft_samples, ionocyte_samples)
 samples_name = ["Tuft"] * len(tuft_samples) + ["Ionocyte"] * len(ionocyte_samples)
 # Load data
-adata = sc.read_mtx(os.path.join(DATASET_PATH, 
+adata = sc.read_mtx(os.path.join(DATASET_PATH,
                                  "pulseseq_tuft_vs_ionocyte_exclude_matrix.mtx"))
 adata = adata[samples_idx][:, [idx for idx, f in enumerate(full_features) if f in markers]]
 adata.var_names = [f for idx, f in enumerate(full_features) if f in markers]
 samples_name = pd.Series(samples_name, dtype="category")
 samples_name.index = adata.obs.index
 adata.obs["clusters"] = samples_name
+X = copy.deepcopy(adata.X)
 # QC calculations
 sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
 # Total-count normalize (library-size correct) the data matrix X to 10,000 reads per cell, so that counts become comparable among cells.
@@ -423,6 +425,7 @@ sc.tl.leiden(adata, resolution=0.8, key_added="clusters")
 new_cluster_names = ['Tuft-1', 'Tuft-2', 'Ionocyte', 'Tuft-3']
 adata.rename_categories('clusters', new_cluster_names)
 # Plot UMAP 
+adata.X = X
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
     sc.pl.umap(adata, color=['clusters', 'POU2F3', 'GNAT3', 'TRPM5', 'HCK', 'LRMP',
                              'RGS13', 'GNG13', 'ALOX5AP', 'CFTR', 'FOXI1', 'ASCL3'],
@@ -456,7 +459,7 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
     sc.pl.dotplot(adata, markers_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of cells (%)")
+                  size_title="Fraction of expressed cells (%)")
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
@@ -529,11 +532,10 @@ adata = sc.read_mtx(os.path.join(DATASET_PATH,
                                  "pulseseq_tuft_vs_ionocyte_exclude_matrix.mtx"))
 adata = adata[samples_idx][:, [idx for idx, f in enumerate(full_features) if f in phet_features]]
 adata.var_names = [f for idx, f in enumerate(full_features) if f in phet_features]
-# adata = adata[samples_idx][:, [idx for idx, f in enumerate(full_features) if f in markers]]
-# adata.var_names = [f for idx, f in enumerate(full_features) if f in markers]
 samples_name = pd.Series(samples_name, dtype="category")
 samples_name.index = adata.obs.index
 adata.obs["clusters"] = samples_name
+X = copy.deepcopy(adata.X)
 # QC calculations
 sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
 # Total-count normalize (library-size correct) the data matrix X to 10,000 reads per cell, so that counts become comparable among cells.
@@ -554,7 +556,7 @@ sc.tl.leiden(adata, resolution=0.4, key_added="clusters")
 # Rename clusters
 new_cluster_names = ['Tuft-1', 'Ionocyte', 'Tuft-2', 'Tuft-3']
 adata.rename_categories('clusters', new_cluster_names)
-# Plot UMAP 
+# Plot UMAP
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
     sc.pl.umap(adata, color=['clusters', 'POU2F3', 'GNAT3', 'TRPM5', 'HCK', 'LRMP',
                              'RGS13', 'GNG13', 'ALOX5AP', 'CFTR', 'FOXI1', 'ASCL3'],
@@ -588,7 +590,7 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
     sc.pl.dotplot(adata, markers_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of cells (%)")
+                  size_title="Fraction of expressed cells (%)")
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',

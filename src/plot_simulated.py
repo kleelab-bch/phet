@@ -135,6 +135,7 @@ df_features.columns = ["Methods", "Features"]
 # Plot F1 scores
 plt.figure(figsize=(14, 8))
 ax = sns.boxplot(y='Scores', x='Methods', data=df, width=0.85, palette=palette)
+sns.swarmplot(y='Scores', x='Methods', data=df, color="black", size=10, dodge=True)
 ax.set_xlabel("")
 ax.set_ylabel("F1 scores of each method", fontsize=36)
 ax.set_xticklabels([])
@@ -146,6 +147,7 @@ plt.tight_layout()
 # Plot the number of features
 plt.figure(figsize=(14, 8))
 ax = sns.boxplot(y='Features', x='Methods', data=df_features, width=0.85, palette=palette)
+sns.swarmplot(y='Features', x='Methods', data=df_features, color="black", size=10, dodge=True)
 ax.set_xlabel("")
 ax.set_ylabel("Number of significant features  \n  found by each method", fontsize=36)
 ax.set_xticklabels([])
@@ -178,6 +180,8 @@ y_lim = (np.min(y_values), np.max(y_values))
 plt.figure(figsize=(14, 8))
 ax = sns.boxplot(y='ARI', x='Methods', data=df_ari, width=0.85,
                  showfliers=False, palette=palette)
+sns.swarmplot(y='ARI', x='Methods', data=df_ari, color="black", size=10,
+              dodge=True)
 # ax = sns.violinplot(y='ARI', x='Methods', data=df_ari, linewidth = 2,
 #                     style ="count", palette=palette)
 # ax.set_ylim(y_lim) 
@@ -188,26 +192,3 @@ ax.tick_params(axis='both', labelsize=30)
 plt.suptitle(suptitle, fontsize=36)
 sns.despine()
 plt.tight_layout()
-
-# import umap
-# from sklearn.metrics import pairwise_distances, pairwise_kernels
-# num_examples = 1000
-# num_choice_examples = 100
-# num_features = 10
-# X_1 = np.random.normal(0, 0.01, size=(num_examples//4, num_features))
-# X_2 = np.random.normal(0.5, 0.2, size=(num_examples//4, num_features))
-# X_3 = np.random.normal(-0.5, 0.2, size=(num_examples//4, num_features))
-# X_4 = np.random.normal(2, 0.5, size=(num_examples//4, num_features))
-# X = np.vstack((X_1, X_2, X_3, X_4))
-# X = X / np.linalg.norm(X, axis=1)[:, None]
-# temp = num_examples // 4
-# pairwise_distances(X, metric="cosine")
-# y = [0] * temp + [1] * temp + [2] * temp + [3] * temp
-# init = "spectral"
-# if num_features >= num_examples:
-#     init = "random"
-# X_red = umap.UMAP(n_neighbors=30, n_components=2, metric="euclidean",
-#                   n_epochs=2000, init=init, min_dist=0.3, spread=100,
-#                   n_jobs=10)
-# X_red = X_red.fit_transform(X)
-# plt.scatter(X_red[:, 0], X_red[:, 1], c=y, cmap='viridis')

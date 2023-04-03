@@ -25,7 +25,7 @@ def train(num_jobs: int = 4):
     is_filter = True
     max_clusters = 10
     num_neighbors = 30
-    cluster_type = "spectral"  # "kmeans" or "spectral"
+    cluster_type = "kmeans"  # "kmeans" or "spectral"
     export_spring = True
     methods = ["PHet (no Binning)", "PHet"]
     methods_save_name = ["PHet_nb", "PHet_b"]
@@ -138,7 +138,7 @@ def train(num_jobs: int = 4):
     # df = pd.DataFrame(X[:, temp])
     # df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_markers_expression.csv"),
     #           sep=",", index=False, header=False)
-        
+
     print("## Perform experimental studies using {0} data...".format(file_name))
     print("\t >> Sample size: {0}; Feature size: {1}; Subtype size: {2}".format(X.shape[0], X.shape[1],
                                                                                 len(np.unique(subtypes))))

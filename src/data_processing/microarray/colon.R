@@ -110,9 +110,12 @@ plotDensities(gset, group = gs, main = title, legend = "topright")
 # UMAP plot (dimensionality reduction)
 gset <- na.omit(gset) # eliminate rows with NAs
 gset <- gset[!duplicated(gset),]  # remove duplicates
+temp <- row.names(tT2[tT2$adj.P.Val <= 0.01, ])
+gset <- gset[temp, ]
 ump <- umap(t(gset), n_neighbors = 5, random_state = 123)
 par(mar = c(3, 3, 2, 6), xpd = TRUE)
-plot(ump$layout, main = "UMAP plot, nbrs=5", xlab = "", ylab = "", col = gs, pch = 20, cex = 1.5)
+plot(ump$layout, main = "UMAP plot, nbrs=5", xlab = "", ylab = "", 
+     col = gs, pch = 20, cex = 1.5)
 legend("topright", inset = c(-0.15, 0), legend = levels(gs), pch = 20,
        col = 1:nlevels(gs), title = "Group", pt.cex = 1.5)
 

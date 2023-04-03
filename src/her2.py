@@ -23,7 +23,7 @@ sns.set_theme()
 sns.set_style(style='white')
 
 
-def train(num_jobs: int = 4):
+def train():
     # Arguments
     direction = "both"
     topKfeatures = 500
@@ -276,8 +276,9 @@ def train(num_jobs: int = 4):
     print("## Plot lineplot using top k features...")
     plt.figure(figsize=(14, 8))
     sns.lineplot(data=df, x='Range', y='Scores', hue="Methods", palette=palette)
-    plt.xticks(fontsize=18, rotation=45)
-    plt.yticks(fontsize=18)
+    plt.xticks([item for item in range_topfeatures
+                if item % 25 == 0 or item == 1], fontsize=20, rotation=45)
+    plt.yticks(fontsize=20)
     plt.xlabel('Top k features', fontsize=22)
     plt.ylabel("F1 scores of each method", fontsize=22)
     plt.suptitle("Results using Her2 data", fontsize=26)
@@ -314,4 +315,4 @@ if __name__ == "__main__":
     # for mac and linux(here, os.name is 'posix')
     else:
         _ = os.system('clear')
-    train(num_jobs=10)
+    train()

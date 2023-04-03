@@ -39,7 +39,7 @@ def train(num_jobs: int = 4):
     max_clusters = 10
     bin_KS_pvalues = True
     feature_metric = "f1"
-    cluster_type = "kmeans"  # "kmeans" or "spectral"
+    cluster_type = "spectral"  # "kmeans" or "spectral"
     methods = ["t-statistic", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "ΔIQR", "PHet"]
     methods_save_name = ["ttest", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "DeltaIQR"]
     if bin_KS_pvalues:
@@ -48,8 +48,8 @@ def train(num_jobs: int = 4):
         methods_save_name.append("PHet_nb")
 
     # descriptions of the data
-    file_name = "darmanis"
-    suptitle_name = "Darmanis"
+    file_name = "lung"
+    suptitle_name = "Lung"
 
     # Exprssion, classes, subtypes, donors, timepoints Files
     expression_file_name = file_name + "_matrix.mtx"
@@ -205,7 +205,7 @@ def train(num_jobs: int = 4):
             temp = sort_features(X=df, features_name=features_name, X_map=None,
                                  map_genes=False, ttest=False)
         methods_dict[method_name] = temp
-    del df_copa, df_os, df_ort, df_most, df_lsoss, df_dids, df_iqr, df_phet
+    # del df_copa, df_os, df_ort, df_most, df_lsoss, df_dids, df_iqr, df_phet
 
     print("## Scoring results using up/down regulated features...")
     selected_regulated_features = topKfeatures
@@ -236,6 +236,13 @@ def train(num_jobs: int = 4):
     plot_barplot(X=list_scores, methods_name=methods, metric=feature_metric, suptitle=suptitle_name,
                  file_name=file_name, save_path=RESULT_PATH)
 
+    # TODO: delete after
+    # include = [idx for idx, item in enumerate(subtypes) if item not in ["pnet"]]
+    # subtypes = np.array(subtypes)[include]
+    # num_clusters = np.unique(subtypes).shape[0]
+    # X = X[include]
+    # y = y[include]
+    #######
     list_scores = list()
     print("## Plot UMAP using all features ({0})...".format(num_features))
     score = plot_umap(X=X, y=y, subtypes=subtypes, features_name=features_name, num_features=num_features,
