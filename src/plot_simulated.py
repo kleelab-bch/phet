@@ -77,9 +77,9 @@ ax.legend(title="Methods", title_fontsize=30, fontsize=26, ncol=5,
 ##############################################################
 ######################### Benchmarks #########################
 ##############################################################
-result_path = os.path.join(RESULT_PATH, "microarray")
+result_path = os.path.join(RESULT_PATH, "scRNA")
 suptitle = "6 single cell RNA-seq datasets"
-suptitle = "11 microarray gene expression datasets"
+# suptitle = "11 microarray gene expression datasets"
 methods_name = {"ttest": "t-statistic", "COPA": "COPA", "OS": "OS", "ORT": "ORT",
                 "MOST": "MOST", "LSOSS": "LSOSS", "DIDS": "DIDS", "DECO": "DECO",
                 "DeltaIQR": "ΔIQR", "PHet_b": "PHet"}

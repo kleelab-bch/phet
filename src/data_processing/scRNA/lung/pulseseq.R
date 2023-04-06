@@ -604,7 +604,7 @@ writeMM(t(gset[, condition]),
 #########################################################
 condition <- metadata %in% c("Ionocyte", "Tuft")
 file_name <- "pulseseq_tuft_vs_ionocyte"
-
+gset < gset[, condition]
 # group membership for all samples
 # 0 (Tuft): "Tuft"
 # 1 (Ionocytes): "Ionocytes"

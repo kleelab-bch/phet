@@ -6,7 +6,7 @@ import pandas as pd
 import scanpy as sc
 import seaborn as sns
 
-from utility.file_path import RESULT_PATH
+from utility.file_path import RESULT_PATH, DATASET_PATH
 
 sc.settings.verbosity = 0  # verbosity: errors (0), warnings (1), info (2), hints (3)
 sc.settings.set_figure_params(dpi=80, facecolor='white')
@@ -121,3 +121,69 @@ cg.ax_heatmap.set_xticklabels(cg.ax_heatmap.get_xmajorticklabels(),
 cg.ax_heatmap.set_yticklabels("")
 ax = cg.ax_heatmap
 ax.yaxis.tick_left()
+
+##############################################################
+############################ Patel ###########################
+##############################################################
+total_features = []
+full_features = pd.read_csv(os.path.join(DATASET_PATH, "patel_feature_names.csv"), sep=',')
+full_features = full_features["features"].to_list()
+full_features = [f for f in full_features]
+# Classes
+classes = pd.read_csv(os.path.join(DATASET_PATH,
+                                   "patel_classes.csv"),
+                      sep=',').values.tolist()
+classes = np.squeeze(classes)
+# samples_idx = [idx for idx, _ in enumerate(classes)]
+# samples_idx = np.where(classes == 0)[0]
+samples_idx = np.where(classes == 1)[0]
+samples_name = pd.read_csv(os.path.join(DATASET_PATH,
+                                        "patel_types.csv"),
+                           sep=',').values.tolist()
+samples_name = np.squeeze(samples_name)
+samples_name = [item for idx, item in enumerate(samples_name) if idx in samples_idx]
+samples_name = pd.Series(samples_name, dtype="category")
+# Load data
+adata = sc.read_mtx(os.path.join(DATASET_PATH, "patel_matrix.mtx"))
+adata = adata[samples_idx, :]
+adata.X = 2 ** adata.X.toarray()
+adata.var_names = full_features
+samples_name.index = adata.obs.index
+adata.obs["clusters"] = samples_name
+# QC calculations
+sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
+# Total-count normalize (library-size correct) the data matrix X to 10,000 reads per cell, so that counts become comparable among cells.
+sc.pp.normalize_total(adata, target_sum=1e4)
+# Logarithmize the data:
+sc.pp.log1p(adata)
+# IQR
+# iqr_list = list()
+# for feature_idx, item  in enumerate(full_features):
+#     iqr_list.append(iqr(adata.X.toarray()[:, feature_idx]))
+# iqr_list = zscore(iqr_list, axis=0)
+# iqr_list = pd.Series(iqr_list, dtype=np.float32)
+# iqr_list.index = adata.var.index
+# Identify highly-variable features.
+sc.pp.highly_variable_genes(adata, min_disp=0.5)
+# adata.var.dispersions_norm = iqr_list
+temp = adata.var["highly_variable"] == True
+total_features.extend(list(adata.var_names[temp]))
+total_features = sorted(list(set(total_features)))
+df = pd.DataFrame(total_features, columns=["features"])
+df.to_csv(os.path.join(RESULT_PATH, "patel_hvf_per_conditions.csv"),
+          sep=',', index=False)
+adata = adata[:, adata.var.highly_variable]
+# Regress out effects of total counts per cell 
+sc.pp.regress_out(adata, ['total_counts'])
+# Scale each gene to unit variance. Clip values exceeding standard deviation 10.
+sc.pp.scale(adata, max_value=10)
+# Computing the neighborhood graph
+sc.pp.neighbors(adata, n_neighbors=30, n_pcs=50)
+# UMAP (Embedding the neighborhood graph)
+sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
+           maxiter=2000)
+# Plot UMAP 
+with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
+    sc.pl.umap(adata, color=['clusters'], use_raw=False, add_outline=False,
+               legend_loc='on data', legend_fontsize=12, legend_fontoutline=2,
+               frameon=False)

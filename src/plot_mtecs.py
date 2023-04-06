@@ -785,7 +785,7 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
     sc.pl.dotplot(adata, basal_subsets_markers, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of expressed cells (%)")
+                  size_title="Fraction of expressed \n cells (%)")
     # sc.pl.dotplot(adata, markers_dict["Basal"], groupby='clusters',
     #               title=None, colorbar_title="Mean expression values",
     #               size_title="Fraction of expressed cells (%)")

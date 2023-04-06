@@ -143,10 +143,6 @@ samples_name.index = adata.obs.index
 adata.obs["clusters"] = samples_name
 # QC calculations
 sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
-# Total-count normalize (library-size correct) the data matrix X to 10,000 reads per cell, so that counts become comparable among cells.
-sc.pp.normalize_total(adata, target_sum=1e4)
-# Logarithmize the data:
-sc.pp.log1p(adata)
 # Regress out effects of total counts per cell 
 sc.pp.regress_out(adata, ['total_counts'])
 # Scale each gene to unit variance. Clip values exceeding standard deviation 10.
@@ -261,35 +257,13 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
     sc.pl.violin(adata, ['CFTR', 'FOXI1', 'ASCL3', 'EGR1'],
                  groupby='clusters', xlabel="Clusters", stripplot=False,
                  inner='box')
-# Tracksplot
-with plt.rc_context({'figure.figsize': (12, 6), 'figure.labelsize': '30',
-                     'axes.titlesize': '30', 'axes.labelsize': '20',
-                     'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
-    sc.pl.rank_genes_groups_tracksplot(adata, n_genes=10, dendrogram=False,
-                                       xlabel="Clusters")
-with plt.rc_context({'figure.figsize': (12, 6), 'figure.labelsize': '30',
-                     'axes.titlesize': '30', 'axes.labelsize': '20',
-                     'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
-    sc.pl.tracksplot(adata, ionocytes_features, groupby='clusters',
-                     dendrogram=False)
-    sc.pl.tracksplot(adata, selected_markers_dict, groupby='clusters',
-                     dendrogram=False)
-    sc.pl.tracksplot(adata, significant_features, groupby='clusters',
-                     dendrogram=False)
 # Dotplot
-with plt.rc_context({'figure.figsize': (8, 5), 'figure.labelsize': '20',
-                     'axes.titlesize': '24', 'axes.labelsize': '20',
-                     'xtick.labelsize': '20', 'ytick.labelsize': '14'}):
-    sc.pl.rank_genes_groups_dotplot(adata, n_genes=20)
 with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
     sc.pl.dotplot(adata, ionocytes_features, groupby='clusters', title=None,
                   colorbar_title="Mean expression values",
-                  size_title="Fraction of expressed cells (%)")
-    sc.pl.dotplot(adata, selected_markers_dict, groupby='clusters', title=None,
-                  colorbar_title="Mean expression values",
-                  size_title="Fraction of expressed cells (%)")
+                  size_title="Fraction of expressed \n cells (%)")
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
@@ -301,9 +275,6 @@ with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
     sc.pl.heatmap(adata, markers_dict, groupby='clusters',
                   layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
                   swap_axes=False, figsize=(11, 3))
-    sc.pl.heatmap(adata, selected_markers_dict, groupby='clusters',
-                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
-                  swap_axes=True, figsize=(11, 4))
 
 ##############################################################
 ########## Remove Pulseseq Negative Tuft & Ionocytes #########
@@ -386,6 +357,11 @@ for key, items in markers_dict.items():
         temp_dict[key] = temp
 markers_dict = temp_dict
 del temp, temp_dict
+# timelabels
+timepoints = pd.read_csv(os.path.join(DATASET_PATH, "pulseseq_tuft_vs_ionocyte_exclude_timepoints.csv"),
+                         sep=',').values.tolist()
+timepoints = np.squeeze(timepoints)
+timepoints = pd.Series(timepoints, dtype="category")
 # Classes
 classes = pd.read_csv(os.path.join(DATASET_PATH,
                                    "pulseseq_tuft_vs_ionocyte_exclude_classes.csv"),
@@ -403,6 +379,8 @@ adata.var_names = [f for idx, f in enumerate(full_features) if f in markers]
 samples_name = pd.Series(samples_name, dtype="category")
 samples_name.index = adata.obs.index
 adata.obs["clusters"] = samples_name
+timepoints.index = adata.obs.index
+adata.obs["timepoints"] = timepoints
 X = copy.deepcopy(adata.X)
 # QC calculations
 sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
@@ -427,10 +405,11 @@ adata.rename_categories('clusters', new_cluster_names)
 # Plot UMAP 
 adata.X = X
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
-    sc.pl.umap(adata, color=['clusters', 'POU2F3', 'GNAT3', 'TRPM5', 'HCK', 'LRMP',
-                             'RGS13', 'GNG13', 'ALOX5AP', 'CFTR', 'FOXI1', 'ASCL3'],
+    sc.pl.umap(adata, color=['clusters', 'timepoints', 'POU2F3', 'GNAT3', 'TRPM5',
+                             'HCK', 'LRMP', 'RGS13', 'GNG13', 'ALOX5AP', 'CFTR',
+                             'FOXI1', 'ASCL3'],
                use_raw=False, add_outline=False, legend_loc='on data',
-               legend_fontsize=40, legend_fontoutline=2, frameon=False)
+               legend_fontsize=30, legend_fontoutline=2, frameon=False)
 # Find differentially expressed features
 sc.tl.rank_genes_groups(adata, 'clusters', method='wilcoxon',
                         corr_method='benjamini-hochberg', tie_correct=True)
@@ -518,6 +497,11 @@ for key, items in markers_dict.items():
         temp_dict[key] = temp
 markers_dict = temp_dict
 del temp, temp_dict
+# timelabels
+timepoints = pd.read_csv(os.path.join(DATASET_PATH, "pulseseq_tuft_vs_ionocyte_exclude_timepoints.csv"),
+                         sep=',').values.tolist()
+timepoints = np.squeeze(timepoints)
+timepoints = pd.Series(timepoints, dtype="category")
 # Classes
 classes = pd.read_csv(os.path.join(DATASET_PATH,
                                    "pulseseq_tuft_vs_ionocyte_exclude_classes.csv"),
@@ -535,6 +519,8 @@ adata.var_names = [f for idx, f in enumerate(full_features) if f in phet_feature
 samples_name = pd.Series(samples_name, dtype="category")
 samples_name.index = adata.obs.index
 adata.obs["clusters"] = samples_name
+timepoints.index = adata.obs.index
+adata.obs["timepoints"] = timepoints
 X = copy.deepcopy(adata.X)
 # QC calculations
 sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
@@ -558,10 +544,10 @@ new_cluster_names = ['Tuft-1', 'Ionocyte', 'Tuft-2', 'Tuft-3']
 adata.rename_categories('clusters', new_cluster_names)
 # Plot UMAP
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
-    sc.pl.umap(adata, color=['clusters', 'POU2F3', 'GNAT3', 'TRPM5', 'HCK', 'LRMP',
-                             'RGS13', 'GNG13', 'ALOX5AP', 'CFTR', 'FOXI1', 'ASCL3'],
+    sc.pl.umap(adata, color=['clusters', 'POU2F3', 'GNAT3', 'TRPM5', 'HCK',
+                             'LRMP', 'RGS13', 'GNG13', 'ALOX5AP', 'CFTR', 'FOXI1', 'ASCL3'],
                use_raw=False, add_outline=False, legend_loc='on data',
-               legend_fontsize=40, legend_fontoutline=2, frameon=False)
+               legend_fontsize=30, legend_fontoutline=2, frameon=False)
 # Find differentially expressed features
 sc.tl.rank_genes_groups(adata, 'clusters', method='wilcoxon',
                         corr_method='benjamini-hochberg', tie_correct=True)
@@ -606,54 +592,3 @@ with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
                   swap_axes=False, figsize=(12, 6))
     sc.pl.heatmap(adata, markers_dict, groupby='clusters', layer='scaled', vmin=-2,
                   vmax=2, cmap='RdBu_r', dendrogram=True, swap_axes=True, figsize=(12, 3))
-
-##############################################################
-######################## Baron (PHet) ########################
-##############################################################
-full_features = pd.read_csv(os.path.join(DATASET_PATH, "baron_feature_names.csv"), sep=',')
-full_features = full_features["features"].to_list()
-full_features = [f.upper() for f in full_features]
-phet_features = pd.read_csv(os.path.join(RESULT_PATH, "scRNA", "baron_phet_b_features.csv"),
-                            sep=',', header=None)
-phet_features = np.squeeze(phet_features.values.tolist())
-phet_features = [f.upper() for f in phet_features]
-markers = pd.read_csv(os.path.join(DATASET_PATH, "baron_diff_features.csv"), sep=',')
-markers = np.unique(np.squeeze(markers[["ID"]].values.tolist()).flatten())
-markers = [f.upper() for f in markers]
-# Classes
-samples_name = pd.read_csv(os.path.join(DATASET_PATH,
-                                        "baron_types.csv"),
-                           sep=',').values.tolist()
-samples_name = np.squeeze(classes)
-samples_name = pd.Series(samples_name, dtype="category")
-# Load data
-adata = sc.read_mtx(os.path.join(DATASET_PATH, "baron_matrix.mtx"))
-# adata.var_names = full_features
-# adata = adata[:, [idx for idx, f in enumerate(full_features) if f in markers[:500]]]
-# adata.var_names = [f for idx, f in enumerate(full_features) if f in markers[:500]]
-adata = adata[:, [idx for idx, f in enumerate(full_features) if f in phet_features]]
-adata.var_names = [f for idx, f in enumerate(full_features) if f in phet_features]
-samples_name.index = adata.obs.index
-adata.obs["clusters"] = samples_name
-# QC calculations
-sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
-# Total-count normalize (library-size correct) the data matrix X to 10,000 reads per cell, so that counts become comparable among cells.
-sc.pp.normalize_total(adata, target_sum=1e4)
-# Logarithmize the data:
-sc.pp.log1p(adata)
-# Identify highly-variable features.
-sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
-# Regress out effects of total counts per cell 
-sc.pp.regress_out(adata, ['total_counts'])
-# Scale each gene to unit variance. Clip values exceeding standard deviation 10.
-sc.pp.scale(adata, max_value=10)
-# Computing the neighborhood graph
-sc.pp.neighbors(adata, n_neighbors=30, n_pcs=50)
-# UMAP (Embedding the neighborhood graph)
-sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
-           maxiter=2000)
-# Plot UMAP 
-with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
-    sc.pl.umap(adata, color=['clusters'], use_raw=False, add_outline=False,
-               legend_loc='on data', legend_fontsize=12, legend_fontoutline=2,
-               frameon=False)

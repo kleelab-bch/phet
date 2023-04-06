@@ -48,8 +48,8 @@ def train(num_jobs: int = 4):
         methods_save_name.append("PHet_nb")
 
     # descriptions of the data
-    file_name = "lung"
-    suptitle_name = "Lung"
+    file_name = "baron_1"
+    suptitle_name = "Baron"
 
     # Exprssion, classes, subtypes, donors, timepoints Files
     expression_file_name = file_name + "_matrix.mtx"

@@ -1,2 +1,2 @@
-/src/files/
-/test.txt
+/.idea
+**/__pycache__

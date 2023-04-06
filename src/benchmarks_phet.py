@@ -24,17 +24,17 @@ def train(num_jobs: int = 4):
         plot_topKfeatures = True
     is_filter = True
     max_clusters = 10
-    num_neighbors = 30
-    cluster_type = "kmeans"  # "kmeans" or "spectral"
+    num_neighbors = 10
+    cluster_type = "spectral"  # "kmeans" or "spectral"
     export_spring = True
     methods = ["PHet (no Binning)", "PHet"]
     methods_save_name = ["PHet_nb", "PHet_b"]
 
     # descriptions of the data
-    file_name = "plasschaert_mouse"
-    suptitle_name = "Basal vs non Basal"
-    control_name = "Basal"
-    case_name = "non Basal"
+    file_name = "baron_1"
+    suptitle_name = "Baron"
+    control_name = "Endocrine"
+    case_name = "non Endocrine"
 
     # Exprssion, classes, subtypes, donors, timepoints Files
     expression_file_name = file_name + "_matrix.mtx"
@@ -158,7 +158,7 @@ def train(num_jobs: int = 4):
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, methods[1]))
     estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
                      calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=True,
-                     feature_weight=[0.4, 0.7, 0.2])
+                     feature_weight=[0.4, 0.3, 0.2, 0.1])
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({methods[1]: df})
 

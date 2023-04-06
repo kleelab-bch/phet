@@ -1,57 +1,78 @@
-# Plasschaert, L.W., Zilionis, R., Choo-Wing, R., Savova, V., Knehr, J., Roma, G., Klein, A.M. and Jaffe, A.B., 2018. A single-cell atlas of the airway epithelium reveals the CFTR-rich pulmonary ionocyte. Nature, 560(7718), pp.377-381.
+# Baron, M., Veres, A., Wolock, S.L., Faust, A.L., Gaujoux, R., Vetere, A., Ryu, J.H., Wagner, B.K., Shen-Orr, S.S., Klein, A.M. and Melton, D.A., 2016. A single-cell transcriptomic map of the human and mouse pancreas reveals inter-and intra-cell population structure. Cell systems, 3(4), pp.346-360.
 
 # Differential expression analysis with limma
 require(limma)
 require(umap)
-require(Seurat)
 require(Matrix)
+source("R:/GeneAnalysis/phet/src/data_processing/create_sce.R")
 working_dir <- file.path("R:/GeneAnalysis/data")
 
-file_name <- "plasschaert_mouse"
+file_name <- "baron_1"
 
-### Load data
-metadata <- read.table(file.path(working_dir,
-                                 paste("GSE102580_meta_mouse.tsv", sep = "")),
-                       header = TRUE, sep = "\t", row.names = 1,
-                       check.names = FALSE, stringsAsFactors = FALSE)
-donors <- metadata$mouse_id
-timepoints <- metadata$timepoint
-metadata$cell_type1 <- metadata$clusters_Fig2
-metadata <- metadata$cell_type1
-# markers
-df <- read.table(file.path(working_dir,
-                           paste("plasschaert_mouse_all_features.csv", sep = "")),
-                 header = TRUE, sep = ",", row.names = 1, check.names = FALSE,
-                 stringsAsFactors = FALSE)
-features <- rownames(df)
-write.table(as.data.frame(features), 
-            file = file.path(working_dir, paste(file_name, "_markers.csv", sep = "")),
-            sep = ",", quote = FALSE, row.names = FALSE)
-write.table(as.data.frame(donors), 
-            file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
-            sep = ",", quote = FALSE, row.names = FALSE)
-write.table(as.data.frame(timepoints), 
-            file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
-            sep = ",", quote = FALSE, row.names = FALSE)
-# already normalized
-gset <- read.table(file.path(working_dir,
-                             paste("GSE102580_normalized_counts_mouse.tsv", sep = "")),
-                   header = TRUE, sep = "\t", row.names = 1,
-                   check.names = FALSE, stringsAsFactors = FALSE)
-features <- rownames(gset)
-gset <- as.data.frame(t(gset))
+### DATA
+# human1
+h1 <- read.csv(file.path(working_dir, paste(file_name, "1.csv", sep = "")), header = T)
+rownames(h1) <- h1[, 1]
+labels_h1 <- as.character(h1$assigned_cluster)
+h1 <- h1[, 4:ncol(h1)]
+h1 <- t(h1)
+# human2
+h2 <- read.csv(file.path(working_dir, paste(file_name, "2.csv", sep = "")), header = T)
+rownames(h2) <- h2[, 1]
+labels_h2 <- as.character(h2$assigned_cluster)
+h2 <- h2[, 4:ncol(h2)]
+h2 <- t(h2)
+# human3
+h3 <- read.csv(file.path(working_dir, paste(file_name, "3.csv", sep = "")), header = T)
+rownames(h3) <- h3[, 1]
+labels_h3 <- as.character(h3$assigned_cluster)
+h3 <- h3[, 4:ncol(h3)]
+h3 <- t(h3)
+# human4
+h4 <- read.csv(file.path(working_dir, paste(file_name, "4.csv", sep = "")), header = T)
+rownames(h4) <- h4[, 1]
+labels_h4 <- as.character(h4$assigned_cluster)
+h4 <- h4[, 4:ncol(h4)]
+h4 <- t(h4)
 
+# merge data
+gset <- cbind(h1, h2, h3, h4)
+gset <- as.data.frame(gset)
+remove(h1, h2, h3, h4)
+
+### ANNOTATIONS
+# human
+classes <- data.frame(
+  human = c(
+    rep(1, length(labels_h1)),
+    rep(2, length(labels_h2)),
+    rep(3, length(labels_h3)),
+    rep(4, length(labels_h4))
+  ),
+  cell_type1 = c(labels_h1, labels_h2, labels_h3, labels_h4))
+rownames(classes) <- colnames(gset)
+remove(labels_h1, labels_h2, labels_h3, labels_h4)
+
+### SINGLECELLEXPERIMENT
+gset <- create_sce_from_counts(gset, classes)
+features <- as.character(rownames(gset))
+classes <- gset@colData@listData[["cell_type1"]]
+condition <- classes %in% c("beta", "delta", "alpha", "gamma", "ductal", 
+                            "schwann", "endothelial", "macrophage", "t_cell")
+classes <- classes[condition]
+gset <- as.data.frame(t(gset@assays@data@listData[["logcounts"]]))
+gset <- gset[condition, ]
 # group membership for all samples
-# 0 (Basal cells): "Basal", "Cycling Basal (homeostasis)", and "Cycling Basal (regeneration)"
-# 1 (non Basal cells): "Krt4/13+", "Secretory", "Pre-ciliated", "Ciliated", "Brush", "PNEC", and "Ionocytes"
-gsms <- c(1, 0, 1, 1, 1, 1, 0, 1, 0, 1)
-names(gsms) <- unique(metadata)
-gsms <- gsms[metadata]
+# 0 (endocrine): "beta", "delta", "alpha", "gamma"
+# 1 (non endocrine) : "ductal", "endothelial", "macrophage", "schwann", and "t_cell"
+gsms <- c(0,0,1,0,0,1,1,1,1)
+names(gsms) <- unique(classes)
+gsms <- gsms[classes]
 gsms <- paste0(gsms, collapse = "")
 sml <- strsplit(gsms, split = "")[[1]]
 
-# save subtypes 
-subtypes <- metadata
+# collect subtypes 
+subtypes <- classes
 write.table(as.data.frame(subtypes), 
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
@@ -110,6 +131,7 @@ hist(tT2$adj.P.Val, breaks = 100, col = "grey", border = "white", xlab = "P-adj"
 
 # summarize test results as "up", "down" or "not expressed"
 dT <- decideTests(fit2, adjust.method = "fdr", p.value = 0.01)
+
 # Venn diagram of results
 vennDiagram(dT, circle.col = palette())
 
@@ -128,14 +150,24 @@ volcanoplot(fit2, coef = ct, main = colnames(fit2)[ct], pch = 20,
 plotMD(fit2, column = ct, status = dT[, ct], legend = F, pch = 20, cex = 1)
 abline(h = 0)
 
+# expression value distribution
+par(mar = c(4, 4, 2, 1))
+title <- paste(toupper(file_name), " value distribution", sep = "")
+plotDensities(gset, group = gs, main = title, legend = "topright")
+
 # UMAP plot (dimensionality reduction)
 gset <- na.omit(gset) # eliminate rows with NAs
 gset <- gset[!duplicated(gset),]  # remove duplicates
-ump <- umap(t(gset), n_neighbors = 5, random_state = 123)
+temp <- tT[tT$adj.P.Val <= 0.01, ]$ID
+gset <- gset[temp, ]
+classes <- factor(classes)
+ump <- umap(t(gset), n_neighbors = 5, min_dist = 0.01, n_epochs = 2000, 
+            random_state = 123)
 par(mar = c(3, 3, 2, 6), xpd = TRUE)
-plot(ump$layout, main = "UMAP plot, nbrs=5", xlab = "", ylab = "", col = gs, pch = 20, cex = 1.5)
-legend("topright", inset = c(-0.15, 0), legend = levels(gs), pch = 20,
-       col = 1:nlevels(gs), title = "Group", pt.cex = 1.5)
+plot(ump$layout, main = paste(toupper(file_name), "\nFeatures: ", length(temp)), 
+     xlab = "", ylab = "", col = classes, pch = 20, cex = 1.5)
+legend("topright", inset = c(-0.15, 0), legend = levels(classes), pch = 20,
+       col = 1:nlevels(classes), title = "Group", pt.cex = 1.5)
 
 # mean-variance trend, helps to see if precision weights are needed
 plotSA(fit2, main = paste("Mean variance trend,", toupper(file_name)))

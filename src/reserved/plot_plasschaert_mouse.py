@@ -1040,3 +1040,54 @@ with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
     sc.pl.heatmap(adata, selected_features_dict, groupby='clusters',
                   layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
                   swap_axes=False, figsize=(6, 2))
+
+##############################################################
+######################## Baron (PHet) ########################
+##############################################################
+full_features = pd.read_csv(os.path.join(DATASET_PATH, "baron_feature_names.csv"), sep=',')
+full_features = full_features["features"].to_list()
+full_features = [f.upper() for f in full_features]
+phet_features = pd.read_csv(os.path.join(RESULT_PATH, "scRNA", "baron_phet_b_features.csv"),
+                            sep=',', header=None)
+phet_features = np.squeeze(phet_features.values.tolist())
+phet_features = [f.upper() for f in phet_features]
+markers = pd.read_csv(os.path.join(DATASET_PATH, "baron_diff_features.csv"), sep=',')
+markers = np.unique(np.squeeze(markers[["ID"]].values.tolist()).flatten())
+markers = [f.upper() for f in markers]
+# Classes
+samples_name = pd.read_csv(os.path.join(DATASET_PATH,
+                                        "baron_types.csv"),
+                           sep=',').values.tolist()
+samples_name = np.squeeze(classes)
+samples_name = pd.Series(samples_name, dtype="category")
+# Load data
+adata = sc.read_mtx(os.path.join(DATASET_PATH, "baron_matrix.mtx"))
+# adata.var_names = full_features
+# adata = adata[:, [idx for idx, f in enumerate(full_features) if f in markers[:500]]]
+# adata.var_names = [f for idx, f in enumerate(full_features) if f in markers[:500]]
+adata = adata[:, [idx for idx, f in enumerate(full_features) if f in phet_features]]
+adata.var_names = [f for idx, f in enumerate(full_features) if f in phet_features]
+samples_name.index = adata.obs.index
+adata.obs["clusters"] = samples_name
+# QC calculations
+sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
+# Total-count normalize (library-size correct) the data matrix X to 10,000 reads per cell, so that counts become comparable among cells.
+sc.pp.normalize_total(adata, target_sum=1e4)
+# Logarithmize the data:
+sc.pp.log1p(adata)
+# Identify highly-variable features.
+sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
+# Regress out effects of total counts per cell 
+sc.pp.regress_out(adata, ['total_counts'])
+# Scale each gene to unit variance. Clip values exceeding standard deviation 10.
+sc.pp.scale(adata, max_value=10)
+# Computing the neighborhood graph
+sc.pp.neighbors(adata, n_neighbors=30, n_pcs=50)
+# UMAP (Embedding the neighborhood graph)
+sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
+           maxiter=2000)
+# Plot UMAP 
+with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
+    sc.pl.umap(adata, color=['clusters'], use_raw=False, add_outline=False,
+               legend_loc='on data', legend_fontsize=12, legend_fontoutline=2,
+               frameon=False)

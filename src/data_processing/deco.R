@@ -22,9 +22,9 @@ working_dir <- file.path("R:/GeneAnalysis/data")
 # myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
 
 # scRNA datasets:
-# camp2, darmanis, lake, yan, camp1, baron, segerstolpe, wang, li, and patel
+# camp2, darmanis, lake, yan, camp1, baron, baron_1, segerstolpe, wang, li, and patel
 
-file_name <- "her2_combined"
+file_name <- "baron_1"
 iterations <- 1000
 q.val <- 0.01
 

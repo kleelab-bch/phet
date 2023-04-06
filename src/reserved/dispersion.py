@@ -17,6 +17,7 @@ class Dispersion:
         self.num_iterations = num_iterations
 
     def fit_predict(self, X, y, normal_class: int = 0, test_class: int = 1):
+        num_examples, num_features = X.shape
         # Sanity checking
         if np.unique(y).shape[0] != 2:
             temp = "Only two valid groups are allowed!"
@@ -24,11 +25,8 @@ class Dispersion:
         if test_class not in np.unique(y):
             temp = "Please provide a valid test group id!"
             raise Exception(temp)
-
         if num_features < 1:
             raise Exception("Features size should be greated than one!")
-
-        num_examples, num_features = X.shape
 
         # Step 1: Estimate gene-wise dispersion
         gene_wise_dispersion = np.zeros((num_features, len(np.unique(y))))
@@ -71,7 +69,6 @@ class Dispersion:
         del res, temp_Xc
 
         # Step 3: Remove gene outliers given gene-wise dispersion estimates
-        # look for the paper ORT to detect outliers
         keep_features = list()
         log_std = np.median(fitted_values, 0) / 1.4826
         for class_idx in np.unique(y):
@@ -91,3 +88,4 @@ num_examples = 10
 num_features = 5
 X = np.random.normal(size=(num_examples, num_features))
 y = np.random.randint(0, 2, num_examples)
+X, feature_names = Dispersion().fit_predict(X=X, y=y)
