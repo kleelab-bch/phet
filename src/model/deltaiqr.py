@@ -11,10 +11,9 @@ from scipy.stats import zscore
 
 
 class DeltaIQR:
-    def __init__(self, normalize: str = None, q: float = 0.75, iqr_range: int = (25, 75),
-                 permutation_test: bool = False, num_rounds: int = 10000):
+    def __init__(self, normalize: str = None, iqr_range: int = (25, 75), permutation_test: bool = False,
+                 num_rounds: int = 10000):
         self.normalize = normalize
-        self.q = q
         self.iqr_range = iqr_range
         self.permutation_test = permutation_test
         self.num_rounds = num_rounds

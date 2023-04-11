@@ -1,7 +1,7 @@
 1. Micro-array datasets: 
-allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89, braintumor, cmlgse2535, colon, dlbcl, ewsgse967, 
-gastricgse2685, glioblastoma, leukemia_golub, ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, mll, 
-myelodysplastic_mds1, myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
+allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89, braintumor, cmlgse2535, colon, dlbcl, 
+ewsgse967, gastricgse2685, glioblastoma, leukemia_golub, ll_gse1577_2razreda, lung, lunggse1987, meduloblastomigse468, 
+mll, myelodysplastic_mds1, myelodysplastic_mds2, pdac, prostate, prostategse2443, srbct, and tnbc
 
 2. scRNA datasets: 
 camp2, chew, darmanis, lake, yan, camp1, baron, baron_1, segerstolpe, wang, li, and patel
@@ -26,8 +26,9 @@ pulseseq_club_vs_ciliated, pulseseq_club_vs_goblet, pulseseq_ciliated_vs_goblet,
 pulseseq_tuft_vs_ionocyte, pulseseq_tuft_vs_ionocyte_exclude
 
 6. GSE134174 Processed invitro data: 
-gse134174_invitro, gse134174_invitro_basal_vs_secretory, gse134174_invitro_basal_vs_ciliated, gse134174_invitro_basal_vs_rare, 
-gse134174_invitro_secretory_vs_ciliated, gse134174_invitro_secretory_vs_rare, gse134174_invitro_ciliated_vs_rare
+gse134174_invitro, gse134174_invitro_basal_vs_secretory, gse134174_invitro_basal_vs_ciliated, 
+gse134174_invitro_basal_vs_rare, gse134174_invitro_secretory_vs_ciliated, 
+gse134174_invitro_secretory_vs_rare, gse134174_invitro_ciliated_vs_rare
 
 7. GSE134174 Processed invivo data (non smokers): 
 gse134174_invivo_nonsmokers_basal_vs_basallineages, gse134174_invivo_nonsmokers_basal_vs_secretory, 
@@ -40,9 +41,10 @@ gse134174_invivo_nonsmokers_ionocyteandtuft_vs_pnec
 8. GSE134174 Processed invivo data (smokers): 
 gse134174_invivo_smokers_basal_vs_basallineages, gse134174_invivo_smokers_basal_vs_secretory, 
 gse134174_invivo_smokers_smgbasal_vs_smgsecretory, gse134174_invivo_smokers_basal_vs_ciliated, 
-gse134174_invivo_smokers_basal_vs_rare, gse134174_invivo_smokers_secretory_vs_ciliated, gse134174_invivo_smokers_secretory_vs_rare, 
-gse134174_invivo_smokers_mucussecretory_vs_smgsecretory, gse134174_invivo_smokers_mucussecretory_vs_krt8, 
-gse134174_invivo_smokers_ciliated_vs_rare, gse134174_invivo_smokers_ionocyteandtuft_vs_pnec
+gse134174_invivo_smokers_basal_vs_rare, gse134174_invivo_smokers_secretory_vs_ciliated, 
+gse134174_invivo_smokers_secretory_vs_rare, gse134174_invivo_smokers_mucussecretory_vs_smgsecretory, 
+gse134174_invivo_smokers_mucussecretory_vs_krt8, gse134174_invivo_smokers_ciliated_vs_rare, 
+gse134174_invivo_smokers_ionocyteandtuft_vs_pnec
 
 9. GSE134174 Processed invivo data (non smokers vs smokers): 
 gse134174_invivo_nonsmokers_vs_smokers, gse134174_invivo_smgbasalandnon_vs_smgbasalandsmokers, 
@@ -52,7 +54,8 @@ gse134174_invivo_mucussecretoryandnon_vs_mucussecretoryandsmokers
 gse134174_invivo_combined_basal_vs_basallineages
 
 #### For the paper: 
-1. Microarray datasets: allgse412, bc_ccgse3726, bladdergse89, braintumor, gastricgse2685, glioblastoma, leukemia_golub, lung, lunggse1987, mll, srbct
+1. Microarray datasets: allgse412, bc_ccgse3726, bladdergse89, braintumor, gastricgse2685, glioblastoma, 
+leukemia_golub, lung, lunggse1987, mll, srbct
 2. scRNA datasets: darmanis, yan, camp1, baron, baron_1, li, and patel
 3. Plasschaert-Human: plasschaert_human
 4. Plasschaert-Mouse: plasschaert_mouse

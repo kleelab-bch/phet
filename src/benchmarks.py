@@ -10,7 +10,7 @@ from model.deltaiqr import DeltaIQR
 from model.dids import DIDS
 from model.lsoss import LSOSS
 from model.most import MOST
-from model.ors import OutlierRobustStatistic
+from model.ort import OutlierRobustTstatistic
 from model.oss import OutlierSumStatistic
 from model.phet import PHeT
 from model.tstatistic import StudentTTest
@@ -35,11 +35,11 @@ def train(num_jobs: int = 4):
     plot_topKfeatures = False
     if not sort_by_pvalue:
         plot_topKfeatures = True
-    num_neighbors = 10
+    num_neighbors = 5
     max_clusters = 10
     bin_KS_pvalues = True
     feature_metric = "f1"
-    cluster_type = "spectral"  # "kmeans" or "spectral"
+    cluster_type = "spectral"
     methods = ["t-statistic", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "ΔIQR", "PHet"]
     methods_save_name = ["ttest", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "DeltaIQR"]
     if bin_KS_pvalues:
@@ -47,9 +47,9 @@ def train(num_jobs: int = 4):
     else:
         methods_save_name.append("PHet_nb")
 
-    # descriptions of the data
-    file_name = "baron_1"
-    suptitle_name = "Baron"
+    # Descriptions of the data
+    file_name = "srbct"
+    suptitle_name = "SRBCT"
 
     # Exprssion, classes, subtypes, donors, timepoints Files
     expression_file_name = file_name + "_matrix.mtx"
@@ -127,21 +127,21 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             methods[1]), end="\r")
-    estimator = COPA(q=0.75, direction=direction, permutation_test=False)
+    estimator = COPA(q=75, direction=direction, permutation_test=False)
     df_copa = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             methods[2]), end="\r")
-    estimator = OutlierSumStatistic(q=0.75, iqr_range=(25, 75), two_sided_test=False, direction=direction,
+    estimator = OutlierSumStatistic(q=75, iqr_range=(25, 75), two_sided_test=False, direction=direction,
                                     permutation_test=False)
     df_os = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             methods[3]), end="\r")
-    estimator = OutlierRobustStatistic(q=0.75, iqr_range=(25, 75), direction=direction,
-                                       permutation_test=False)
+    estimator = OutlierRobustTstatistic(q=75, iqr_range=(25, 75), direction=direction,
+                                        permutation_test=False)
     df_ort = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     current_progress += 1
 
@@ -173,7 +173,7 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             methods[8]), end="\r")
-    estimator = DeltaIQR(normalize="zscore", q=0.75, iqr_range=(25, 75), permutation_test=False)
+    estimator = DeltaIQR(normalize="zscore", iqr_range=(25, 75), permutation_test=False)
     df_iqr = estimator.fit_predict(X=X, y=y)
     current_progress += 1
 

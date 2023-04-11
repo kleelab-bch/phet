@@ -1,4 +1,5 @@
-![Workflow](flowchart.png)
+![Workflow](icon.png)
+<!-- ![Workflow](flowchart.png) -->
 
 ## Basic Description
 
@@ -52,4 +53,6 @@ If you find *U-Het* useful in your research, please consider citing the followin
 
 ## Contact
 
-For any inquiries, please contact: [Caleb.Hallinan@childrens.harvard.edu](mailto:Caleb.Hallinan@childrens.harvard.edu)
+For any inquiries, please contact: [ar.basher@childrens.harvard.edu
+](mailto:ar.basher@childrens.harvard.edu
+)

@@ -12,9 +12,7 @@ from mlxtend.evaluate import permutation_test
 
 
 class LSOSS:
-    def __init__(self, k: int = None, direction: str = "both", permutation_test: bool = False,
-                 num_rounds: int = 10000):
-        self.k = k
+    def __init__(self, direction: str = "both", permutation_test: bool = False, num_rounds: int = 10000):
         self.direction = direction  # up, down, both
         self.permutation_test = permutation_test
         self.num_rounds = num_rounds

@@ -16,7 +16,7 @@ SEED_VALUE = 0.001
 
 
 class PHeT:
-    def __init__(self, normalize: str = "zscore", iqr_range: int = (25, 75), num_subsamples: int = 1000,
+    def __init__(self, normalize: str = "zscore", iqr_range: float = (25, 75), num_subsamples: int = 1000,
                  subsampling_size: int = None, partition_by_anova: bool = False, calculate_deltaiqr: bool = True,
                  calculate_deltamean: bool = True, calculate_fisher: bool = True, calculate_profile: bool = True,
                  binary_clustering: bool = True, bin_KS_pvalues: bool = False, feature_weight: list = None,

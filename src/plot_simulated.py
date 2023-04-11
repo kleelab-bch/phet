@@ -172,7 +172,7 @@ df_ari.columns = ["Methods", "ARI"]
 df_ari["Methods"] = df_ari["Methods"].astype(str)
 df_ari["ARI"] = df_ari["ARI"].astype(np.float64)
 palette["DeltaIQR"] = palette["ΔIQR"]
-df_ari.groupby(["Methods"])["ARI"].median()
+df_ari.groupby(["Methods"])["ARI"].mean()
 
 # Plot ARI
 y_values = df_ari["ARI"].values

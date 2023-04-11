@@ -12,7 +12,7 @@ from scipy.stats import iqr
 
 
 class OutlierSumStatistic:
-    def __init__(self, q: float = 0.75, iqr_range: int = (25, 75), two_sided_test: bool = True,
+    def __init__(self, q: float = 75, iqr_range: float = (25, 75), two_sided_test: bool = True,
                  direction: str = "both", permutation_test: bool = False, num_rounds: int = 10000):
         self.q = q
         self.iqr_range = iqr_range
@@ -36,12 +36,13 @@ class OutlierSumStatistic:
         med = np.median(X, axis=0)
         mad = 1.4826 * np.median(np.absolute(X - med), axis=0)
         X = (X - med) / mad
+        np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
         # IQR estimation
         interquartile_range = iqr(X, axis=0, rng=self.iqr_range, scale=1.0)
         qr_pos = np.percentile(a=X, q=self.q, axis=0)
         qriqr_pos = qr_pos + interquartile_range
-        qr_neg = np.percentile(a=X, q=1 - self.q, axis=0)
+        qr_neg = np.percentile(a=X, q=100 - self.q, axis=0)
         qriqr_neg = qr_neg - interquartile_range
 
         # Include only test data

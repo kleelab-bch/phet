@@ -12,7 +12,7 @@ from model.deltaiqr import DeltaIQR
 from model.dids import DIDS
 from model.lsoss import LSOSS
 from model.most import MOST
-from model.ors import OutlierRobustStatistic
+from model.ort import OutlierRobustTstatistic
 from model.oss import OutlierSumStatistic
 from model.phet import PHeT
 from model.tstatistic import StudentTTest
@@ -98,7 +98,7 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "COPA"),
               end="\r")
-        estimator = COPA(q=0.75, direction=direction, permutation_test=False)
+        estimator = COPA(q=75, direction=direction, permutation_test=False)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -114,7 +114,7 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "OS"),
               end="\r")
-        estimator = OutlierSumStatistic(q=0.75, iqr_range=(25, 75), two_sided_test=False,
+        estimator = OutlierSumStatistic(q=75, iqr_range=(25, 75), two_sided_test=False,
                                         direction=direction, permutation_test=False)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -131,7 +131,7 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "ORT"),
               end="\r")
-        estimator = OutlierRobustStatistic(q=0.75, iqr_range=(25, 75), direction=direction, permutation_test=False)
+        estimator = OutlierRobustTstatistic(q=75, iqr_range=(25, 75), direction=direction, permutation_test=False)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -213,7 +213,7 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                 "DeltaIQR"), end="\r")
-        estimator = DeltaIQR(normalize="zcore", q=0.75, iqr_range=(25, 75), permutation_test=False)
+        estimator = DeltaIQR(normalize="zcore", iqr_range=(25, 75), permutation_test=False)
         top_features_pred = estimator.fit_predict(X=X, y=y)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)

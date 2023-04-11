@@ -10,12 +10,12 @@ from mlxtend.evaluate import permutation_test
 
 
 class COPA:
-    def __init__(self, q: float = 0.75, direction: str = "both", permutation_test: bool = False,
-                 num_iterations: int = 10000):
+    def __init__(self, q: float = 75, direction: str = "both", permutation_test: bool = False,
+                 num_rounds: int = 10000):
         self.q = q
         self.direction = direction  # up, down, both
         self.permutation_test = permutation_test
-        self.num_iterations = num_iterations
+        self.num_rounds = num_rounds
 
     def fit_predict(self, X, y, control_class: int = 0, case_class: int = 1):
         # Sanity checking
@@ -37,7 +37,7 @@ class COPA:
         case_X = X[np.where(y == case_class)[0]]
 
         # Calculate statistics
-        results = (np.percentile(a=case_X, q=100 * self.q, axis=0) - med) / mad
+        results = (np.percentile(a=case_X, q=self.q, axis=0) - med) / mad
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
         if self.permutation_test:
@@ -47,15 +47,15 @@ class COPA:
                 if self.direction == "up":
                     temp = permutation_test(x=control_X[:, feature_idx], y=case_X[:, feature_idx],
                                             func="x_mean > y_mean", method="approximate",
-                                            num_rounds=self.num_iterations)
+                                            num_rounds=self.num_rounds)
                 elif self.direction == "down":
                     temp = permutation_test(x=control_X[:, feature_idx], y=case_X[:, feature_idx],
                                             func="x_mean < y_mean", method="approximate",
-                                            num_rounds=self.num_iterations)
+                                            num_rounds=self.num_rounds)
                 else:
                     temp = permutation_test(x=control_X[:, feature_idx], y=case_X[:, feature_idx],
                                             func="x_mean != y_mean", method="approximate",
-                                            num_rounds=self.num_iterations)
+                                            num_rounds=self.num_rounds)
                 pvals[feature_idx] += temp
 
             results = np.vstack((results, pvals)).T
