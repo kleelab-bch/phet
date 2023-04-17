@@ -11,12 +11,11 @@ from scipy.stats import zscore
 
 
 class DeltaIQR:
-    def __init__(self, normalize: str = None, iqr_range: int = (25, 75), permutation_test: bool = False,
-                 num_rounds: int = 10000):
+    def __init__(self, calculate_deltamean: bool = True, normalize: str = None,
+                 iqr_range: int = (25, 75)):
+        self.calculate_deltamean = calculate_deltamean
         self.normalize = normalize
         self.iqr_range = iqr_range
-        self.permutation_test = permutation_test
-        self.num_rounds = num_rounds
 
     def fit_predict(self, X, y):
         # Extract properties
@@ -75,9 +74,10 @@ class DeltaIQR:
         results.columns = ['iqr']
         results['median_diff'] = diff_means
         results['ttest'] = ttest_statistics
-        results['score'] = np.array(diff_iqrs) + np.array(diff_means)
+        results['score'] = np.array(diff_iqrs)
+        if self.calculate_deltamean:
+            results['score'] += np.array(diff_means)
         results['class_diff'] = classes
-
         results = results.to_numpy()
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
         return results
