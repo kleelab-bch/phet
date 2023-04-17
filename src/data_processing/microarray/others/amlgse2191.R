@@ -1,39 +1,36 @@
-# Hatzis C, Pusztai L, Valero V, Booser DJ et al. A genomic predictor of response and survival following taxane-anthracycline chemotherapy for invasive breast cancer. JAMA 2011 May 11;305(18):1873-81.
+# Yagi, T., Morimoto, A., Eguchi, M., Hibi, S., Sako, M., Ishii, E., Mizutani, S., Imashuku, S., Ohki, M. and Ichikawa, H., 2003. Identification of a gene expression signature associated with pediatric AML prognosis. Blood, 102(5), pp.1849-1856.
 
 # Differential expression analysis with limma
-require(GEOquery)
 require(limma)
 require(umap)
 require(Matrix)
+
 working_dir <- file.path("R:/GeneAnalysis/data")
-file_name <- "bcca1"
+file_name <- "amlgse2191"
 
 # load series and platform data from GEO
-gset <- getGEO("GSE25055", destdir = working_dir, GSEMatrix = TRUE,
-               AnnotGPL = TRUE)
-if (length(gset) > 1) idx <- grep("GPL570", attr(gset, "names")) else idx <- 1
-gset <- gset[[idx]]
-
-# make proper column names to match toptable 
-fvarLabels(gset) <- make.names(fvarLabels(gset))
+gset <- read.delim(file.path(working_dir, paste(file_name, ".tab", sep = "")),
+                   header = TRUE, sep = "\t", check.names = FALSE,
+                   stringsAsFactors = FALSE)
+gset <- as.data.frame(as.matrix(gset)[3:nrow(gset),])
+drop_cols <- c("", "sample", "outcome")
+classes <- gset$outcome
+features <- colnames(gset)[!(names(gset) %in% drop_cols)]
+gset <- gset[, features]
+gset <- as.data.frame(lapply(gset, as.numeric))
+features <- colnames(gset)[!(names(gset) %in% drop_cols)]
 
 # group membership for all samples
-gsms <- paste0("1X001001010010000010000011110X11110111XX0010001010",
-               "0100100100001001110XXX10101110X1011001001110001X00",
-               "101111011111101000101100X11010X11X011XX11111010101",
-               "11000011101XX1011X0X111100110001110101010X010010XX",
-               "10110000111011010X101010000X00001100100001010101X1",
-               "000111110110101X1001110010011001000101001011010001",
-               "0011111010")
+# 0: remission (remission): 28 examples (51.9%)
+# 1: relapse (relapse): 26 examples (48.1%)
+gsms <- c(0, 1)
+names(gsms) <- unique(classes)
+gsms <- gsms[classes]
+gsms <- paste0(gsms, collapse = "")
 sml <- strsplit(gsms, split = "")[[1]]
 
-# filter out excluded samples (marked as "X")
-sel <- which(sml != "X")
-sml <- sml[sel]
-gset <- gset[, sel]
-
 # collect subtypes 
-subtypes <- gset@phenoData@data[["pam50_class:ch1"]]
+subtypes <- classes
 write.table(as.data.frame(subtypes), 
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
@@ -45,26 +42,16 @@ write.table(as.data.frame(classes),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-features <- gset@featureData@data["ID"]
-names(features) <- "features"
 write.table(as.data.frame(features), 
             file = file.path(working_dir, 
                              paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
-# log2 transformation
-ex <- exprs(gset)
-df <- as.data.frame(t(ex))
-df <- data.matrix(df)
+# save data
+df <- data.matrix(gset)
 df <- as(df, "dgCMatrix")
 writeMM(df, file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 remove(df)
-
-qx <- as.numeric(quantile(ex, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm = T))
-LogC <- (qx[5] > 100) ||
-  (qx[6] - qx[1] > 50 && qx[2] > 0)
-if (LogC) { ex[which(ex <= 0)] <- NaN
-  exprs(gset) <- log2(ex) }
 
 # assign samples to groups and set up design matrix
 gs <- factor(sml)
@@ -74,6 +61,8 @@ gset$group <- gs
 design <- model.matrix(~group + 0, gset)
 colnames(design) <- levels(gs)
 
+gset <- gset[, !(names(gset) %in% "group")]
+gset <- t(gset)
 fit <- lmFit(gset, design)  # fit linear model
 
 # set up contrasts of interest and recalculate model coefficients
@@ -87,7 +76,7 @@ tT <- topTable(fit2, adjust = "fdr", sort.by = "B", number = 10000)
 temp <- rownames(tT)
 rownames(tT) <- NULL
 tT <- cbind("ID" = temp, tT)
-write.table(tT, file = file.path(working_dir, paste(file_name, "_diff_features.csv",
+write.table(tT, file = file.path(working_dir, paste(file_name, "_limma_features.csv",
                                                     sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
@@ -119,20 +108,38 @@ volcanoplot(fit2, coef = ct, main = colnames(fit2)[ct], pch = 20,
 plotMD(fit2, column = ct, status = dT[, ct], legend = F, pch = 20, cex = 1)
 abline(h = 0)
 
+################################################################
+# box-and-whisker plot
+dev.new(width = 3 + ncol(gset) / 6, height = 5)
+ord <- order(gs)  # order samples by group
+palette(c("#1B9E77", "#7570B3", "#E7298A", "#E6AB02", "#D95F02",
+          "#66A61E", "#A6761D", "#B32424", "#B324B3", "#666666"))
+par(mar = c(7, 4, 2, 1))
+title <- paste(toupper(file_name), sep = "")
+boxplot(gset[, ord], boxwex = 0.6, notch = T, main = title, outline = FALSE, las = 2, col = gs[ord])
+legend("topleft", groups, fill = palette(), bty = "n")
+dev.off()
+
 # expression value distribution
 par(mar = c(4, 4, 2, 1))
 title <- paste(toupper(file_name), " value distribution", sep = "")
 plotDensities(gset, group = gs, main = title, legend = "topright")
 
 # UMAP plot (dimensionality reduction)
-gset <- exprs(gset)
 gset <- na.omit(gset) # eliminate rows with NAs
 gset <- gset[!duplicated(gset),]  # remove duplicates
-ump <- umap(t(gset), n_neighbors = 5, random_state = 123)
+temp <- tT[tT$adj.P.Val <= 0.01, ]$ID
+gset <- gset[temp, ]
+classes <- factor(classes)
+ump <- umap(t(gset), n_neighbors = 5, min_dist = 0.01, n_epochs = 2000, 
+            random_state = 123)
 par(mar = c(3, 3, 2, 6), xpd = TRUE)
-plot(ump$layout, main = "UMAP plot, nbrs=5", xlab = "", ylab = "", col = gs, pch = 20, cex = 1.5)
-legend("topright", inset = c(-0.15, 0), legend = levels(gs), pch = 20,
-       col = 1:nlevels(gs), title = "Group", pt.cex = 1.5)
+plot(ump$layout, main = paste(toupper(file_name), "\nFeatures: ", length(temp)), 
+     xlab = "", ylab = "", 
+     col = classes, pch = 20, cex = 1.5)
+legend("topright", inset = c(-0.15, 0), legend = levels(classes), pch = 20,
+       col = 1:nlevels(classes), title = "Group", pt.cex = 1.5)
 
 # mean-variance trend, helps to see if precision weights are needed
 plotSA(fit2, main = paste("Mean variance trend,", toupper(file_name)))
+

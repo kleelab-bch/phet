@@ -1,4 +1,5 @@
-# Raetz, E.A., Perkins, S.L., Bhojwani, D., Smock, K., Philip, M., Carroll, W.L. and Min, D.J., 2006. Gene expression profiling reveals intrinsic differences between Tcell acute lymphoblastic leukemia and T‐cell lymphoblastic lymphoma. Pediatric blood & cancer, 47(2), pp.130-140.
+# Chang, J.C., Wooten, E.C., Tsimelzon, A., Hilsenbeck, S.G., Gutierrez, M.C., Elledge, R., Mohsin, S., Osborne, C.K., Chamness, G.C., Allred, D.C. and O'Connell, P., 2003. Gene expression profiling for the prediction of therapeutic response to docetaxel in patients with breast cancer. The Lancet, 362(9381), pp.362-369.
+# Chang, J.C., Wooten, E.C., Tsimelzon, A., Hilsenbeck, S.G., Gutierrez, M.C., Tham, Y.L., Kalidas, M., Elledge, R., Mohsin, S., Osborne, C.K. and Chamness, G.C., 2005. Patterns of resistance and incomplete response to docetaxel by gene expression profiling in breast cancer patients. Journal of Clinical Oncology, 23(6), pp.1169-1177.
 
 # Differential expression analysis with limma
 require(limma)
@@ -6,7 +7,7 @@ require(umap)
 require(Matrix)
 
 working_dir <- file.path("R:/GeneAnalysis/data")
-file_name <- "ll_gse1577_2razreda"
+file_name <- "bcgse349_350"
 
 # load series and platform data from GEO
 gset <- read.delim(file.path(working_dir, paste(file_name, ".tab", sep = "")),
@@ -21,8 +22,8 @@ gset <- as.data.frame(lapply(gset, as.numeric))
 features <- colnames(gset)[!(names(gset) %in% drop_cols)]
 
 # group membership for all samples
-# 0: T-cell lymphoblastic lymphoma (T-LL): 9 examples (47.4%)
-# 1: T-cell acute lymphoblastic leukemia (T-ALL): 10 examples (52.6%)
+# 0: resistant to docetaxel treatment (resistant): 14 examples (58.3%)
+# 1: sensitive to docetaxel treatment (sensitive): 10 examples (41.7%)
 gsms <- c(0, 1)
 names(gsms) <- unique(classes)
 gsms <- gsms[classes]
@@ -76,7 +77,7 @@ tT <- topTable(fit2, adjust = "fdr", sort.by = "B", number = 10000)
 temp <- rownames(tT)
 rownames(tT) <- NULL
 tT <- cbind("ID" = temp, tT)
-write.table(tT, file = file.path(working_dir, paste(file_name, "_diff_features.csv",
+write.table(tT, file = file.path(working_dir, paste(file_name, "_limma_features.csv",
                                                     sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
@@ -116,11 +117,17 @@ plotDensities(gset, group = gs, main = title, legend = "topright")
 # UMAP plot (dimensionality reduction)
 gset <- na.omit(gset) # eliminate rows with NAs
 gset <- gset[!duplicated(gset),]  # remove duplicates
-ump <- umap(t(gset), n_neighbors = 5, random_state = 123)
+temp <- tT[tT$adj.P.Val <= 0.01, ]$ID
+gset <- gset[temp, ]
+classes <- factor(classes)
+ump <- umap(t(gset), n_neighbors = 5, min_dist = 0.01, n_epochs = 2000, 
+            random_state = 123)
 par(mar = c(3, 3, 2, 6), xpd = TRUE)
-plot(ump$layout, main = "UMAP plot, nbrs=5", xlab = "", ylab = "", col = gs, pch = 20, cex = 1.5)
-legend("topright", inset = c(-0.15, 0), legend = levels(gs), pch = 20,
-       col = 1:nlevels(gs), title = "Group", pt.cex = 1.5)
+plot(ump$layout, main = paste(toupper(file_name), "\nFeatures: ", length(temp)), 
+     xlab = "", ylab = "", 
+     col = classes, pch = 20, cex = 1.5)
+legend("topright", inset = c(-0.15, 0), legend = levels(classes), pch = 20,
+       col = 1:nlevels(classes), title = "Group", pt.cex = 1.5)
 
 # mean-variance trend, helps to see if precision weights are needed
 plotSA(fit2, main = paste("Mean variance trend,", toupper(file_name)))

@@ -10,14 +10,14 @@ from scipy.stats import iqr
 from scipy.stats import zscore
 
 
-class DeltaIQR:
+class DeltaIQRMean:
     def __init__(self, calculate_deltamean: bool = True, normalize: str = None,
                  iqr_range: int = (25, 75)):
         self.calculate_deltamean = calculate_deltamean
         self.normalize = normalize
         self.iqr_range = iqr_range
 
-    def fit_predict(self, X, y):
+    def fit_predict(self, X, y, control_class: int = 0, case_class: int = 1):
         # Extract properties
         num_classes = len(np.unique(y))
         num_features = X.shape[1]

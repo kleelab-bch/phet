@@ -1,35 +1,36 @@
+# MacDonald, T.J., Brown, K.M., LaFleur, B., Peterson, K., Lawlor, C., Chen, Y., Packer, R.J., Cogen, P. and Stephan, D.A., 2001. Expression profiling of medulloblastoma: PDGFRA and the RAS/MAPK pathway as therapeutic targets for metastatic disease. Nature genetics, 29(2), pp.143-152.
+
 # Differential expression analysis with limma
-require(GEOquery)
 require(limma)
 require(umap)
 require(Matrix)
 
 working_dir <- file.path("R:/GeneAnalysis/data")
-file_name <- "myelodysplastic_mds1"
+file_name <- "meduloblastomigse468"
 
 # load series and platform data from GEO
-gset <- getGEO("GSE19429", destdir = working_dir, GSEMatrix = TRUE,
-               AnnotGPL = TRUE)
-if (length(gset) > 1) idx <- grep("GPL570", attr(gset, "names")) else idx <- 1
-gset <- gset[[idx]]
-
-# make proper column names to match toptable 
-fvarLabels(gset) <- make.names(fvarLabels(gset))
+gset <- read.delim(file.path(working_dir, paste(file_name, ".tab", sep = "")),
+                   header = TRUE, sep = "\t", check.names = FALSE,
+                   stringsAsFactors = FALSE)
+gset <- as.data.frame(as.matrix(gset)[3:nrow(gset),])
+drop_cols <- c("", "sample", "class")
+classes <- gset$class
+features <- colnames(gset)[!(names(gset) %in% drop_cols)]
+gset <- gset[, features]
+gset <- as.data.frame(lapply(gset, as.numeric))
+features <- colnames(gset)[!(names(gset) %in% drop_cols)]
 
 # group membership for all samples
-gsms <- paste0("XXX0XXX1XXX0X00XXX1XXXX1XX0X1XXX1X1XX1XXX0XX1X11XX",
-               "1111XX0XX1XXXX010010101100001111000XXX1XXX0XXXXXXX",
-               "XXXXX1100111X00X01100X0XXXX1XX0XXXXX00XX1X11XXXX01",
-               "XX1XXXX1X1XX01XX1X0XXXX01X0XXXX0XXXXXXXXXXXXXXXXXX")
+# 0: metastatic medulloblastoma (Met): 10 examples (43.5%)
+# 1: non-metastatic medulloblastoma (NonMet): 13 examples (56.5%)
+gsms <- c(0, 1)
+names(gsms) <- unique(classes)
+gsms <- gsms[classes]
+gsms <- paste0(gsms, collapse = "")
 sml <- strsplit(gsms, split = "")[[1]]
 
-# filter out excluded samples (marked as "X")
-sel <- which(sml != "X")
-sml <- sml[sel]
-gset <- gset[, sel]
-
 # collect subtypes 
-subtypes <- gset@phenoData@data[["characteristics_ch1.3"]]
+subtypes <- classes
 write.table(as.data.frame(subtypes), 
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
@@ -41,26 +42,16 @@ write.table(as.data.frame(classes),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-features <- gset@featureData@data["ID"]
-names(features) <- "features"
 write.table(as.data.frame(features), 
             file = file.path(working_dir, 
                              paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
-# log2 transformation
-ex <- exprs(gset)
-df <- as.data.frame(t(ex))
-df <- data.matrix(df)
+# save data
+df <- data.matrix(gset)
 df <- as(df, "dgCMatrix")
 writeMM(df, file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 remove(df)
-
-qx <- as.numeric(quantile(ex, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm = T))
-LogC <- (qx[5] > 100) ||
-  (qx[6] - qx[1] > 50 && qx[2] > 0)
-if (LogC) { ex[which(ex <= 0)] <- NaN
-exprs(gset) <- log2(ex) }
 
 # assign samples to groups and set up design matrix
 gs <- factor(sml)
@@ -70,6 +61,8 @@ gset$group <- gs
 design <- model.matrix(~group + 0, gset)
 colnames(design) <- levels(gs)
 
+gset <- gset[, !(names(gset) %in% "group")]
+gset <- t(gset)
 fit <- lmFit(gset, design)  # fit linear model
 
 # set up contrasts of interest and recalculate model coefficients
@@ -83,7 +76,7 @@ tT <- topTable(fit2, adjust = "fdr", sort.by = "B", number = 10000)
 temp <- rownames(tT)
 rownames(tT) <- NULL
 tT <- cbind("ID" = temp, tT)
-write.table(tT, file = file.path(working_dir, paste(file_name, "_diff_features.csv",
+write.table(tT, file = file.path(working_dir, paste(file_name, "_limma_features.csv",
                                                     sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
@@ -121,14 +114,19 @@ title <- paste(toupper(file_name), " value distribution", sep = "")
 plotDensities(gset, group = gs, main = title, legend = "topright")
 
 # UMAP plot (dimensionality reduction)
-gset <- exprs(gset)
 gset <- na.omit(gset) # eliminate rows with NAs
 gset <- gset[!duplicated(gset),]  # remove duplicates
-ump <- umap(t(gset), n_neighbors = 5, random_state = 123)
+temp <- tT[tT$adj.P.Val <= 0.01, ]$ID
+gset <- gset[temp, ]
+classes <- factor(classes)
+ump <- umap(t(gset), n_neighbors = 5, min_dist = 0.01, n_epochs = 2000, 
+            random_state = 123)
 par(mar = c(3, 3, 2, 6), xpd = TRUE)
-plot(ump$layout, main = "UMAP plot, nbrs=5", xlab = "", ylab = "", col = gs, pch = 20, cex = 1.5)
-legend("topright", inset = c(-0.15, 0), legend = levels(gs), pch = 20,
-       col = 1:nlevels(gs), title = "Group", pt.cex = 1.5)
+plot(ump$layout, main = paste(toupper(file_name), "\nFeatures: ", length(temp)), 
+     xlab = "", ylab = "", 
+     col = classes, pch = 20, cex = 1.5)
+legend("topright", inset = c(-0.15, 0), legend = levels(classes), pch = 20,
+       col = 1:nlevels(classes), title = "Group", pt.cex = 1.5)
 
 # mean-variance trend, helps to see if precision weights are needed
 plotSA(fit2, main = paste("Mean variance trend,", toupper(file_name)))

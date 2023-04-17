@@ -9,12 +9,6 @@ bpparam <- MulticoreParam()
 
 working_dir <- file.path("R:/GeneAnalysis/data")
 
-# Simulated Datasets:
-# 1. simulated_normal, simulated_normal_minority, simulated_normal_minority_features,
-# simulated_normal_mixed, simulated_normal_mixed_features
-# 2. simulated_weak, simulated_weak_minority, simulated_weak_minority_features,
-# simulated_weak_mixed, simulated_weak_mixed_features
-
 # Micro-array datasets:
 # allgse412, amlgse2191, bc_ccgse3726, bcca1, bcgse349_350, bladdergse89, braintumor,
 # cmlgse2535, colon, dlbcl, ewsgse967, gastricgse2685, glioblastoma, leukemia_golub,
@@ -24,7 +18,7 @@ working_dir <- file.path("R:/GeneAnalysis/data")
 # scRNA datasets:
 # camp2, darmanis, lake, yan, camp1, baron, baron_1, segerstolpe, wang, li, and patel
 
-file_name <- "baron_1"
+file_name <- "srbct"
 iterations <- 1000
 q.val <- 0.01
 
@@ -54,7 +48,7 @@ StatFeature <- subSampling[["subStatFeature"]]
 StatFeature <- StatFeature[c("ID", "Standard.Chi.Square")]
 colnames(StatFeature) <- c("features", "score")
 write.table(as.data.frame(StatFeature),
-            file = file.path(working_dir, paste(file_name, "_deco.csv", sep = "")),
+            file = file.path(working_dir, paste(file_name, "_deco_features.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 remove(StatFeature, gset)
 

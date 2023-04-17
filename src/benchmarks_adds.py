@@ -5,17 +5,10 @@ import pandas as pd
 import scanpy as sc
 import seaborn as sns
 
-from model.copa import COPA
 from model.deltahvfmean import DeltaHVFMean
 from model.deltaiqrmean import DeltaIQRMean
-from model.dids import DIDS
 from model.hvf import SeuratHVF, HIQR
-from model.lsoss import LSOSS
-from model.most import MOST
 from model.nonparametric_test import StudentTTest, WilcoxonRankSumTest
-from model.ort import OutlierRobustTstatistic
-from model.oss import OutlierSumStatistic
-from model.phet import PHeT
 from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.plot_utils import plot_umap, plot_barplot
 from utility.utils import comparative_score
@@ -27,26 +20,10 @@ np.random.seed(seed=12345)
 
 
 def train(num_jobs: int = 4):
-    # Filtering arguments
+    # Arguments
+    direction = "both"
     minimum_samples = 5
     pvalue = 0.01
-
-    # Models parameters
-    direction = "both"
-    bin_KS_pvalues = True
-    methods = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma", "LIMMA", "LIMMA+Gamma",
-               "HVF (composite)", "HVF (by condition)", "ΔHVF", "ΔHVF+ΔMean", "IQR (composite)",
-               "IQR (by condition)", "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS",
-               "DECO", "PHet"]
-    methods_save_name = ["ttest_p", "ttest_g", "wilcoxon_p", "wilcoxon_g", "limma_p", "limma_g", "hvf_a",
-                         "hvf_c", "deltahvf", "deltahvfmean", "iqr_a", "iqr_c", "deltaiqr", "deltaiqrmean",
-                         "copa", "os", "ort", "most", "lsoss", "dids", "deco"]
-    if bin_KS_pvalues:
-        methods_save_name.append("PHet_b")
-    else:
-        methods_save_name.append("PHet_nb")
-
-    # Clustering and UMAP parameters
     sort_by_pvalue = True
     export_spring = False
     topKfeatures = 100
@@ -56,11 +33,17 @@ def train(num_jobs: int = 4):
     num_neighbors = 5
     max_clusters = 10
     feature_metric = "f1"
-    cluster_type = "spectral"
-
+    cluster_type = "kmeans"
+    methods = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma",
+               "LIMMA", "LIMMA+Gamma", "HVF (composite)", "HVF (by condition)",
+               "ΔHVF", "ΔHVF+ΔMean", "IQR (composite)", "IQR (by condition)",
+               "ΔIQR", "ΔIQR+ΔMean"]
+    methods_save_name = ["ttest_p", "ttest_g", "wilcoxon_p", "wilcoxon_g", "limma_p",
+                         "limma_g", "hvf_a", "hvf_c", "deltahvf", "deltahvfmean",
+                         "iqr_a", "iqr_c", "deltaiqr", "deltaiqrmean"]
     # Descriptions of the data
-    file_name = "li"
-    suptitle_name = "Li"
+    file_name = "darmanis"
+    suptitle_name = "Darmanis"
 
     # Exprssion, classes, subtypes, donors, timepoints Files
     expression_file_name = file_name + "_matrix.mtx"
@@ -135,8 +118,8 @@ def train(num_jobs: int = 4):
                                                             methods[0]), end="\r")
     estimator = StudentTTest(use_statistics=False, direction=direction)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, 
-                       ttest=False, ascending=True)
+    df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False)
+    df.sort_values(by="score", inplace=True, ascending=True)
     df = df[df["score"] <= pvalue]
     methods_dict.update({methods[0]: df})
     current_progress += 1
@@ -152,8 +135,8 @@ def train(num_jobs: int = 4):
                                                             methods[2]), end="\r")
     estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, 
-                       ttest=False, ascending=True)
+    df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False)
+    df.sort_values(by="score", inplace=True, ascending=True)
     df = df[df["score"] <= pvalue]
     methods_dict.update({methods[2]: df})
     current_progress += 1
@@ -238,70 +221,11 @@ def train(num_jobs: int = 4):
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            methods[13]), end="\r")
+                                                            methods[13]))
     estimator = DeltaIQRMean(calculate_deltamean=True, normalize="zscore", iqr_range=(25, 75))
     df = estimator.fit_predict(X=X, y=y)
     methods_dict.update({methods[13]: df})
     current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            methods[14]), end="\r")
-    estimator = COPA(q=75)
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    methods_dict.update({methods[14]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            methods[15]), end="\r")
-    estimator = OutlierSumStatistic(q=75, iqr_range=(25, 75), two_sided_test=False)
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    methods_dict.update({methods[15]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            methods[16]), end="\r")
-    estimator = OutlierRobustTstatistic(q=75, iqr_range=(25, 75))
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    methods_dict.update({methods[16]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            methods[17]), end="\r")
-    estimator = MOST()
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    methods_dict.update({methods[17]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            methods[18]), end="\r")
-    estimator = LSOSS(direction=direction)
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    methods_dict.update({methods[18]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            methods[19]), end="\r")
-    estimator = DIDS(score_function="tanh", direction=direction)
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    methods_dict.update({methods[19]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            methods[20]), end="\r")
-    df = pd.read_csv(os.path.join(DATASET_PATH, file_name + "_deco_features.csv"), sep=',')
-    df = [(features_name[feature_ids[int(item[1][0])]], item[1][1]) for item in df.iterrows()]
-    df = pd.DataFrame(df, columns=["features", "score"])
-    methods_dict.update({methods[20]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            methods[21]))
-    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
-                     calculate_deltahvf=False, calculate_fisher=True, calculate_profile=True,
-                     bin_KS_pvalues=bin_KS_pvalues, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                     weight_range=[0.1, 0.4, 0.8])
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    methods_dict.update({methods[21]: df})
 
     if sort_by_pvalue:
         print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))
@@ -350,16 +274,7 @@ def train(num_jobs: int = 4):
     plot_barplot(X=list_scores, methods_name=methods, metric=feature_metric, suptitle=suptitle_name,
                  file_name=file_name, save_path=RESULT_PATH)
 
-    list_scores = list()
-    print("## Plot UMAP using all features ({0})...".format(num_features))
-    score = plot_umap(X=X, y=y, subtypes=subtypes, features_name=features_name, num_features=num_features,
-                      standardize=True, num_neighbors=num_neighbors, min_dist=0, perform_cluster=True,
-                      cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
-                      apply_hungarian=False, heatmap_plot=False, num_jobs=num_jobs,
-                      suptitle=suptitle_name + "\nAll", file_name=file_name + "_all",
-                      save_path=RESULT_PATH)
-    list_scores.append(score)
-
+    list_scores = [0]
     if plot_topKfeatures:
         print("## Plot UMAP using the top {0} features...".format(topKfeatures))
     else:

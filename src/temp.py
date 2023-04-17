@@ -1,12 +1,14 @@
 import os
+
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import scanpy as sc
-from utility.file_path import DATASET_PATH, RESULT_PATH
+import seaborn as sns
+from scipy.stats import iqr
 from scipy.stats import zscore, gamma
-from scipy.stats import iqr, ttest_ind
 from statsmodels.stats.weightstats import ztest
+
+from utility.file_path import DATASET_PATH, RESULT_PATH
 
 sns.set_theme()
 sns.set_theme(style="white")
@@ -57,29 +59,28 @@ features_name = np.array(features_name)[feature_ids].tolist()
 X = X[:, feature_ids]
 feature_ids = dict([(feature_idx, idx) for idx, feature_idx in enumerate(feature_ids)])
 num_examples, num_features = X.shape
-X = zscore(X, axis=0)
+# X = zscore(X, axis=0)
 del temp, feature_sums
 
-H = np.zeros((num_features, ))
-D = np.zeros((num_features, ))
-HD = np.zeros((num_features, ))
+H = np.zeros((num_features,))
+D = np.zeros((num_features,))
+HD = np.zeros((num_features,))
 examples_i = np.where(y == 0)[0]
 examples_j = np.where(y == 1)[0]
 for feature_idx in range(num_features):
-    iqr1 = iqr(X[examples_i, feature_idx], rng=(25,75), scale=1.0)
-    iqr2 = iqr(X[examples_j, feature_idx], rng=(25,75), scale=1.0)
+    iqr1 = iqr(X[examples_i, feature_idx], rng=(25, 75), scale=1.0)
+    iqr2 = iqr(X[examples_j, feature_idx], rng=(25, 75), scale=1.0)
     if iqr1 < 0.05 or iqr2 < 0.05:
         continue
     mean1 = np.mean(X[examples_i, feature_idx])
     mean2 = np.mean(X[examples_j, feature_idx])
     statistic, pvalue = ztest(X[examples_i, feature_idx], X[examples_j, feature_idx])
-    H[feature_idx] = np.absolute(iqr1 - iqr2) 
+    H[feature_idx] = np.absolute(iqr1 - iqr2)
     D[feature_idx] = np.absolute(statistic)
-
 temp = list()
 for feature_type in [H, D]:
     shape, loc, scale = gamma.fit(zscore(feature_type))
-    selected_features = np.where((1 - gamma.cdf(zscore(feature_type), shape, 
+    selected_features = np.where((1 - gamma.cdf(zscore(feature_type), shape,
                                                 loc=loc, scale=scale)) <= 0.01)[0]
     temp.append(selected_features)
 H = temp[0]
@@ -87,7 +88,7 @@ D = temp[1]
 HD = list(set(temp[0]).intersection(temp[1]))
 df_type = pd.DataFrame([H, D, HD], dtype=np.int16).T
 df_type.columns = ["H", "D", "HD"]
-feature_idx = 5946
+feature_idx = 2609
 sns.boxplot(y=X[:, feature_idx], x=y, width=0.85, showfliers=False,
             showmeans=True, meanprops={"marker": "D",
                                        "markerfacecolor": "white",
@@ -95,7 +96,6 @@ sns.boxplot(y=X[:, feature_idx], x=y, width=0.85, showfliers=False,
                                        "markersize": "15"})
 sns.stripplot(y=X[:, feature_idx], x=y, color="black",
               s=8, linewidth=0, alpha=.4)
-
 
 # Load subtypes file
 df_disp = pd.read_csv(os.path.join(RESULT_PATH,
@@ -129,7 +129,7 @@ del df_disp, df_disp_conditions, df_iqr_conditions, df_iqr
 temp = list()
 for column in df.columns:
     shape, loc, scale = gamma.fit(zscore(df[column]))
-    selected_features = np.where((1 - gamma.cdf(zscore(df[column]), shape, 
+    selected_features = np.where((1 - gamma.cdf(zscore(df[column]), shape,
                                                 loc=loc, scale=scale)) <= 0.05)[0]
     temp.append(df.iloc[selected_features].index.tolist())
 df_confusion = np.zeros((4, 4))

@@ -8,14 +8,11 @@ pp.BMI-S5175.
 '''
 
 import numpy as np
-from mlxtend.evaluate import permutation_test
 
 
 class LSOSS:
-    def __init__(self, direction: str = "both", permutation_test: bool = False, num_rounds: int = 10000):
+    def __init__(self, direction: str = "both"):
         self.direction = direction  # up, down, both
-        self.permutation_test = permutation_test
-        self.num_rounds = num_rounds
 
     def fit_predict(self, X, y, control_class: int = 0, case_class: int = 1):
         # Sanity checking
@@ -76,27 +73,5 @@ class LSOSS:
             if self.direction == "both":
                 results[feature_idx] += (m - k) * ((mean2 - mean_control[feature_idx]) / SE)
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
-
-        if self.permutation_test:
-            # Permutation based p-value calculation using approximate method
-            pvals = np.zeros((num_features,))
-            for feature_idx in range(num_features):
-                if self.direction == "up":
-                    temp = permutation_test(x=control_X[:, feature_idx], y=case_X[:, feature_idx],
-                                            func="x_mean > y_mean", method="approximate",
-                                            num_rounds=self.num_rounds)
-                elif self.direction == "down":
-                    temp = permutation_test(x=control_X[:, feature_idx], y=case_X[:, feature_idx],
-                                            func="x_mean < y_mean", method="approximate",
-                                            num_rounds=self.num_rounds)
-                else:
-                    temp = permutation_test(x=control_X[:, feature_idx], y=case_X[:, feature_idx],
-                                            func="x_mean != y_mean", method="approximate",
-                                            num_rounds=self.num_rounds)
-                pvals[feature_idx] += temp
-
-            results = np.vstack((results, pvals)).T
-        else:
-            results = np.reshape(results, (results.shape[0], 1))
-
+        results = np.reshape(results, (results.shape[0], 1))
         return results

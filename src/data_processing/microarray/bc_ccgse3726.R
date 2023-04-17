@@ -2,6 +2,9 @@
 
 # Differential expression analysis with limma
 require(limma)
+require(edgeR)
+require(dearseq)
+require(matrixTests)
 require(umap)
 require(Matrix)
 
@@ -53,33 +56,95 @@ df <- as(df, "dgCMatrix")
 writeMM(df, file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 remove(df)
 
-# assign samples to groups and set up design matrix
+#######################################################################
+################## Differential Expression Analysis ###################
+#######################################################################
+# Assign samples to groups and set up design matrix
 gs <- factor(sml)
 groups <- make.names(c("Control", "Case"))
 levels(gs) <- groups
 gset$group <- gs
 design <- model.matrix(~group + 0, gset)
 colnames(design) <- levels(gs)
-
 gset <- gset[, !(names(gset) %in% "group")]
 gset <- t(gset)
-fit <- lmFit(gset, design)  # fit linear model
+gset[is.na(gset)] <- 0
 
+### edgeR
+count_norm <- DGEList(counts=gset, group=gs)
+count_norm <- calcNormFactors(count_norm)
+edger_design <- model.matrix(~gs)
+count_norm <- estimateDisp(count_norm, edger_design) 
+# perform quasi-likelihood F-tests:
+fit <- glmQLFit(count_norm, edger_design)
+fit <- glmQLFTest(fit, coef=2)
+tT <- topTags(fit, n=nrow(gset), adjust.method = "BH", sort.by = "PValue", 
+              p.value = 1)
+tT <- tT[["table"]]
+tT <- as.data.frame(cbind("ID"= rownames(tT), "logFC" = tT$logFC, "F" = tT$F, 
+                          "FDR" = tT$FDR, "adj.P.Val" = tT$PValue))
+write.table(tT, file = file.path(working_dir, paste(file_name, "_edger_features.csv",
+                                                    sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+remove(count_norm, edger_design, fit, tT)
+
+### dearseq
+count_norm <- DGEList(counts=gset, group=gs)
+# perform TMM normalization and transfer to CPM (Counts Per Million)
+count_norm <- calcNormFactors(count_norm, method="TMM")
+count_norm <- cpm(count_norm, log=TRUE)
+tT <- dear_seq(exprmat=count_norm, 
+               variables2test=matrix(as.numeric(sml), ncol=1), 
+               which_test="asymptotic", padjust_methods="BH",
+               parallel_comp=F, preprocessed=T)
+tT<-tT[["pvals"]]
+tT$adjPval <- as.numeric(as.character(tT$adjPval))
+tT <- tT[order(tT$adjPval, decreasing = FALSE), ]
+tT <- as.data.frame(cbind("ID"= rownames(tT), "P.Value" = tT$rawPval, 
+                          "adj.P.Val" = tT$adjPval))
+write.table(tT, file = file.path(working_dir, paste(file_name, "_dearseq_features.csv",
+                                                    sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+remove(count_norm, tT)
+
+### Wilcoxon rank-sum test
+count_norm <- DGEList(counts=gset, group=gs)
+# perform TMM normalization and transfer to CPM (Counts Per Million)
+count_norm <- calcNormFactors(count_norm, method="TMM")
+count_norm <- cpm(count_norm)
+count_norm <- as.data.frame(count_norm)
+dataMem1 <- count_norm[, c(which(gs == levels(gs)[1]))]
+dataMem2 <- count_norm[, c(which(gs == levels(gs)[2]))]
+tT <- row_wilcoxon_twosample(dataMem1, dataMem2)
+fdr <- p.adjust(tT$pvalue, method = "BH")
+tT <- as.data.frame(cbind("ID"= rownames(tT), "statistic" = tT$statistic, 
+                          "P.Value" = tT$pvalue, "adj.P.Val" = fdr))
+tT$adj.P.Val <- as.numeric(as.character(tT$adj.P.Val))
+tT <- tT[order(tT$adj.P.Val, decreasing = FALSE), ]
+write.table(tT, file = file.path(working_dir, paste(file_name, "_wilcoxon_features.csv",
+                                                    sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+remove(count_norm, dataMem1, dataMem2, tT, fdr)
+
+### LIMMA
+fit <- lmFit(gset, design)  # fit linear model
 # set up contrasts of interest and recalculate model coefficients
 cts <- paste(groups[1], groups[2], sep = "-")
 cont.matrix <- makeContrasts(contrasts = cts, levels = design)
 fit2 <- contrasts.fit(fit, cont.matrix)
-
 # compute statistics and table of top significant genes
 fit2 <- eBayes(fit2, 0.01)
-tT <- topTable(fit2, adjust = "fdr", sort.by = "B", number = 10000)
+tT <- topTable(fit2, adjust = "fdr", sort.by = "B", number = 100000)
 temp <- rownames(tT)
 rownames(tT) <- NULL
 tT <- cbind("ID" = temp, tT)
-write.table(tT, file = file.path(working_dir, paste(file_name, "_diff_features.csv",
+write.table(tT, file = file.path(working_dir, paste(file_name, "_limma_features.csv",
                                                     sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
+#######################################################################
+#################### Visualization of LIMMA Results ###################
+#######################################################################
 # Visualize and quality control test results.
 # Build histogram of P-values for all genes. Normal test
 # assumption is that most genes are not differentially expressed.
@@ -130,4 +195,3 @@ legend("topright", inset = c(-0.15, 0), legend = levels(classes), pch = 20,
 
 # mean-variance trend, helps to see if precision weights are needed
 plotSA(fit2, main = paste("Mean variance trend,", toupper(file_name)))
-

@@ -6,17 +6,12 @@ expression. Biostatistics, 9(3), pp.411-418.
 '''
 
 import numpy as np
-from mlxtend.evaluate import permutation_test
 from scipy.stats import norm
 
 
 class MOST:
-    def __init__(self, k: int = None, direction: str = "both", permutation_test: bool = False,
-                 num_rounds: int = 10000):
+    def __init__(self, k: int = None):
         self.k = k
-        self.direction = direction  # up, down, both
-        self.permutation_test = permutation_test
-        self.num_rounds = num_rounds
 
     def fit_predict(self, X, y, control_class: int = 0, case_class: int = 1):
         # Sanity checking
@@ -64,27 +59,5 @@ class MOST:
                 M[feature_idx, sample_idx - 2] /= scale
         np.nan_to_num(M, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
         results = np.max(M, axis=1)
-
-        if self.permutation_test:
-            # Permutation based p-value calculation using approximate method
-            pvals = np.zeros((num_features,))
-            for feature_idx in range(num_features):
-                if self.direction == "up":
-                    temp = permutation_test(x=control_X[:, feature_idx], y=case_X[:, feature_idx],
-                                            func="x_mean > y_mean", method="approximate",
-                                            num_rounds=self.num_rounds)
-                elif self.direction == "down":
-                    temp = permutation_test(x=control_X[:, feature_idx], y=case_X[:, feature_idx],
-                                            func="x_mean < y_mean", method="approximate",
-                                            num_rounds=self.num_rounds)
-                else:
-                    temp = permutation_test(x=control_X[:, feature_idx], y=case_X[:, feature_idx],
-                                            func="x_mean != y_mean", method="approximate",
-                                            num_rounds=self.num_rounds)
-                pvals[feature_idx] += temp
-
-            results = np.vstack((results, pvals)).T
-        else:
-            results = np.reshape(results, (results.shape[0], 1))
-
+        results = np.reshape(results, (results.shape[0], 1))
         return results

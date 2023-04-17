@@ -71,5 +71,5 @@ for (batch_idx in 1:num_batches) {
 close(pb) # Close the connection
 colnames(batch_matrix) <- seq(0, num_batches - 1)
 write.table(batch_matrix,
-            file = file.path(working_dir, paste(file_name, "_deco.csv", sep = "")),
+            file = file.path(working_dir, paste(file_name, "_deco_features.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE, col.names = FALSE)

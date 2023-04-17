@@ -6,14 +6,14 @@ import scanpy as sc
 import seaborn as sns
 
 from model.copa import COPA
-from model.deltaiqr import DeltaIQR
+from model.deltaiqrmean import DeltaIQRMean
 from model.dids import DIDS
 from model.lsoss import LSOSS
 from model.most import MOST
+from model.nonparametric_test import StudentTTest
 from model.ort import OutlierRobustTstatistic
 from model.oss import OutlierSumStatistic
 from model.phet import PHeT
-from model.tstatistic import StudentTTest
 from utility.plot_utils import plot_umap, plot_barplot
 from utility.utils import comparative_score
 from utility.utils import sort_features, significant_features
@@ -153,86 +153,66 @@ def train(args):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             METHODS[0]), end="\r")
-    estimator = StudentTTest(direction=args.direction, permutation_test=args.permutation_test)
+    estimator = StudentTTest(direction=args.direction)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({METHODS[0]: df})
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             METHODS[1]), end="\r")
-    estimator = COPA(q=args.q, direction=args.direction, permutation_test=args.permutation_test,
-                     num_rounds=args.num_rounds)
+    estimator = COPA(q=args.q)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({METHODS[1]: df})
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             METHODS[2]), end="\r")
-    estimator = OutlierSumStatistic(q=args.q, iqr_range=args.iqr_range,
-                                    two_sided_test=args.two_sided_test,
-                                    direction=args.direction,
-                                    permutation_test=args.permutation_test,
-                                    num_rounds=args.num_rounds)
+    estimator = OutlierSumStatistic(q=args.q, iqr_range=args.iqr_range, two_sided_test=args.two_sided_test)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({METHODS[2]: df})
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             METHODS[3]), end="\r")
-    estimator = OutlierRobustTstatistic(q=args.q, iqr_range=args.iqr_range,
-                                        direction=args.direction,
-                                        permutation_test=args.permutation_test,
-                                        num_rounds=args.num_rounds)
+    estimator = OutlierRobustTstatistic(q=args.q, iqr_range=args.iqr_range)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({METHODS[3]: df})
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             METHODS[4]), end="\r")
-    estimator = MOST(k=args.k, direction=args.direction,
-                     permutation_test=args.permutation_test,
-                     num_rounds=args.num_rounds)
+    estimator = MOST(k=args.k)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({METHODS[4]: df})
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             METHODS[5]), end="\r")
-    estimator = LSOSS(direction=args.direction, permutation_test=args.permutation_test,
-                      num_rounds=args.num_rounds)
+    estimator = LSOSS(direction=args.direction)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({METHODS[5]: df})
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             METHODS[6]), end="\r")
-    estimator = DIDS(score_function=args.dids_scoref,
-                     direction=args.direction,
-                     permutation_test=args.permutation_test,
-                     num_rounds=args.num_rounds)
+    estimator = DIDS(score_function=args.dids_scoref, direction=args.direction)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({METHODS[6]: df})
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             METHODS[7]), end="\r")
-    estimator = DeltaIQR(normalize=args.normalize, iqr_range=args.iqr_range,
-                         permutation_test=args.permutation_test,
-                         num_rounds=args.num_rounds)
+    estimator = DeltaIQRMean(normalize=args.normalize, iqr_range=args.iqr_range)
     df = estimator.fit_predict(X=X, y=y)
     methods_dict.update({METHODS[7]: df})
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             METHODS[8]))
-    estimator = PHeT(normalize=args.normalize, iqr_range=args.iqr_range,
-                     num_subsamples=args.num_subsamples,
-                     calculate_deltaiqr=args.calculate_deltaiqr,
-                     calculate_fisher=args.calculate_fisher,
-                     calculate_profile=args.calculate_profile,
-                     bin_KS_pvalues=args.bin_KS_pvalues,
-                     feature_weight=args.feature_weight,
-                     weight_range=args.weight_range)
+    estimator = PHeT(normalize=args.normalize, iqr_range=args.iqr_range, num_subsamples=args.num_subsamples,
+                     calculate_deltaiqr=args.calculate_deltaiqr, calculate_fisher=args.calculate_fisher,
+                     calculate_profile=args.calculate_profile, bin_KS_pvalues=args.bin_KS_pvalues,
+                     feature_weight=args.feature_weight, weight_range=args.weight_range)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({METHODS[8]: df})
 

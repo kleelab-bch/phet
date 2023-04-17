@@ -1,5 +1,4 @@
 import numpy as np
-from mlxtend.evaluate import permutation_test
 from scipy.stats import ttest_ind, mannwhitneyu
 
 
@@ -25,6 +24,9 @@ class StudentTTest:
         control_X = np.absolute(X[control_examples])
         case_examples = np.where(y == case_class)[0]
         case_X = np.absolute(X[case_examples])
+        permutations = None
+        if self.perform_permutation:
+            permutations = self.num_rounds
         results = np.zeros((num_features))
         for feature_idx in range(num_features):
             if self.direction == "up":
@@ -35,43 +37,21 @@ class StudentTTest:
                 alternative = "two-sided"
             statistic, pvalue = ttest_ind(control_X[:, feature_idx],
                                           case_X[:, feature_idx],
+                                          permutations=permutations,
                                           alternative=alternative)
             results[feature_idx] = pvalue
             if self.use_statistics:
                 results[feature_idx] = np.absolute(statistic)
 
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
-        if self.perform_permutation:
-            # Permutation based p-value calculation using approximate method
-            pvals = np.zeros((num_features,))
-            for feature_idx in range(num_features):
-                if self.direction == "up":
-                    temp = permutation_test(x=control_X[:, feature_idx], y=case_X[:, feature_idx],
-                                            func="x_mean > y_mean", method="approximate",
-                                            num_rounds=self.num_rounds)
-                elif self.direction == "down":
-                    temp = permutation_test(x=control_X[:, feature_idx], y=case_X[:, feature_idx],
-                                            func="x_mean < y_mean", method="approximate",
-                                            num_rounds=self.num_rounds)
-                else:
-                    temp = permutation_test(x=control_X[:, feature_idx], y=case_X[:, feature_idx],
-                                            func="x_mean != y_mean", method="approximate",
-                                            num_rounds=self.num_rounds)
-                pvals[feature_idx] += temp
-
-            results = np.vstack((results, pvals)).T
-        else:
-            results = np.reshape(results, (results.shape[0], 1))
+        results = np.reshape(results, (results.shape[0], 1))
         return results
 
 
 class WilcoxonRankSumTest:
-    def __init__(self, use_statistics: bool = False, direction: str = "both",
-                 perform_permutation: bool = False, num_rounds: int = 10000):
+    def __init__(self, use_statistics: bool = False, direction: str = "both"):
         self.use_statistics = use_statistics
         self.direction = direction  # up, down, both
-        self.perform_permutation = perform_permutation
-        self.num_rounds = num_rounds
 
     def fit_predict(self, X, y, control_class: int = 0, case_class: int = 1):
         # Sanity checking
@@ -102,25 +82,5 @@ class WilcoxonRankSumTest:
             if self.use_statistics:
                 results[feature_idx] = np.absolute(statistic)
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
-        if self.perform_permutation:
-            # Permutation based p-value calculation using approximate method
-            pvals = np.zeros((num_features,))
-            for feature_idx in range(num_features):
-                if self.direction == "up":
-                    temp = permutation_test(x=control_X[:, feature_idx], y=case_X[:, feature_idx],
-                                            func="x_mean > y_mean", method="approximate",
-                                            num_rounds=self.num_rounds)
-                elif self.direction == "down":
-                    temp = permutation_test(x=control_X[:, feature_idx], y=case_X[:, feature_idx],
-                                            func="x_mean < y_mean", method="approximate",
-                                            num_rounds=self.num_rounds)
-                else:
-                    temp = permutation_test(x=control_X[:, feature_idx], y=case_X[:, feature_idx],
-                                            func="x_mean != y_mean", method="approximate",
-                                            num_rounds=self.num_rounds)
-                pvals[feature_idx] += temp
-
-            results = np.vstack((results, pvals)).T
-        else:
-            results = np.reshape(results, (results.shape[0], 1))
+        results = np.reshape(results, (results.shape[0], 1))
         return results

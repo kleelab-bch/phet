@@ -9,6 +9,7 @@ working_dir <- file.path("R:/GeneAnalysis/data")
 
 file_name <- "simulated_normal"
 outlier_per <- paste("0", seq(9), "_", sep = "")
+outlier_per[length(outlier_per) + 1] <- "10_"
 data_type <- c("minority_features", "mixed_features")
 iterations <- 1000
 q.val <- 0.01
@@ -43,7 +44,7 @@ for (per in outlier_per) {
     colnames(StatFeature) <- c("features", "score")
     write.table(as.data.frame(StatFeature),
                 file = file.path(working_dir, 
-                                 paste(file_name, per, t, "_deco.csv", sep = "")), 
+                                 paste(file_name, per, t, "_deco_features.csv", sep = "")), 
                 sep = ",", quote = FALSE, row.names = FALSE)
     remove(StatFeature, gset)
   }

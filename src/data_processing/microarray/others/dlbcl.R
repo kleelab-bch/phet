@@ -1,24 +1,30 @@
+# Shipp, M.A., Ross, K.N., Tamayo, P., Weng, A.P., Kutok, J.L., Aguiar, R.C., Gaasenbeek, M., Angelo, M., Reich, M., Pinkus, G.S. and Ray, T.S., 2002. Diffuse large B-cell lymphoma outcome prediction by gene-expression profiling and supervised machine learning. Nature medicine, 8(1), pp.68-74.
+
 # Differential expression analysis with limma
 require(limma)
 require(umap)
 require(Matrix)
 
 working_dir <- file.path("R:/GeneAnalysis/data")
-file_name <- "tnbc"
+file_name <- "dlbcl"
 
 # load series and platform data from GEO
-gset <- read.table(file.path(working_dir, paste(file_name, ".csv", sep = "")),
-                   header = TRUE, sep = ",", check.names = FALSE,
+gset <- read.delim(file.path(working_dir, paste(file_name, ".tab", sep = "")),
+                   header = TRUE, sep = "\t", check.names = FALSE,
                    stringsAsFactors = FALSE)
-drop_cols <- c("", "class")
-classes <- gset$class + 1
+gset <- as.data.frame(as.matrix(gset)[3:nrow(gset),])
+drop_cols <- c("", "sample", "class")
+classes <- gset$class
 features <- colnames(gset)[!(names(gset) %in% drop_cols)]
 gset <- gset[, features]
+gset <- as.data.frame(lapply(gset, as.numeric))
 features <- colnames(gset)[!(names(gset) %in% drop_cols)]
 
 # group membership for all samples
+# 0: Diffuse large B-cell lymphoma (DLBCL): 58 examples (75.3%)
+# 1: Follicular lymphoma (FL): 19 examples (24.7%)
 gsms <- c(0, 1)
-names(gsms) <- c("Normal", "Cancer")
+names(gsms) <- unique(classes)
 gsms <- gsms[classes]
 gsms <- paste0(gsms, collapse = "")
 sml <- strsplit(gsms, split = "")[[1]]
@@ -70,7 +76,7 @@ tT <- topTable(fit2, adjust = "fdr", sort.by = "B", number = 10000)
 temp <- rownames(tT)
 rownames(tT) <- NULL
 tT <- cbind("ID" = temp, tT)
-write.table(tT, file = file.path(working_dir, paste(file_name, "_diff_features.csv",
+write.table(tT, file = file.path(working_dir, paste(file_name, "_limma_features.csv",
                                                     sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
@@ -110,11 +116,17 @@ plotDensities(gset, group = gs, main = title, legend = "topright")
 # UMAP plot (dimensionality reduction)
 gset <- na.omit(gset) # eliminate rows with NAs
 gset <- gset[!duplicated(gset),]  # remove duplicates
-ump <- umap(t(gset), n_neighbors = 5, random_state = 123)
+temp <- tT[tT$adj.P.Val <= 0.01, ]$ID
+gset <- gset[temp, ]
+classes <- factor(classes)
+ump <- umap(t(gset), n_neighbors = 5, min_dist = 0.01, n_epochs = 2000, 
+            random_state = 123)
 par(mar = c(3, 3, 2, 6), xpd = TRUE)
-plot(ump$layout, main = "UMAP plot, nbrs=5", xlab = "", ylab = "", col = gs, pch = 20, cex = 1.5)
-legend("topright", inset = c(-0.15, 0), legend = levels(gs), pch = 20,
-       col = 1:nlevels(gs), title = "Group", pt.cex = 1.5)
+plot(ump$layout, main = paste(toupper(file_name), "\nFeatures: ", length(temp)), 
+     xlab = "", ylab = "", 
+     col = classes, pch = 20, cex = 1.5)
+legend("topright", inset = c(-0.15, 0), legend = levels(classes), pch = 20,
+       col = 1:nlevels(classes), title = "Group", pt.cex = 1.5)
 
 # mean-variance trend, helps to see if precision weights are needed
 plotSA(fit2, main = paste("Mean variance trend,", toupper(file_name)))

@@ -8,14 +8,14 @@ import pandas as pd
 import seaborn as sns
 
 from model.copa import COPA
-from model.deltaiqr import DeltaIQR
+from model.deltaiqrmean import DeltaIQRMean
 from model.dids import DIDS
 from model.lsoss import LSOSS
 from model.most import MOST
+from model.nonparametric_test import StudentTTest
 from model.ort import OutlierRobustTstatistic
 from model.oss import OutlierSumStatistic
 from model.phet import PHeT
-from model.tstatistic import StudentTTest
 from utility.file_path import DATASET_PATH, RESULT_PATH
 
 sns.set_theme()
@@ -48,7 +48,7 @@ def train():
     for iteration in range(num_iterations):
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                 methods[0]), end="\r")
-        estimator = StudentTTest(direction=direction, permutation_test=False)
+        estimator = StudentTTest(direction=direction)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
@@ -56,7 +56,7 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                 methods[1]), end="\r")
-        estimator = COPA(q=75, direction=direction, permutation_test=False)
+        estimator = COPA(q=75)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
@@ -64,8 +64,7 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                 methods[2]), end="\r")
-        estimator = OutlierSumStatistic(q=75, iqr_range=(25, 75), two_sided_test=False, direction=direction,
-                                        permutation_test=False)
+        estimator = OutlierSumStatistic(q=75, iqr_range=(25, 75), two_sided_test=False)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
@@ -73,8 +72,7 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                 methods[3]), end="\r")
-        estimator = OutlierRobustTstatistic(q=75, iqr_range=(25, 75), direction=direction,
-                                            permutation_test=False)
+        estimator = OutlierRobustTstatistic(q=75, iqr_range=(25, 75))
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
@@ -82,7 +80,7 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                 methods[4]), end="\r")
-        estimator = MOST(direction=direction, permutation_test=False)
+        estimator = MOST()
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
@@ -90,7 +88,7 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                 methods[5]), end="\r")
-        estimator = LSOSS(direction=direction, permutation_test=False)
+        estimator = LSOSS(direction=direction)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
@@ -98,7 +96,7 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                 methods[6]), end="\r")
-        estimator = DIDS(score_function="tanh", direction=direction, permutation_test=False)
+        estimator = DIDS(score_function="tanh", direction=direction)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
@@ -106,7 +104,7 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                 methods[7]), end="\r")
-        estimator = DeltaIQR(normalize="zscore", iqr_range=(25, 75), permutation_test=False)
+        estimator = DeltaIQRMean(normalize="zscore", iqr_range=(25, 75))
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y)
         list_times.append(time.time() - curr_time)

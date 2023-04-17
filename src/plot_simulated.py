@@ -77,16 +77,25 @@ ax.legend(title="Methods", title_fontsize=30, fontsize=26, ncol=5,
 ##############################################################
 ######################### Benchmarks #########################
 ##############################################################
-result_path = os.path.join(RESULT_PATH, "scRNA")
+result_path = os.path.join(RESULT_PATH, "microarray")
 suptitle = "6 single cell RNA-seq datasets"
-# suptitle = "11 microarray gene expression datasets"
-methods_name = {"ttest": "t-statistic", "COPA": "COPA", "OS": "OS", "ORT": "ORT",
-                "MOST": "MOST", "LSOSS": "LSOSS", "DIDS": "DIDS", "DECO": "DECO",
-                "DeltaIQR": "ΔIQR", "PHet_b": "PHet"}
+suptitle = "11 microarray gene expression datasets"
+# methods_name = {"ttest": "t-statistic", "COPA": "COPA", "OS": "OS", "ORT": "ORT",
+#                 "MOST": "MOST", "LSOSS": "LSOSS", "DIDS": "DIDS", "DECO": "DECO",
+#                 "DeltaIQR": "ΔIQR", "PHet_b": "PHet"}
+methods_name = {"ttest_p": "t-statistic (p-value)", "ttest_g": "t-statistic (gamma)",
+                "LIMMA_p": "LIMMA (p-value)", "LIMMA_g": "LIMMA (gamma)",
+                "HVF_a": "HVF (all)", "HVF_c": "HVF (per class)", "COPA": "COPA",
+                "OS": "OS", "ORT": "ORT", "MOST": "MOST", "LSOSS": "LSOSS", "DIDS": "DIDS",
+                "DECO": "DECO", "DeltaIQR": "ΔIQR", "PHet_b": "PHet"}
 
 # Use static colors
-palette = mcolors.TABLEAU_COLORS
-palette = dict([(list(methods_name.values())[idx], item[1]) for idx, item in enumerate(palette.items())
+palette = mcolors.get_named_colors_mapping()
+palette = [(item[0], item[1]) for idx, item in enumerate(palette.items())
+           if idx % 7 == 0]
+palette = dict(palette)
+palette = dict([(list(methods_name.values())[idx], item[1])
+                for idx, item in enumerate(palette.items())
                 if idx + 1 <= len(methods_name)])
 
 # Feature scores
@@ -134,8 +143,13 @@ df_features.columns = ["Methods", "Features"]
 
 # Plot F1 scores
 plt.figure(figsize=(14, 8))
-ax = sns.boxplot(y='Scores', x='Methods', data=df, width=0.85, palette=palette)
-sns.swarmplot(y='Scores', x='Methods', data=df, color="black", size=10, dodge=True)
+ax = sns.boxplot(y='Scores', x='Methods', data=df, width=0.85, palette=palette,
+                 showfliers=False, showmeans=True, meanprops={"marker": "D",
+                                                              "markerfacecolor": "white",
+                                                              "markeredgecolor": "black",
+                                                              "markersize": "15"})
+sns.swarmplot(y='Scores', x='Methods', data=df, color="black", s=10, linewidth=0,
+              alpha=.7)
 ax.set_xlabel("")
 ax.set_ylabel("F1 scores of each method", fontsize=36)
 ax.set_xticklabels([])
@@ -146,8 +160,13 @@ plt.tight_layout()
 
 # Plot the number of features
 plt.figure(figsize=(14, 8))
-ax = sns.boxplot(y='Features', x='Methods', data=df_features, width=0.85, palette=palette)
-sns.swarmplot(y='Features', x='Methods', data=df_features, color="black", size=10, dodge=True)
+ax = sns.boxplot(y='Features', x='Methods', data=df_features, width=0.85, palette=palette,
+                 showfliers=False, showmeans=True, meanprops={"marker": "D",
+                                                              "markerfacecolor": "white",
+                                                              "markeredgecolor": "black",
+                                                              "markersize": "15"})
+sns.swarmplot(y='Features', x='Methods', data=df_features, color="black", s=10, linewidth=0,
+              alpha=.7)
 ax.set_xlabel("")
 ax.set_ylabel("Number of significant features  \n  found by each method", fontsize=36)
 ax.set_xticklabels([])
@@ -178,13 +197,13 @@ df_ari.groupby(["Methods"])["ARI"].mean()
 y_values = df_ari["ARI"].values
 y_lim = (np.min(y_values), np.max(y_values))
 plt.figure(figsize=(14, 8))
-ax = sns.boxplot(y='ARI', x='Methods', data=df_ari, width=0.85,
-                 showfliers=False, palette=palette)
-sns.swarmplot(y='ARI', x='Methods', data=df_ari, color="black", size=10,
-              dodge=True)
-# ax = sns.violinplot(y='ARI', x='Methods', data=df_ari, linewidth = 2,
-#                     style ="count", palette=palette)
-# ax.set_ylim(y_lim) 
+ax = sns.boxplot(y='ARI', x='Methods', data=df_ari, width=0.85, palette=palette,
+                 showfliers=False, showmeans=True, meanprops={"marker": "D",
+                                                              "markerfacecolor": "white",
+                                                              "markeredgecolor": "black",
+                                                              "markersize": "15"})
+sns.swarmplot(y='ARI', x='Methods', data=df_ari, color="black", s=10, linewidth=0,
+              alpha=.7)
 ax.set_xlabel("")
 ax.set_ylabel("ARI of each method", fontsize=36)
 ax.set_xticklabels([])

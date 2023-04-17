@@ -4,7 +4,7 @@
 require(limma)
 require(umap)
 require(Matrix)
-source("R:/GeneAnalysis/phet/src/utility/create_sce.R")
+source("R:/GeneAnalysis/phet/src/data_processing/create_sce.R")
 working_dir <- file.path("R:/GeneAnalysis/data")
 
 file_name <- "wang"
@@ -86,33 +86,39 @@ df <- as(df, "dgCMatrix")
 writeMM(df, file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 remove(df)
 
-# assign samples to groups and set up design matrix
+#######################################################################
+################## Differential Expression Analysis ###################
+#######################################################################
+# Assign samples to groups and set up design matrix
 gs <- factor(sml)
 groups <- make.names(c("Control", "Case"))
 levels(gs) <- groups
 gset$group <- gs
 design <- model.matrix(~group + 0, gset)
 colnames(design) <- levels(gs)
-
 gset <- gset[, !(names(gset) %in% "group")]
 gset <- t(gset)
-fit <- lmFit(gset, design)  # fit linear model
+gset[is.na(gset)] <- 0
 
+### LIMMA
+fit <- lmFit(gset, design)  # fit linear model
 # set up contrasts of interest and recalculate model coefficients
 cts <- paste(groups[1], groups[2], sep = "-")
 cont.matrix <- makeContrasts(contrasts = cts, levels = design)
 fit2 <- contrasts.fit(fit, cont.matrix)
-
 # compute statistics and table of top significant genes
 fit2 <- eBayes(fit2, 0.01)
-tT <- topTable(fit2, adjust = "fdr", sort.by = "B", number = 10000)
+tT <- topTable(fit2, adjust = "fdr", sort.by = "B", number = 100000)
 temp <- rownames(tT)
 rownames(tT) <- NULL
 tT <- cbind("ID" = temp, tT)
-write.table(tT, file = file.path(working_dir, paste(file_name, "_diff_features.csv",
+write.table(tT, file = file.path(working_dir, paste(file_name, "_limma_features.csv",
                                                     sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
+#######################################################################
+#################### Visualization of LIMMA Results ###################
+#######################################################################
 # Visualize and quality control test results.
 # Build histogram of P-values for all genes. Normal test
 # assumption is that most genes are not differentially expressed.

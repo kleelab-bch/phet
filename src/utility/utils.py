@@ -85,29 +85,30 @@ def significant_features(X, features_name, pvalue: float = 0.01, X_map=None, map
     return df
 
 
-def sort_features(X, features_name, X_map=None, map_genes: bool = True, ttest: bool = False):
+def sort_features(X, features_name, X_map=None, map_genes: bool = True, ttest: bool = False, 
+                  ascending:bool=False):
     df = pd.concat([pd.DataFrame(features_name), pd.DataFrame(X)], axis=1)
     if X.shape[1] == 5:
         df.columns = ['features', 'iqr', 'median_diff', 'ttest', 'score', 'class']
         if ttest:
-            df = df.sort_values(by=["ttest"], ascending=False).reset_index(drop=True)
+            df = df.sort_values(by=["ttest"], ascending=ascending).reset_index(drop=True)
         else:
-            df = df.sort_values(by=["score"], ascending=False).reset_index(drop=True)
+            df = df.sort_values(by=["score"], ascending=ascending).reset_index(drop=True)
     elif X.shape[1] == 6:
         df.columns = ['features', 'iqr', 'median_diff', 'ttest', 'score', 'class', 'pvalue']
         if ttest:
-            df = df.sort_values(by=["ttest"], ascending=False).reset_index(drop=True)
+            df = df.sort_values(by=["ttest"], ascending=ascending).reset_index(drop=True)
         else:
-            df = df.sort_values(by=["score"], ascending=False).reset_index(drop=True)
+            df = df.sort_values(by=["score"], ascending=ascending).reset_index(drop=True)
     elif X.shape[1] == 2:
         df.columns = ['features', 'score', 'pvalue']
         if ttest:
-            df = df.sort_values(by=["pvalue"], ascending=False).reset_index(drop=True)
+            df = df.sort_values(by=["pvalue"], ascending=ascending).reset_index(drop=True)
         else:
-            df = df.sort_values(by=["score"], ascending=False).reset_index(drop=True)
+            df = df.sort_values(by=["score"], ascending=ascending).reset_index(drop=True)
     elif X.shape[1] == 1:
         df.columns = ['features', 'score']
-        df = df.sort_values(by=["score"], ascending=False).reset_index(drop=True)
+        df = df.sort_values(by=["score"], ascending=ascending).reset_index(drop=True)
     else:
         raise Exception("Please provide correct shape for X")
     if map_genes:

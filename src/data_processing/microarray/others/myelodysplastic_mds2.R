@@ -1,50 +1,73 @@
-# Klein, A.M., Mazutis, L., Akartuna, I., Tallapragada, N., Veres, A., Li, V., Peshkin, L., Weitz, D.A. and Kirschner, M.W., 2015. Droplet barcoding for single-cell transcriptomics applied to embryonic stem cells. Cell, 161(5), pp.1187-1201.
-
 # Differential expression analysis with limma
+require(GEOquery)
 require(limma)
 require(umap)
 require(Matrix)
-source("R:/GeneAnalysis/phet/src/utility/create_sce.R")
+
 working_dir <- file.path("R:/GeneAnalysis/data")
+file_name <- "myelodysplastic_mds2"
 
-file_name <- "klein"
+# load series and platform data from GEO
+gset <- getGEO("GSE13159", destdir = working_dir, GSEMatrix = TRUE,
+               AnnotGPL = TRUE)
+if (length(gset) > 1) idx <- grep("GPL570", attr(gset, "names")) else idx <- 1
+gset <- gset[[idx]]
 
-### DATA
-d0 <- read.csv(file.path(working_dir, paste(file_name, "_d0_main.csv", sep = "")), header = FALSE)
-d2 <- read.csv(file.path(working_dir, paste(file_name, "_d2_LIFminus.csv", sep = "")), header = FALSE)
-d4 <- read.csv(file.path(working_dir, paste(file_name, "_d4_LIFminus.csv", sep = "")), header = FALSE)
-d7 <- read.csv(file.path(working_dir, paste(file_name, "_d7_LIFminus.csv", sep = "")), header = FALSE)
-gset <- cbind(d0, d2[, 2:ncol(d2)], d4[, 2:ncol(d4)], d7[, 2:ncol(d7)])
-rownames(gset) <- gset[, 1]
-gset <- gset[, 2:ncol(gset)]
-colnames(gset) <- paste0("cell", 1:ncol(gset))
-
-### ANNOTATIONS
-classes <- data.frame(
-  cell_type1 = c(rep("d0", ncol(d0) - 1),
-                 rep("d2", ncol(d2) - 1),
-                 rep("d4", ncol(d4) - 1),
-                 rep("d7", ncol(d7) - 1)))
-rownames(classes) <- colnames(gset)
-remove(d0, d2, d4, d7)
-
-### SINGLECELLEXPERIMENT
-gset <- create_sce_from_counts(gset, classes)
-features <- as.character(rownames(gset))
-classes <- gset@colData@listData[["cell_type1"]]
-gset <- as.data.frame(t(gset@assays@data@listData[["logcounts"]]))
+# make proper column names to match toptable 
+fvarLabels(gset) <- make.names(fvarLabels(gset))
 
 # group membership for all samples
-# 0 : day 0 and 2
-# 1 : day 4 and 7
-gsms <- c(0, 0, 1, 1)
-names(gsms) <- unique(classes)
-gsms <- gsms[classes]
-gsms <- paste0(gsms, collapse = "")
+gsms <- paste0("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+               "XXXXXXXXXXXXXXXX1111111111111111111111111111111111",
+               "11111111111111111111111111111111111111111111111111",
+               "11111111111111111111111111111111111111111111111111",
+               "11111111111111111111111111111111111111111111111111",
+               "10111111111111111111111000000000000000000000000000",
+               "0000000000000000000000000000000000000000000000")
 sml <- strsplit(gsms, split = "")[[1]]
 
+# filter out excluded samples (marked as "X")
+sel <- which(sml != "X")
+sml <- sml[sel]
+gset <- gset[, sel]
+
 # collect subtypes 
-subtypes <- classes
+subtypes <- gset@phenoData@data[["leukemia class:ch1"]]
 write.table(as.data.frame(subtypes), 
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
@@ -56,16 +79,26 @@ write.table(as.data.frame(classes),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
+features <- gset@featureData@data["ID"]
+names(features) <- "features"
 write.table(as.data.frame(features), 
             file = file.path(working_dir, 
                              paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
-# save data
-df <- data.matrix(gset)
+# log2 transformation
+ex <- exprs(gset)
+df <- as.data.frame(t(ex))
+df <- data.matrix(df)
 df <- as(df, "dgCMatrix")
 writeMM(df, file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 remove(df)
+
+qx <- as.numeric(quantile(ex, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm = T))
+LogC <- (qx[5] > 100) ||
+  (qx[6] - qx[1] > 50 && qx[2] > 0)
+if (LogC) { ex[which(ex <= 0)] <- NaN
+exprs(gset) <- log2(ex) }
 
 # assign samples to groups and set up design matrix
 gs <- factor(sml)
@@ -75,8 +108,6 @@ gset$group <- gs
 design <- model.matrix(~group + 0, gset)
 colnames(design) <- levels(gs)
 
-gset <- gset[, !(names(gset) %in% "group")]
-gset <- t(gset)
 fit <- lmFit(gset, design)  # fit linear model
 
 # set up contrasts of interest and recalculate model coefficients
@@ -128,6 +159,7 @@ title <- paste(toupper(file_name), " value distribution", sep = "")
 plotDensities(gset, group = gs, main = title, legend = "topright")
 
 # UMAP plot (dimensionality reduction)
+gset <- exprs(gset)
 gset <- na.omit(gset) # eliminate rows with NAs
 gset <- gset[!duplicated(gset),]  # remove duplicates
 ump <- umap(t(gset), n_neighbors = 5, random_state = 123)
@@ -138,4 +170,3 @@ legend("topright", inset = c(-0.15, 0), legend = levels(gs), pch = 20,
 
 # mean-variance trend, helps to see if precision weights are needed
 plotSA(fit2, main = paste("Mean variance trend,", toupper(file_name)))
-

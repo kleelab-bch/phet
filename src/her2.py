@@ -8,31 +8,41 @@ import seaborn as sns
 from sklearn.preprocessing import LabelBinarizer
 
 from model.copa import COPA
-from model.deltaiqr import DeltaIQR
+from model.deltahvfmean import DeltaHVFMean
+from model.deltaiqrmean import DeltaIQRMean
 from model.dids import DIDS
+from model.hvf import SeuratHVF, HIQR
 from model.lsoss import LSOSS
 from model.most import MOST
+from model.nonparametric_test import StudentTTest, WilcoxonRankSumTest
 from model.ort import OutlierRobustTstatistic
 from model.oss import OutlierSumStatistic
 from model.phet import PHeT
-from model.tstatistic import StudentTTest
 from utility.file_path import DATASET_PATH, RESULT_PATH
-from utility.utils import sort_features, comparative_score
+from utility.utils import comparative_score
+from utility.utils import sort_features
 
 sns.set_theme()
 sns.set_style(style='white')
 
 
 def train():
-    # Arguments
-    direction = "both"
+
+    # Filtering and subsampling arguments
+    pvalue = 0.01  
     topKfeatures = 500
     range_topfeatures = list(range(0, topKfeatures + 5, 5))
     range_topfeatures[0] = 1
     num_batches = 1000
     subsample_size = 10
-    methods = ["t-statistic", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "ΔIQR", "PHet"]
 
+    # Models parameters
+    direction = "both"
+    methods = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma", "LIMMA", "LIMMA+Gamma",
+               "HVF (composite)", "HVF (by condition)", "ΔHVF", "ΔHVF+ΔMean", "IQR (composite)",
+               "IQR (by condition)", "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS",
+               "DECO", "PHet"]
+    
     # Load expression data
     X_control = pd.read_csv(os.path.join(DATASET_PATH, "her2_negative_matrix.csv"), sep=',')
     X_case = pd.read_csv(os.path.join(DATASET_PATH, "her2_positive_matrix.csv"), sep=',')
@@ -58,13 +68,23 @@ def train():
     top_features_true = lb.transform(top_features_true).sum(axis=0).astype(int)
     topKfeatures = sum(top_features_true).astype(int)
 
-    # Load DECO results    
-    df_deco = pd.read_csv(os.path.join(DATASET_PATH, "her2_deco.csv"), sep=',', header=None)
-    df_deco = df_deco.to_numpy()
+    # Load DECO and LIMMA results    
+    X_deco = pd.read_csv(os.path.join(DATASET_PATH, "her2_deco_features.csv"), sep=',', header=None)
+    X_deco = X_deco.to_numpy()
     if df_deco.shape[1] != num_batches:
-        temp = "The number of bacthes does not macth with DECO results"
+        temp = "The number of batches does not match with DECO results"
         raise Exception(temp)
-
+    X_limma = pd.read_csv(os.path.join(DATASET_PATH, "her2_limma_features.csv"), sep=',', header=None)
+    X_limma = X_limma.to_numpy()
+    if X_limma.shape[1] != num_batches:
+        temp = "The number of batches does not match with LIMMA results"
+        raise Exception(temp)
+    X_limma_distr = pd.read_csv(os.path.join(DATASET_PATH, "her2_limma_distr_features.csv"), sep=',', header=None)
+    X_limma_distr = np.absolute(X_limma_distr.to_numpy())
+    if X_limma_distr.shape[1] != num_batches:
+        temp = "The number of batches does not match with LIMMA results"
+        raise Exception(temp)
+    
     print("## Perform simulation studies using HER2 data...")
     print(
         "\t >> Control size: {0}; Case size: {1}; Feature size: {2}; True feature size: {3}".format(X_control.shape[0],
@@ -79,10 +99,26 @@ def train():
         X = np.vstack((X_control, X_case[temp]))
         y = np.array(X_control.shape[0] * [0] + subsample_size * [1])
 
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                "t-statistic"),
-              end="\r")
-        estimator = StudentTTest(direction=direction, permutation_test=False)
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[0]), end="\r")
+        estimator = StudentTTest(use_statistics=False, direction=direction)
+        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False, ascending=True)
+        top_features_pred = top_features_pred[top_features_pred["score"] <= pvalue]
+        top_features_pred = top_features_pred["features"].to_list()
+        temp_range = list()
+        for top_features in range_topfeatures:
+            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
+            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
+                                     metric="f1")
+            temp_range.append(temp)
+        list_scores.append(temp_range)
+        current_progress += 1
+
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[1]), end="\r")
+        estimator = StudentTTest(use_statistics=True, direction=direction)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -96,9 +132,26 @@ def train():
         list_scores.append(temp_range)
         current_progress += 1
 
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "COPA"),
-              end="\r")
-        estimator = COPA(q=75, direction=direction, permutation_test=False)
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[2]), end="\r")
+        estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction)
+        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False, ascending=True)
+        top_features_pred = top_features_pred[top_features_pred["score"] <= pvalue]
+        top_features_pred = top_features_pred["features"].to_list()
+        temp_range = list()
+        for top_features in range_topfeatures:
+            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
+            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
+                                     metric="f1")
+            temp_range.append(temp)
+        list_scores.append(temp_range)
+        current_progress += 1
+
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[3]), end="\r")
+        estimator = WilcoxonRankSumTest(use_statistics=True, direction=direction)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -112,90 +165,9 @@ def train():
         list_scores.append(temp_range)
         current_progress += 1
 
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "OS"),
-              end="\r")
-        estimator = OutlierSumStatistic(q=75, iqr_range=(25, 75), two_sided_test=False,
-                                        direction=direction, permutation_test=False)
-        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
-                                          X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
-        list_scores.append(temp_range)
-        current_progress += 1
-
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "ORT"),
-              end="\r")
-        estimator = OutlierRobustTstatistic(q=75, iqr_range=(25, 75), direction=direction, permutation_test=False)
-        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
-                                          X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
-        list_scores.append(temp_range)
-        current_progress += 1
-
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "MOST"),
-              end="\r")
-        estimator = MOST(direction=direction, permutation_test=False)
-        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
-                                          X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
-        list_scores.append(temp_range)
-        current_progress += 1
-
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "LSOSS"),
-              end="\r")
-        estimator = LSOSS(direction=direction, permutation_test=False)
-        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
-                                          X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
-        list_scores.append(temp_range)
-        current_progress += 1
-
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "DIDS"),
-              end="\r")
-        estimator = DIDS(score_function="tanh", direction=direction, permutation_test=False)
-        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
-                                          X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
-        list_scores.append(temp_range)
-        current_progress += 1
-
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, "DECO"),
-              end="\r")
-        top_features_pred = df_deco[:, batch_idx]
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                methods[4]), end="\r")
+        top_features_pred = X_limma[:, batch_idx]
         temp = np.nonzero(top_features_pred)[0]
         top_features_pred[temp] = np.max(top_features_pred) + 1 - top_features_pred[temp]
         top_features_pred = top_features_pred.reshape(top_features_pred.shape[0], 1)
@@ -211,10 +183,256 @@ def train():
         list_scores.append(temp_range)
         current_progress += 1
 
-        print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                "DeltaIQR"), end="\r")
-        estimator = DeltaIQR(normalize="zcore", iqr_range=(25, 75), permutation_test=False)
-        top_features_pred = estimator.fit_predict(X=X, y=y)
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                methods[5]), end="\r")
+        top_features_pred = X_limma_distr[:, batch_idx]
+        top_features_pred = top_features_pred.reshape(top_features_pred.shape[0], 1)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"].to_list()
+        temp_range = list()
+        for top_features in range_topfeatures:
+            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
+            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
+                                     metric="f1")
+            temp_range.append(temp)
+        list_scores.append(temp_range)
+        current_progress += 1
+
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[6]), end="\r")
+        estimator = SeuratHVF(per_condition=False, num_top_features=len(features_name),
+                              min_disp=0.5, min_mean=0.0125, max_mean=3)
+        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"].to_list()
+        temp_range = list()
+        for top_features in range_topfeatures:
+            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
+            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
+                                     metric="f1")
+            temp_range.append(temp)
+        list_scores.append(temp_range)
+        current_progress += 1
+
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[7]), end="\r")
+        estimator = SeuratHVF(per_condition=True, num_top_features=len(features_name),
+                              min_disp=0.5, min_mean=0.0125, max_mean=3)
+        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"].to_list()
+        temp_range = list()
+        for top_features in range_topfeatures:
+            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
+            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
+                                     metric="f1")
+            temp_range.append(temp)
+        list_scores.append(temp_range)
+        current_progress += 1
+
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[8]), end="\r")
+        estimator = DeltaHVFMean(calculate_deltamean=False, num_top_features=len(features_name), 
+                                 min_disp=0.5, min_mean=0.0125, max_mean=3)
+        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"].to_list()
+        temp_range = list()
+        for top_features in range_topfeatures:
+            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
+            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
+                                     metric="f1")
+            temp_range.append(temp)
+        list_scores.append(temp_range)
+        current_progress += 1
+
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[9]), end="\r")
+        estimator = DeltaHVFMean(calculate_deltamean=True, num_top_features=len(features_name), 
+                                 min_disp=0.5, min_mean=0.0125, max_mean=3)
+        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"].to_list()
+        temp_range = list()
+        for top_features in range_topfeatures:
+            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
+            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
+                                     metric="f1")
+            temp_range.append(temp)
+        list_scores.append(temp_range)
+        current_progress += 1
+
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[10]), end="\r")
+        estimator = HIQR(per_condition=False, normalize="zscore", iqr_range=(25, 75))
+        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"].to_list()
+        temp_range = list()
+        for top_features in range_topfeatures:
+            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
+            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
+                                     metric="f1")
+            temp_range.append(temp)
+        list_scores.append(temp_range)
+        current_progress += 1
+
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[11]), end="\r")
+        estimator = HIQR(per_condition=True, normalize="zscore", iqr_range=(25, 75))
+        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"].to_list()
+        temp_range = list()
+        for top_features in range_topfeatures:
+            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
+            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
+                                     metric="f1")
+            temp_range.append(temp)
+        list_scores.append(temp_range)
+        current_progress += 1
+
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[12]), end="\r")
+        estimator = DeltaIQRMean(calculate_deltamean=False, normalize="zscore", iqr_range=(25, 75))
+        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"].to_list()
+        temp_range = list()
+        for top_features in range_topfeatures:
+            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
+            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
+                                     metric="f1")
+            temp_range.append(temp)
+        list_scores.append(temp_range)
+        current_progress += 1
+
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[13]), end="\r")
+        estimator = DeltaIQRMean(calculate_deltamean=True, normalize="zscore", iqr_range=(25, 75))
+        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"].to_list()
+        temp_range = list()
+        for top_features in range_topfeatures:
+            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
+            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
+                                     metric="f1")
+            temp_range.append(temp)
+        list_scores.append(temp_range)
+        current_progress += 1
+
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[14]), end="\r")
+        estimator = COPA(q=75)
+        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"].to_list()
+        temp_range = list()
+        for top_features in range_topfeatures:
+            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
+            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
+                                     metric="f1")
+            temp_range.append(temp)
+        list_scores.append(temp_range)
+        current_progress += 1
+
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[15]), end="\r")
+        estimator = OutlierSumStatistic(q=75, iqr_range=(25, 75), two_sided_test=False)
+        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"].to_list()
+        temp_range = list()
+        for top_features in range_topfeatures:
+            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
+            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
+                                     metric="f1")
+            temp_range.append(temp)
+        list_scores.append(temp_range)
+        current_progress += 1
+
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[16]), end="\r")
+        estimator = OutlierRobustTstatistic(q=75, iqr_range=(25, 75))
+        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"].to_list()
+        temp_range = list()
+        for top_features in range_topfeatures:
+            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
+            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
+                                     metric="f1")
+            temp_range.append(temp)
+        list_scores.append(temp_range)
+        current_progress += 1
+
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[17]), end="\r")
+        estimator = MOST()
+        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"].to_list()
+        temp_range = list()
+        for top_features in range_topfeatures:
+            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
+            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
+                                     metric="f1")
+            temp_range.append(temp)
+        list_scores.append(temp_range)
+        current_progress += 1
+
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[18]), end="\r")
+        estimator = LSOSS(direction=direction)
+        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"].to_list()
+        temp_range = list()
+        for top_features in range_topfeatures:
+            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
+            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
+                                     metric="f1")
+            temp_range.append(temp)
+        list_scores.append(temp_range)
+        current_progress += 1
+
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[19]), end="\r")
+        estimator = DIDS(score_function="tanh", direction=direction)
+        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        top_features_pred = top_features_pred["features"].to_list()
+        temp_range = list()
+        for top_features in range_topfeatures:
+            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
+            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
+                                     metric="f1")
+            temp_range.append(temp)
+        list_scores.append(temp_range)
+        current_progress += 1
+
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[20]), end="\r")
+        top_features_pred = X_deco[:, batch_idx]
+        temp = np.nonzero(top_features_pred)[0]
+        top_features_pred[temp] = np.max(top_features_pred) + 1 - top_features_pred[temp]
+        top_features_pred = top_features_pred.reshape(top_features_pred.shape[0], 1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
         top_features_pred = top_features_pred["features"].to_list()
@@ -228,11 +446,11 @@ def train():
         current_progress += 1
 
         if total_progress == current_progress:
-            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                    "PHet"))
+            print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[21]))
         else:
-            print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                    "PHet"), end="\r")
+            print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                      methods[21]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
                          calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=True,
                          feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.1, 0.4, 0.8])
@@ -266,11 +484,13 @@ def train():
     temp = [idx for idx, item in enumerate(df["Methods"].tolist())]
     # temp = [idx for idx, item in enumerate(df["Methods"].tolist()) if item != "DECO"]
     df = df.iloc[temp]
-    palette = mcolors.TABLEAU_COLORS
-    palette = dict([(methods[idx], item[1]) for idx, item in enumerate(palette.items())
+    palette = mcolors.get_named_colors_mapping()
+    palette = [(item[0], item[1]) for idx, item in enumerate(palette.items())
+            if idx % 7 == 0]
+    palette = dict(palette)
+    palette = dict([(list(methods.values())[idx], item[1])
+                    for idx, item in enumerate(palette.items())
                     if idx + 1 <= len(methods)])
-    # palette = dict([(methods[idx], item[1]) for idx, item in enumerate(palette.items())
-    #                 if idx + 1 <= len(methods) and methods[idx] != "DECO"])
 
     # Plot lineplot
     print("## Plot lineplot using top k features...")
@@ -291,21 +511,21 @@ def train():
     plt.close(fig="all")
 
     # Plot boxplot
-    print("## Plot boxplot using top k features...")
-    plt.figure(figsize=(14, 8))
-    sns.boxplot(data=df, x='Methods', y='Scores', width=0.5, palette=palette)
-    plt.xticks(fontsize=18, rotation=45)
-    plt.yticks(fontsize=18)
-    plt.xlabel('Methods', fontsize=22)
-    plt.ylabel("F1 scores of each method", fontsize=22)
-    plt.suptitle("Results using Her2 data", fontsize=26)
-    sns.despine()
-    plt.tight_layout()
-    file_path = os.path.join(RESULT_PATH, "her2_boxplot.png")
-    plt.savefig(file_path)
-    plt.clf()
-    plt.cla()
-    plt.close(fig="all")
+    # print("## Plot boxplot using top k features...")
+    # plt.figure(figsize=(14, 8))
+    # sns.boxplot(data=df, x='Methods', y='Scores', width=0.5, palette=palette)
+    # plt.xticks(fontsize=18, rotation=45)
+    # plt.yticks(fontsize=18)
+    # plt.xlabel('Methods', fontsize=22)
+    # plt.ylabel("F1 scores of each method", fontsize=22)
+    # plt.suptitle("Results using Her2 data", fontsize=26)
+    # sns.despine()
+    # plt.tight_layout()
+    # file_path = os.path.join(RESULT_PATH, "her2_boxplot.png")
+    # plt.savefig(file_path)
+    # plt.clf()
+    # plt.cla()
+    # plt.close(fig="all")
 
 
 if __name__ == "__main__":

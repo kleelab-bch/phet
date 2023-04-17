@@ -23,18 +23,19 @@ def train(num_jobs: int = 4):
     if not sort_by_pvalue:
         plot_topKfeatures = True
     is_filter = True
+    num_neighbors = 5
     max_clusters = 10
-    num_neighbors = 10
-    cluster_type = "spectral"  # "kmeans" or "spectral"
-    export_spring = True
-    methods = ["PHet (no Binning)", "PHet"]
-    methods_save_name = ["PHet_nb", "PHet_b"]
+    feature_metric = "f1"
+    cluster_type = "kmeans"
+    export_spring = False
+    methods = ["PHet"]
+    methods_save_name = ["PHet_b"]
 
     # descriptions of the data
-    file_name = "baron_1"
-    suptitle_name = "Baron"
-    control_name = "Endocrine"
-    case_name = "non Endocrine"
+    file_name = "patel"
+    suptitle_name = "Patel"
+    control_name = "0"
+    case_name = "1"
 
     # Exprssion, classes, subtypes, donors, timepoints Files
     expression_file_name = file_name + "_matrix.mtx"
@@ -42,7 +43,7 @@ def train(num_jobs: int = 4):
     markers_file = file_name + "_markers.csv"
     classes_file_name = file_name + "_classes.csv"
     subtypes_file = file_name + "_types.csv"
-    differential_features_file = file_name + "_diff_features.csv"
+    differential_features_file = file_name + "_limma_features.csv"
     donors_file = file_name + "_donors.csv"
     timepoints_file = file_name + "_timepoints.csv"
 
@@ -147,20 +148,13 @@ def train(num_jobs: int = 4):
     methods_dict = dict()
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            methods[0]), end="\r")
+                                                            methods[0]))
     estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
-                     calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=False,
+                     calculate_deltahvf=False, calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=False,
                      feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.2, 0.4, 0.8])
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({methods[0]: df})
     current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100, methods[1]))
-    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
-                     calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=True,
-                     feature_weight=[0.4, 0.3, 0.2, 0.1])
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    methods_dict.update({methods[1]: df})
 
     if sort_by_pvalue:
         print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))
@@ -199,7 +193,8 @@ def train(num_jobs: int = 4):
                     if feature in df['features'][:selected_regulated_features].tolist()]
             top_features_pred = np.zeros((len(top_features_true)))
             top_features_pred[temp] = 1
-            score = comparative_score(pred_features=top_features_pred, true_features=top_features_true, metric="f1")
+            score = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
+                                      metric=feature_metric)
             list_scores.append(score)
 
         df = pd.DataFrame(list_scores, columns=["Scores"], index=methods)

@@ -4,8 +4,9 @@ DeteCtion of celluLar hEterogeneity by anAlyzing variatioNs of cElls.
 
 from itertools import combinations
 
+import anndata as ad
 import numpy as np
-from mlxtend.evaluate import permutation_test
+import scanpy as sc
 from scipy.stats import f_oneway, ks_2samp
 from scipy.stats import iqr, norm, zscore, ttest_ind
 from sklearn.preprocessing import KBinsDiscretizer
@@ -18,20 +19,25 @@ SEED_VALUE = 0.001
 class PHeT:
     def __init__(self, normalize: str = "zscore", iqr_range: float = (25, 75), num_subsamples: int = 1000,
                  subsampling_size: int = None, partition_by_anova: bool = False, calculate_deltaiqr: bool = True,
-                 calculate_deltamean: bool = True, calculate_fisher: bool = True, calculate_profile: bool = True,
-                 binary_clustering: bool = True, bin_KS_pvalues: bool = False, feature_weight: list = None,
-                 weight_range: list = None, permutation_test: bool = False, num_rounds: int = 10000, num_jobs: int = 2):
+                 calculate_deltahvf: bool = False, calculate_deltamean: bool = True, calculate_fisher: bool = True,
+                 calculate_profile: bool = True, binary_clustering: bool = True, bin_KS_pvalues: bool = False,
+                 feature_weight: list = None, weight_range: list = None, num_jobs: int = 2):
         self.normalize = normalize  # robust or zscore
         self.iqr_range = iqr_range
         self.num_subsamples = num_subsamples
         self.subsampling_size = subsampling_size
         self.partition_by_anova = partition_by_anova
         self.calculate_deltaiqr = calculate_deltaiqr
+        self.calculate_deltahvf = calculate_deltahvf
         self.calculate_deltamean = calculate_deltamean
         self.calculate_fisher = calculate_fisher
         self.calculate_profile = calculate_profile
         if calculate_deltaiqr and calculate_fisher and calculate_profile:
             self.calculate_deltaiqr = True
+            self.calculate_fisher = True
+            self.calculate_profile = True
+        if calculate_deltahvf and calculate_fisher and calculate_profile:
+            self.calculate_deltahvf = True
             self.calculate_fisher = True
             self.calculate_profile = True
         self.binary_clustering = binary_clustering
@@ -45,8 +51,6 @@ class PHeT:
                 weight_range = [0.1, 0.3, 0.5]
         self.feature_weight = np.array(feature_weight) / np.sum(feature_weight)
         self.weight_range = weight_range  # [0.1, 0.4, 0.8]
-        self.permutation_test = permutation_test
-        self.num_rounds = num_rounds
         self.num_jobs = num_jobs
 
     def __binary_partitioning(self, X):
@@ -111,22 +115,33 @@ class PHeT:
         # Total number of combinations
         num_combinations = len(list(combinations(range(num_classes), 2)))
 
-        if self.normalize == "robust":
-            # Robustly estimate median by classes
-            med = list()
-            for class_idx in range(num_classes):
-                if num_classes > 1:
-                    class_idx = np.where(y == class_idx)[0]
-                else:
-                    class_idx = range(num_examples)
-                example_med = np.median(X[class_idx], axis=0)
-                temp = np.absolute(X[class_idx] - example_med)
-                med.append(temp)
-            med = np.median(np.concatenate(med), axis=0)
-            X = X / med
-            del class_idx, example_med, temp, med
-        elif self.normalize == "zscore":
-            X = zscore(X, axis=0)
+        if not self.calculate_deltahvf:
+            if self.normalize == "robust":
+                # Robustly estimate median by classes
+                med = list()
+                for class_idx in range(num_classes):
+                    if num_classes > 1:
+                        class_idx = np.where(y == class_idx)[0]
+                    else:
+                        class_idx = range(num_examples)
+                    example_med = np.median(X[class_idx], axis=0)
+                    temp = np.absolute(X[class_idx] - example_med)
+                    med.append(temp)
+                med = np.median(np.concatenate(med), axis=0)
+                X = X / med
+                del class_idx, example_med, temp, med
+            elif self.normalize == "zscore":
+                X = zscore(X, axis=0)
+        else:
+            adata = ad.AnnData(X=X)
+            # Total-count normalize (library-size correct) the data matrix X to 10,000 reads per cell,
+            # so that counts become comparable among cells.
+            sc.pp.normalize_total(adata, target_sum=1e4)
+            # Logarithmize the data:
+            sc.pp.log1p(adata)
+            X = adata.X
+            np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+            del adata
 
         # Define the initial subsampling size for recurrent-sampling differential analysis
         num_subsamples = self.num_subsamples
@@ -156,7 +171,7 @@ class PHeT:
             if subsampling_size > temp:
                 subsampling_size = temp
 
-        if self.calculate_deltaiqr or self.calculate_fisher:
+        if self.calculate_deltaiqr or self.calculate_deltahvf or self.calculate_fisher:
             # Step 1: Recurrent-sampling differential analysis to select and rank
             # significant features
             # Define frequency raw p-value P matrices
@@ -173,15 +188,27 @@ class PHeT:
                         examples_j = np.where(y == j)[0]
                         examples_i = np.random.choice(a=examples_i, size=subsampling_size, replace=False)
                         examples_j = np.random.choice(a=examples_j, size=subsampling_size, replace=False)
-                        iq_range_i = iqr(X[examples_i], axis=0, rng=self.iqr_range, scale=1.0)
-                        iq_range_j = iqr(X[examples_j], axis=0, rng=self.iqr_range, scale=1.0)
-                        iq_range = np.absolute(iq_range_i - iq_range_j)
-                        diff_means = 0
+                        if self.calculate_deltahvf:
+                            adata = ad.AnnData(X=X[examples_i])
+                            sc.pp.highly_variable_genes(adata, n_top_genes=num_features)
+                            disp1 = adata.var["dispersions_norm"].to_numpy()
+                            adata = ad.AnnData(X=X[examples_j])
+                            sc.pp.highly_variable_genes(adata, n_top_genes=num_features)
+                            disp2 = adata.var["dispersions_norm"].to_numpy()
+                            delta_h = np.absolute(disp1 - disp2)
+                            del adata
+                        else:
+                            iq_range_i = iqr(X[examples_i], axis=0, rng=self.iqr_range, scale=1.0)
+                            iq_range_j = iqr(X[examples_j], axis=0, rng=self.iqr_range, scale=1.0)
+                            delta_h = np.absolute(iq_range_i - iq_range_j)
+                        np.nan_to_num(delta_h, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+                        delta_means = 0
                         if not self.calculate_deltamean:
                             mean_i = np.mean(X[examples_i], axis=0)
                             mean_j = np.mean(X[examples_j], axis=0)
-                            diff_means = np.absolute(mean_i - mean_j)
-                        temp[:, combination_idx] += (iq_range + diff_means) / num_subsamples
+                            delta_means = np.absolute(mean_i - mean_j)
+                            np.nan_to_num(delta_means, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+                        temp[:, combination_idx] += (delta_h + delta_means) / num_subsamples
                         if subsampling_size < 30:
                             _, pvalue = ttest_ind(X[examples_i], X[examples_j])
                         else:
@@ -189,16 +216,19 @@ class PHeT:
                         P[:, sample_idx] += pvalue / num_combinations
                     combination_idx += 1
                 R = np.max(temp, axis=1)
-                del temp, iq_range_i, iq_range_j, iq_range
+                if self.calculate_deltahvf:
+                    del temp, disp1, disp2, delta_h
+                else:
+                    del temp, iq_range_i, iq_range_j, delta_h
             else:
                 sample2example = np.zeros((num_subsamples, num_examples), dtype=np.int16)
                 temp = np.zeros((num_features, num_subsamples))
                 for sample_idx in range(num_subsamples):
                     subset = np.random.choice(a=num_examples, size=subsampling_size, replace=False)
-                    iq_range = iqr(X[subset], axis=0, rng=self.iqr_range, scale=1.0)
+                    delta_h = iqr(X[subset], axis=0, rng=self.iqr_range, scale=1.0)
                     P[:, sample_idx] = pvalue
                     sample2example[sample_idx, subset] = 1
-                    temp[:, sample_idx] = np.absolute(iq_range)
+                    temp[:, sample_idx] = np.absolute(delta_h)
                 R = np.max(temp, axis=1)
             np.nan_to_num(R, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
@@ -294,9 +324,6 @@ class PHeT:
                     # Mixed change
                     else:
                         O[feature_idx, 3] = 1
-            # TODO: delete
-            # define gradient bounds and a boolean indicator
-            # O = (.1 - .4) * (((O - np.min(O)) / (np.max(O) - np.min(O)))) + .4
             if self.bin_KS_pvalues:
                 temp = KBinsDiscretizer(n_bins=len(self.feature_weight), encode="ordinal",
                                         strategy="uniform").fit_transform(O)
@@ -322,29 +349,5 @@ class PHeT:
             I /= I.sum()
         H = R + I
         np.nan_to_num(H, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
-
-        if self.permutation_test and num_classes > 1:
-            # Permutation based p-value calculation using approximate method
-            pvals = np.zeros((num_features,))
-            for feature_idx in range(num_features):
-                for i, j in combinations(range(num_classes), 2):
-                    examples_i = np.where(y == i)[0]
-                    examples_j = np.where(y == j)[0]
-                    examples_i = X[examples_i, feature_idx]
-                    examples_j = X[examples_j, feature_idx]
-                    if self.direction == "up":
-                        temp = permutation_test(x=examples_i, y=examples_j, func="x_mean > y_mean",
-                                                method="approximate", num_rounds=self.num_rounds)
-                    elif self.direction == "down":
-                        temp = permutation_test(x=examples_i, y=examples_j, func="x_mean < y_mean",
-                                                method="approximate", num_rounds=self.num_rounds)
-                    else:
-                        temp = permutation_test(x=examples_i, y=examples_j, func="x_mean != y_mean",
-                                                method="approximate", num_rounds=self.num_rounds)
-                    pvals[feature_idx] += temp / num_combinations
-            H = np.vstack((H, pvals)).T
-        else:
-            H = np.reshape(H, (H.shape[0], 1))
-
-        results = H
+        results = np.reshape(H, (H.shape[0], 1))
         return results
