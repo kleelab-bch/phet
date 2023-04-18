@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from sklearn.preprocessing import LabelBinarizer
-
+from copy import deepcopy
 from model.copa import COPA
 from model.deltahvfmean import DeltaHVFMean
 from model.deltaiqrmean import DeltaIQRMean
@@ -26,8 +26,25 @@ sns.set_theme()
 sns.set_style(style='white')
 
 
-def train():
+def compute_score(lb, top_features_true, top_features_pred, probes2genes, genes2probes, 
+                  range_topfeatures):
 
+    top_features_pred = top_features_pred["features"].to_list()
+    temp_range = list()
+    for top_features in range_topfeatures:
+        temp = top_features_pred[:top_features]
+        add_probes = [p for probe in probes2genes if probe in temp
+                      for p in genes2probes[probes2genes[probe]]]
+        temp.extend(add_probes)
+        temp = list(set(temp))
+        pred_features = lb.transform(temp).sum(axis=0).astype(int)
+        temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
+                                 metric="precision")
+        temp_range.append(temp)
+    
+    return temp_range
+
+def train():
     # Filtering and subsampling arguments
     pvalue = 0.01  
     topKfeatures = 500
@@ -64,6 +81,19 @@ def train():
     temp = [idx for idx, item in enumerate(top_features_true["Gene.symbol"])
             if item in X_humchr17 and top_features_true.iloc[idx]["adj.P.Val"] <= 0.01]
     selected_features = np.unique(top_features_true.iloc[temp]["Gene.symbol"].tolist()).shape[0]
+    probes2genes = {}
+    genes2probes = {}
+    for item in top_features_true.iloc[temp]["ID"].to_list():
+        probes2genes[item] = top_features_true[top_features_true["ID"] == item]["Gene.symbol"].to_list()[0]
+    for probe, gene in probes2genes.items():
+        if gene in genes2probes:
+            genes2probes[gene] += [probe]
+        else:
+            genes2probes[gene] = [probe] 
+    genes2probes = dict((gene, probe) for gene, probe in genes2probes.items() 
+                        if len(probe) > 1)
+    probes2genes = dict([(probe, probes2genes[probe]) for probes in genes2probes.values() 
+                         for probe in probes])
     top_features_true = top_features_true.iloc[temp]["ID"].tolist()
     top_features_true = lb.transform(top_features_true).sum(axis=0).astype(int)
     topKfeatures = sum(top_features_true).astype(int)
@@ -71,7 +101,7 @@ def train():
     # Load DECO and LIMMA results    
     X_deco = pd.read_csv(os.path.join(DATASET_PATH, "her2_deco_features.csv"), sep=',', header=None)
     X_deco = X_deco.to_numpy()
-    if df_deco.shape[1] != num_batches:
+    if X_deco.shape[1] != num_batches:
         temp = "The number of batches does not match with DECO results"
         raise Exception(temp)
     X_limma = pd.read_csv(os.path.join(DATASET_PATH, "her2_limma_features.csv"), sep=',', header=None)
@@ -101,67 +131,55 @@ def train():
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       methods[0]), end="\r")
-        estimator = StudentTTest(use_statistics=False, direction=direction)
+        estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=False)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False, ascending=True)
         top_features_pred = top_features_pred[top_features_pred["score"] <= pvalue]
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       methods[1]), end="\r")
-        estimator = StudentTTest(use_statistics=True, direction=direction)
+        estimator = StudentTTest(use_statistics=True, direction=direction, adjust_pvalue=False)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       methods[2]), end="\r")
-        estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction)
+        estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=False)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False, ascending=True)
         top_features_pred = top_features_pred[top_features_pred["score"] <= pvalue]
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       methods[3]), end="\r")
-        estimator = WilcoxonRankSumTest(use_statistics=True, direction=direction)
+        estimator = WilcoxonRankSumTest(use_statistics=True, direction=direction, adjust_pvalue=False)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
@@ -173,13 +191,10 @@ def train():
         top_features_pred = top_features_pred.reshape(top_features_pred.shape[0], 1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
@@ -189,13 +204,10 @@ def train():
         top_features_pred = top_features_pred.reshape(top_features_pred.shape[0], 1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
@@ -203,16 +215,15 @@ def train():
                                                                       methods[6]), end="\r")
         estimator = SeuratHVF(per_condition=False, num_top_features=len(features_name),
                               min_disp=0.5, min_mean=0.0125, max_mean=3)
-        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        temp_X = deepcopy(X)
+        top_features_pred = estimator.fit_predict(X=temp_X, y=y, control_class=0, case_class=1)
+        del temp_X
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
@@ -220,16 +231,15 @@ def train():
                                                                       methods[7]), end="\r")
         estimator = SeuratHVF(per_condition=True, num_top_features=len(features_name),
                               min_disp=0.5, min_mean=0.0125, max_mean=3)
-        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        temp_X = deepcopy(X)
+        top_features_pred = estimator.fit_predict(X=temp_X, y=y, control_class=0, case_class=1)
+        del temp_X
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
@@ -237,16 +247,15 @@ def train():
                                                                       methods[8]), end="\r")
         estimator = DeltaHVFMean(calculate_deltamean=False, num_top_features=len(features_name), 
                                  min_disp=0.5, min_mean=0.0125, max_mean=3)
-        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        temp_X = deepcopy(X)
+        top_features_pred = estimator.fit_predict(X=temp_X, y=y, control_class=0, case_class=1)
+        del temp_X
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
@@ -254,16 +263,15 @@ def train():
                                                                       methods[9]), end="\r")
         estimator = DeltaHVFMean(calculate_deltamean=True, num_top_features=len(features_name), 
                                  min_disp=0.5, min_mean=0.0125, max_mean=3)
-        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        temp_X = deepcopy(X)
+        top_features_pred = estimator.fit_predict(X=temp_X, y=y, control_class=0, case_class=1)
+        del temp_X
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
@@ -273,13 +281,10 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
@@ -289,13 +294,10 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
@@ -305,13 +307,10 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
@@ -321,13 +320,10 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
@@ -337,13 +333,10 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
@@ -353,13 +346,10 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
@@ -369,13 +359,10 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
@@ -385,13 +372,10 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
@@ -401,13 +385,10 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
@@ -417,13 +398,10 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
@@ -435,13 +413,10 @@ def train():
         top_features_pred = top_features_pred.reshape(top_features_pred.shape[0], 1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
@@ -457,13 +432,10 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
-        top_features_pred = top_features_pred["features"].to_list()
-        temp_range = list()
-        for top_features in range_topfeatures:
-            pred_features = lb.transform(top_features_pred[:top_features]).sum(axis=0).astype(int)
-            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="f1")
-            temp_range.append(temp)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
         list_scores.append(temp_range)
         current_progress += 1
 
@@ -482,20 +454,20 @@ def train():
     df.to_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',', index=False)
     df = pd.read_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',')
     temp = [idx for idx, item in enumerate(df["Methods"].tolist())]
-    # temp = [idx for idx, item in enumerate(df["Methods"].tolist()) if item != "DECO"]
     df = df.iloc[temp]
     palette = mcolors.get_named_colors_mapping()
     palette = [(item[0], item[1]) for idx, item in enumerate(palette.items())
             if idx % 7 == 0]
     palette = dict(palette)
-    palette = dict([(list(methods.values())[idx], item[1])
-                    for idx, item in enumerate(palette.items())
+    palette = dict([(methods[idx], item[1]) for idx, item in enumerate(palette.items())
                     if idx + 1 <= len(methods)])
-
+    palette["PHet"] = "#000000"
     # Plot lineplot
     print("## Plot lineplot using top k features...")
     plt.figure(figsize=(14, 8))
-    sns.lineplot(data=df, x='Range', y='Scores', hue="Methods", palette=palette)
+    sns.lineplot(data=df, x='Range', y='Scores', hue="Methods", 
+                 palette=palette, style="Methods")
+    plt.axvline(20, color='red')
     plt.xticks([item for item in range_topfeatures
                 if item % 25 == 0 or item == 1], fontsize=20, rotation=45)
     plt.yticks(fontsize=20)
@@ -510,24 +482,6 @@ def train():
     plt.cla()
     plt.close(fig="all")
 
-    # Plot boxplot
-    # print("## Plot boxplot using top k features...")
-    # plt.figure(figsize=(14, 8))
-    # sns.boxplot(data=df, x='Methods', y='Scores', width=0.5, palette=palette)
-    # plt.xticks(fontsize=18, rotation=45)
-    # plt.yticks(fontsize=18)
-    # plt.xlabel('Methods', fontsize=22)
-    # plt.ylabel("F1 scores of each method", fontsize=22)
-    # plt.suptitle("Results using Her2 data", fontsize=26)
-    # sns.despine()
-    # plt.tight_layout()
-    # file_path = os.path.join(RESULT_PATH, "her2_boxplot.png")
-    # plt.savefig(file_path)
-    # plt.clf()
-    # plt.cla()
-    # plt.close(fig="all")
-
-
 if __name__ == "__main__":
     # for windows
     if os.name == 'nt':
@@ -536,3 +490,16 @@ if __name__ == "__main__":
     else:
         _ = os.system('clear')
     train()
+
+# df = df[df["Methods"] != "t-statistic"]
+# df = df[df["Methods"] != "Wilcoxon"]
+# df = df[df["Methods"] != "LIMMA"]
+# df = df[df["Methods"] != "HVF (composite)"]
+# df = df[df["Methods"] != "HVF (by condition)"]
+# df = df[df["Methods"] != "ΔHVF"]
+# df = df[df["Methods"] != "ΔHVF+ΔMean"]
+# df = df[df["Methods"] != "COPA"]
+# df = df[df["Methods"] != "OS"]
+# df = df[df["Methods"] != "ORT"]
+# df = df[df["Methods"] != "MOST"]
+# df = df[df["Methods"] != "DECO"]

@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
-
 from model.phet import PHeT
 from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.plot_utils import plot_umap, plot_barplot
@@ -32,8 +31,8 @@ def train(num_jobs: int = 4):
     methods_save_name = ["PHet_b"]
 
     # descriptions of the data
-    file_name = "patel"
-    suptitle_name = "Patel"
+    file_name = "lunggse1987"
+    suptitle_name = "GSE1987"
     control_name = "0"
     case_name = "1"
 
@@ -69,7 +68,7 @@ def train(num_jobs: int = 4):
     X = X.to_df().to_numpy()
     np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
-    # Filter data based on counts
+    # Filter data 
     num_examples, num_features = X.shape
     if is_filter:
         example_sums = np.absolute(X).sum(1)
@@ -150,7 +149,7 @@ def train(num_jobs: int = 4):
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             methods[0]))
     estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
-                     calculate_deltahvf=False, calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=False,
+                     calculate_deltahvf=False, calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=True,
                      feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.2, 0.4, 0.8])
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({methods[0]: df})

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
-
+from copy import deepcopy
 from model.copa import COPA
 from model.deltahvfmean import DeltaHVFMean
 from model.deltaiqrmean import DeltaIQRMean
@@ -59,8 +59,8 @@ def train(num_jobs: int = 4):
     cluster_type = "spectral"
 
     # Descriptions of the data
-    file_name = "li"
-    suptitle_name = "Li"
+    file_name = "bc_ccgse3726"
+    suptitle_name = "bc_ccgse3726"
 
     # Exprssion, classes, subtypes, donors, timepoints Files
     expression_file_name = file_name + "_matrix.mtx"
@@ -83,7 +83,8 @@ def train(num_jobs: int = 4):
     X = X.to_df().to_numpy()
     np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
-    # Filter data based on counts (CPM)
+    # Filter data
+    num_examples, num_features = X.shape
     example_sums = np.absolute(X).sum(1)
     examples_ids = np.where(example_sums >= 5)[0]  # filter out cells below 5
     X = X[examples_ids]
@@ -113,15 +114,19 @@ def train(num_jobs: int = 4):
 
     # Load up/down regulated features
     top_features_true = pd.read_csv(os.path.join(DATASET_PATH, differential_features_file), sep=',',
-                                    index_col="ID")
+                                        index_col="ID")
     temp = [feature for feature in top_features_true.index.to_list() if str(feature) in features_name]
-    top_features_true = top_features_true.loc[temp]
-    temp = top_features_true[top_features_true["adj.P.Val"] <= pvalue]
-    if temp.shape[0] < topKfeatures:
-        temp = top_features_true[:topKfeatures - 1]
-        if sort_by_pvalue and temp.shape[0] == 0:
-            plot_topKfeatures = True
-    top_features_true = [str(feature_idx) for feature_idx in temp.index.to_list()[:topKfeatures]]
+    if top_features_true.shape[1] > 0:
+        top_features_true = top_features_true.loc[temp]
+        temp = top_features_true[top_features_true["adj.P.Val"] <= pvalue]
+        if temp.shape[0] < topKfeatures:
+            temp = top_features_true[:topKfeatures - 1]
+            if sort_by_pvalue and temp.shape[0] == 0:
+                plot_topKfeatures = True
+        top_features_true = [str(feature_idx) for feature_idx in temp.index.to_list()[:topKfeatures]]
+    else:
+        top_features_true = temp
+        topKfeatures = len(top_features_true)
     top_features_true = [1 if feature in top_features_true else 0 for idx, feature in enumerate(features_name)]
 
     print("## Perform experimental studies using {0} data...".format(suptitle_name))
@@ -133,7 +138,7 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             methods[0]), end="\r")
-    estimator = StudentTTest(use_statistics=False, direction=direction)
+    estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=False)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, 
                        ttest=False, ascending=True)
@@ -143,14 +148,14 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             methods[1]), end="\r")
-    estimator = StudentTTest(use_statistics=True, direction=direction)
+    estimator = StudentTTest(use_statistics=True, direction=direction, adjust_pvalue=False)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({methods[1]: df})
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             methods[2]), end="\r")
-    estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction)
+    estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=False)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, 
                        ttest=False, ascending=True)
@@ -160,7 +165,7 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             methods[3]), end="\r")
-    estimator = WilcoxonRankSumTest(use_statistics=True, direction=direction)
+    estimator = WilcoxonRankSumTest(use_statistics=True, direction=direction, adjust_pvalue=False)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({methods[3]: df})
     current_progress += 1
@@ -188,7 +193,9 @@ def train(num_jobs: int = 4):
                                                             methods[6]), end="\r")
     estimator = SeuratHVF(per_condition=False, num_top_features=num_features,
                           min_disp=0.5, min_mean=0.0125, max_mean=3)
-    df = estimator.fit_predict(X=X, y=y)
+    temp_X = deepcopy(X)
+    df = estimator.fit_predict(X=temp_X, y=y)
+    del temp_X
     methods_dict.update({methods[6]: df})
     current_progress += 1
 
@@ -196,7 +203,9 @@ def train(num_jobs: int = 4):
                                                             methods[7]), end="\r")
     estimator = SeuratHVF(per_condition=True, num_top_features=num_features,
                           min_disp=0.5, min_mean=0.0125, max_mean=3)
-    df = estimator.fit_predict(X=X, y=y)
+    temp_X = deepcopy(X)
+    df = estimator.fit_predict(X=temp_X, y=y)
+    del temp_X
     methods_dict.update({methods[7]: df})
     current_progress += 1
 
@@ -204,7 +213,9 @@ def train(num_jobs: int = 4):
                                                             methods[8]), end="\r")
     estimator = DeltaHVFMean(calculate_deltamean=False, num_top_features=num_features, min_disp=0.5,
                              min_mean=0.0125, max_mean=3)
-    df = estimator.fit_predict(X=X, y=y)
+    temp_X = deepcopy(X)
+    df = estimator.fit_predict(X=temp_X, y=y)
+    del temp_X
     methods_dict.update({methods[8]: df})
     current_progress += 1
 
@@ -212,7 +223,9 @@ def train(num_jobs: int = 4):
                                                             methods[9]), end="\r")
     estimator = DeltaHVFMean(calculate_deltamean=True, num_top_features=num_features, min_disp=0.5,
                              min_mean=0.0125, max_mean=3)
-    df = estimator.fit_predict(X=X, y=y)
+    temp_X = deepcopy(X)
+    df = estimator.fit_predict(X=temp_X, y=y)
+    del temp_X
     methods_dict.update({methods[9]: df})
     current_progress += 1
 

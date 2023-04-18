@@ -1,13 +1,15 @@
 import numpy as np
 from scipy.stats import ttest_ind, mannwhitneyu
-
+from statsmodels.stats.multitest import fdrcorrection
 
 class StudentTTest:
-    def __init__(self, use_statistics: bool = False, direction: str = "both",
-                 perform_permutation: bool = False, num_rounds: int = 10000):
+    def __init__(self, use_statistics: bool = False, direction: str = "both", 
+                 perform_permutation: bool = False, adjust_pvalue: bool = False,
+                 num_rounds: int = 10000):
         self.use_statistics = use_statistics
         self.direction = direction  # up, down, both
         self.perform_permutation = perform_permutation
+        self.adjust_pvalue = adjust_pvalue
         self.num_rounds = num_rounds
 
     def fit_predict(self, X, y, control_class: int = 0, case_class: int = 1):
@@ -42,16 +44,19 @@ class StudentTTest:
             results[feature_idx] = pvalue
             if self.use_statistics:
                 results[feature_idx] = np.absolute(statistic)
-
+        if not self.use_statistics:
+            if self.adjust_pvalue:
+                results = fdrcorrection(results, alpha=0.05, method="indep")[1]
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
         results = np.reshape(results, (results.shape[0], 1))
         return results
 
 
 class WilcoxonRankSumTest:
-    def __init__(self, use_statistics: bool = False, direction: str = "both"):
+    def __init__(self, use_statistics: bool = False, direction: str = "both", adjust_pvalue: bool = False):
         self.use_statistics = use_statistics
         self.direction = direction  # up, down, both
+        self.adjust_pvalue = adjust_pvalue
 
     def fit_predict(self, X, y, control_class: int = 0, case_class: int = 1):
         # Sanity checking
@@ -81,6 +86,9 @@ class WilcoxonRankSumTest:
             results[feature_idx] = pvalue
             if self.use_statistics:
                 results[feature_idx] = np.absolute(statistic)
+        if not self.use_statistics:
+            if self.adjust_pvalue:
+                results = fdrcorrection(results, alpha=0.05, method="indep")[1]
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
         results = np.reshape(results, (results.shape[0], 1))
         return results

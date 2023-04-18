@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import seaborn as sns
-
+from copy import deepcopy
 from model.copa import COPA
 from model.deltahvfmean import DeltaHVFMean
 from model.deltaiqrmean import DeltaIQRMean
@@ -149,7 +149,7 @@ def train():
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       methods[0]), end="\r")
-            estimator = StudentTTest(use_statistics=False, direction=direction)
+            estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=False)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False, 
                                ascending=True)
@@ -159,14 +159,14 @@ def train():
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       methods[1]), end="\r")
-            estimator = StudentTTest(use_statistics=True, direction=direction)
+            estimator = StudentTTest(use_statistics=True, direction=direction, adjust_pvalue=False)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             methods_dict.update({methods[1]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       methods[2]), end="\r")
-            estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction)
+            estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=False)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False, 
                                ascending=True)
@@ -176,7 +176,7 @@ def train():
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       methods[3]), end="\r")
-            estimator = WilcoxonRankSumTest(use_statistics=True, direction=direction)
+            estimator = WilcoxonRankSumTest(use_statistics=True, direction=direction, adjust_pvalue=False)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             methods_dict.update({methods[3]: df})
             current_progress += 1
@@ -206,7 +206,9 @@ def train():
                                                                       methods[6]), end="\r")
             estimator = SeuratHVF(per_condition=False, num_top_features=num_features,
                                   min_disp=0.5, min_mean=0.0125, max_mean=3)
-            df = estimator.fit_predict(X=X, y=y)
+            temp_X = deepcopy(X)
+            df = estimator.fit_predict(X=temp_X, y=y)
+            del temp_X
             methods_dict.update({methods[6]: df})
             current_progress += 1
 
@@ -214,7 +216,9 @@ def train():
                                                                       methods[7]), end="\r")
             estimator = SeuratHVF(per_condition=True, num_top_features=num_features,
                                   min_disp=0.5, min_mean=0.0125, max_mean=3)
-            df = estimator.fit_predict(X=X, y=y)
+            temp_X = deepcopy(X)
+            df = estimator.fit_predict(X=temp_X, y=y)
+            del temp_X
             methods_dict.update({methods[7]: df})
             current_progress += 1
 
@@ -222,7 +226,9 @@ def train():
                                                                       methods[8]), end="\r")
             estimator = DeltaHVFMean(calculate_deltamean=False, num_top_features=num_features, min_disp=0.5,
                                      min_mean=0.0125, max_mean=3)
-            df = estimator.fit_predict(X=X, y=y)
+            temp_X = deepcopy(X)
+            df = estimator.fit_predict(X=temp_X, y=y)
+            del temp_X
             methods_dict.update({methods[8]: df})
             current_progress += 1
 
@@ -230,7 +236,9 @@ def train():
                                                                       methods[9]), end="\r")
             estimator = DeltaHVFMean(calculate_deltamean=True, num_top_features=num_features, min_disp=0.5,
                                      min_mean=0.0125, max_mean=3)
-            df = estimator.fit_predict(X=X, y=y)
+            temp_X = deepcopy(X)
+            df = estimator.fit_predict(X=temp_X, y=y)
+            del temp_X
             methods_dict.update({methods[9]: df})
             current_progress += 1
 

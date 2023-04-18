@@ -85,8 +85,8 @@ def significant_features(X, features_name, pvalue: float = 0.01, X_map=None, map
     return df
 
 
-def sort_features(X, features_name, X_map=None, map_genes: bool = True, ttest: bool = False, 
-                  ascending:bool=False):
+def sort_features(X, features_name, X_map=None, map_genes: bool = True, ttest: bool = False,
+                  ascending: bool = False):
     df = pd.concat([pd.DataFrame(features_name), pd.DataFrame(X)], axis=1)
     if X.shape[1] == 5:
         df.columns = ['features', 'iqr', 'median_diff', 'ttest', 'score', 'class']
