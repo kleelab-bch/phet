@@ -40,12 +40,12 @@ X_case <- SummarizedExperiment(assays = list(counts = X_case))
 # RUNNING SUBSAMPLING OF DATA: BINARY design (two classes of samples) #
 #######################################################################
 
+batch_matrix <- matrix(0, nrow = length(featureIDs), ncol = num_batches)
 pb <- txtProgressBar(min = 0,      # Minimum value of the progress bar
                      max = num_batches, # Maximum value of the progress bar
                      style = 3,    # Progress bar style (also available style = 1 and style = 2)
                      width = 80,   # Progress bar width. Defaults to getOption("width")
                      char = "=")   # Character used to create the bar
-batch_matrix <- matrix(0, nrow = length(featureIDs), ncol = num_batches)
 for (batch_idx in 1:num_batches) {
   temp <- sample(ncol(assay(X_case)), size = subsampleSize, replace = FALSE, prob = NULL)
   gset <- cbind(assay(X_control), assay(X_case)[, temp])

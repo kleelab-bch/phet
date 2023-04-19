@@ -11,6 +11,7 @@ from utility.utils import comparative_score
 from utility.utils import sort_features, significant_features
 
 sns.set_theme(style="white")
+METHODS = ["PHet"]
 
 
 def train(num_jobs: int = 4):
@@ -27,7 +28,6 @@ def train(num_jobs: int = 4):
     feature_metric = "f1"
     cluster_type = "kmeans"
     export_spring = False
-    methods = ["PHet"]
     methods_save_name = ["PHet_b"]
 
     # descriptions of the data
@@ -143,16 +143,16 @@ def train(num_jobs: int = 4):
     print("\t >> Sample size: {0}; Feature size: {1}; Subtype size: {2}".format(X.shape[0], X.shape[1],
                                                                                 len(np.unique(subtypes))))
     current_progress = 1
-    total_progress = len(methods)
+    total_progress = len(METHODS)
     methods_dict = dict()
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                            methods[0]))
+                                                            METHODS[0]))
     estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
                      calculate_deltahvf=False, calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=True,
                      feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.2, 0.4, 0.8])
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    methods_dict.update({methods[0]: df})
+    methods_dict.update({METHODS[0]: df})
     current_progress += 1
 
     if sort_by_pvalue:
@@ -161,7 +161,7 @@ def train(num_jobs: int = 4):
         print("## Sort features by the score statistic...".format())
     for method_idx, item in enumerate(methods_dict.items()):
         method_name, df = item
-        method_name = methods[method_idx]
+        method_name = METHODS[method_idx]
         save_name = methods_save_name[method_idx]
         if sort_by_pvalue:
             temp = significant_features(X=df, features_name=features_name, pvalue=pvalue,
@@ -181,12 +181,12 @@ def train(num_jobs: int = 4):
         print("\t >> Number of up/down regulated features: {0}".format(selected_regulated_features))
         list_scores = list()
         for method_idx, item in enumerate(methods_dict.items()):
-            if method_idx + 1 == len(methods):
-                print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / len(methods)) * 100,
-                                                                          methods[method_idx]))
+            if method_idx + 1 == len(METHODS):
+                print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / len(METHODS)) * 100,
+                                                                          METHODS[method_idx]))
             else:
-                print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((method_idx / len(methods)) * 100,
-                                                                          methods[method_idx]), end="\r")
+                print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((method_idx / len(METHODS)) * 100,
+                                                                          METHODS[method_idx]), end="\r")
             method_name, df = item
             temp = [idx for idx, feature in enumerate(features_name)
                     if feature in df['features'][:selected_regulated_features].tolist()]
@@ -196,10 +196,10 @@ def train(num_jobs: int = 4):
                                       metric=feature_metric)
             list_scores.append(score)
 
-        df = pd.DataFrame(list_scores, columns=["Scores"], index=methods)
+        df = pd.DataFrame(list_scores, columns=["Scores"], index=METHODS)
         df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_features_scores.csv"), sep=",")
         print("## Plot barplot using the top {0} features...".format(topKfeatures))
-        plot_barplot(X=list_scores, methods_name=methods, metric="f1", suptitle=suptitle_name,
+        plot_barplot(X=list_scores, methods_name=METHODS, metric="f1", suptitle=suptitle_name,
                      file_name=file_name, save_path=RESULT_PATH)
 
     temp = np.copy(y)
@@ -233,7 +233,7 @@ def train(num_jobs: int = 4):
         print("## Plot UMAP using the top features for each method...")
     for method_idx, item in enumerate(methods_dict.items()):
         method_name, df = item
-        method_name = methods[method_idx]
+        method_name = METHODS[method_idx]
         save_name = methods_save_name[method_idx]
         if total_progress == method_idx + 1:
             print("\t >> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / total_progress) * 100,
@@ -268,11 +268,11 @@ def train(num_jobs: int = 4):
     index = ["All"]
     if top_features_true != -1:
         index += ["Markers"]
-    df = pd.DataFrame(list_scores, columns=["Scores"], index=index + methods)
+    df = pd.DataFrame(list_scores, columns=["Scores"], index=index + METHODS)
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_cluster_quality.csv"), sep=",")
 
     print("## Plot barplot using to demonstrate clustering accuracy...".format(topKfeatures))
-    plot_barplot(X=list_scores, methods_name=index + methods, metric="ari",
+    plot_barplot(X=list_scores, methods_name=index + METHODS, metric="ari",
                  suptitle=suptitle_name, file_name=file_name, save_path=RESULT_PATH)
 
 

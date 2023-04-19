@@ -10,7 +10,7 @@ data_type <- c("minority_features", "mixed_features")
 
 for (per in outlier_per) {
   for (t in data_type) {
-    print(paste("Loading ", file_name, per, t, ".csv ...", sep = ""))
+    print(paste("Loading ", file_name, per, t, ".csv...", sep = ""))
     # Load data
     gset <- read.csv(file.path(working_dir, 
                                paste(file_name, per, t, ".csv", sep = "")), 

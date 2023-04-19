@@ -22,8 +22,11 @@ from utility.utils import sort_features, significant_features
 sns.set_theme()
 sns.set_theme(style="white")
 np.random.seed(seed=12345)
-sns.set_theme()
-sns.set_style(style='white')
+
+ALGORITHMS = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma", "LIMMA", "LIMMA+Gamma",
+              "HVF (composite)", "HVF (by condition)", "ΔHVF", "ΔHVF+ΔMean", "IQR (composite)",
+              "IQR (by condition)", "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS",
+              "DECO", "PHet"]
 
 
 def construct_data(X, y, features_name: list, regulated_features: list, control_class: int = 0,
@@ -88,10 +91,6 @@ def train():
 
     # Models parameters
     direction = "both"
-    methods = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma", "LIMMA", "LIMMA+Gamma",
-               "HVF (composite)", "HVF (by condition)", "ΔHVF", "ΔHVF+ΔMean", "IQR (composite)",
-               "IQR (by condition)", "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS",
-               "DECO", "PHet"]
     
     # dataset name
     list_data = list(range(1, 11))
@@ -117,9 +116,9 @@ def train():
                            control_class=0, num_outliers=n_outliers, num_features_changes=num_features_changes,
                            file_name=file_name + "%.2d" % n_outliers, save_path=DATASET_PATH)
 
-    total_progress = len(methods)
-    methods_features = np.zeros(shape=(len(methods), len(list_data) * len(data_type)), dtype=np.int32)
-    methods_outliers_scores = np.zeros(shape=(len(methods), len(list_data) * len(data_type)), dtype=np.float32)
+    total_progress = len(ALGORITHMS)
+    methods_features = np.zeros(shape=(len(ALGORITHMS), len(list_data) * len(data_type)), dtype=np.int32)
+    methods_outliers_scores = np.zeros(shape=(len(ALGORITHMS), len(list_data) * len(data_type)), dtype=np.float32)
     for data_idx, outlier_idx in enumerate(list_data):
         for type_idx, outlier_type in enumerate(data_type):
             current_progress = 1
@@ -144,197 +143,197 @@ def train():
                                                                                      len(np.unique(y))))
 
             current_progress = 1
-            total_progress = len(methods)
+            total_progress = len(ALGORITHMS)
             methods_dict = dict()
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[0]), end="\r")
+                                                                      ALGORITHMS[0]), end="\r")
             estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=False)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False, 
                                ascending=True)
             df = df[df["score"] <= pvalue]
-            methods_dict.update({methods[0]: df})
+            methods_dict.update({ALGORITHMS[0]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[1]), end="\r")
+                                                                      ALGORITHMS[1]), end="\r")
             estimator = StudentTTest(use_statistics=True, direction=direction, adjust_pvalue=False)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-            methods_dict.update({methods[1]: df})
+            methods_dict.update({ALGORITHMS[1]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[2]), end="\r")
+                                                                      ALGORITHMS[2]), end="\r")
             estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=False)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False, 
                                ascending=True)
             df = df[df["score"] <= pvalue]
-            methods_dict.update({methods[2]: df})
+            methods_dict.update({ALGORITHMS[2]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[3]), end="\r")
+                                                                      ALGORITHMS[3]), end="\r")
             estimator = WilcoxonRankSumTest(use_statistics=True, direction=direction, adjust_pvalue=False)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-            methods_dict.update({methods[3]: df})
+            methods_dict.update({ALGORITHMS[3]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[4]), end="\r")
+                                                                      ALGORITHMS[4]), end="\r")
             df = pd.read_csv(os.path.join(DATASET_PATH, temp_name + "_limma_features.csv"), sep=',')
             df = df[["ID", "adj.P.Val", "B"]]
             df = df[df["adj.P.Val"] <= pvalue]
             df = df[["ID", "B"]]
             df["ID"] = list(np.array(features_name)[df["ID"].to_list()])
             df.columns = ["features", "score"]
-            methods_dict.update({methods[4]: df})
+            methods_dict.update({ALGORITHMS[4]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[5]), end="\r")
+                                                                      ALGORITHMS[5]), end="\r")
             df = pd.read_csv(os.path.join(DATASET_PATH, temp_name + "_limma_features.csv"), sep=',')
             df = df[["ID", "B"]]
             df["ID"] = list(np.array(features_name)[df["ID"].to_list()])
             temp = [df["ID"].to_list().index(item) for item in features_name]
             df = np.absolute(df.iloc[temp]["B"].to_numpy()[:, None])
-            methods_dict.update({methods[5]: df})
+            methods_dict.update({ALGORITHMS[5]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[6]), end="\r")
+                                                                      ALGORITHMS[6]), end="\r")
             estimator = SeuratHVF(per_condition=False, num_top_features=num_features,
                                   min_disp=0.5, min_mean=0.0125, max_mean=3)
             temp_X = deepcopy(X)
             df = estimator.fit_predict(X=temp_X, y=y)
             del temp_X
-            methods_dict.update({methods[6]: df})
+            methods_dict.update({ALGORITHMS[6]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[7]), end="\r")
+                                                                      ALGORITHMS[7]), end="\r")
             estimator = SeuratHVF(per_condition=True, num_top_features=num_features,
                                   min_disp=0.5, min_mean=0.0125, max_mean=3)
             temp_X = deepcopy(X)
             df = estimator.fit_predict(X=temp_X, y=y)
             del temp_X
-            methods_dict.update({methods[7]: df})
+            methods_dict.update({ALGORITHMS[7]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[8]), end="\r")
+                                                                      ALGORITHMS[8]), end="\r")
             estimator = DeltaHVFMean(calculate_deltamean=False, num_top_features=num_features, min_disp=0.5,
                                      min_mean=0.0125, max_mean=3)
             temp_X = deepcopy(X)
             df = estimator.fit_predict(X=temp_X, y=y)
             del temp_X
-            methods_dict.update({methods[8]: df})
+            methods_dict.update({ALGORITHMS[8]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[9]), end="\r")
+                                                                      ALGORITHMS[9]), end="\r")
             estimator = DeltaHVFMean(calculate_deltamean=True, num_top_features=num_features, min_disp=0.5,
                                      min_mean=0.0125, max_mean=3)
             temp_X = deepcopy(X)
             df = estimator.fit_predict(X=temp_X, y=y)
             del temp_X
-            methods_dict.update({methods[9]: df})
+            methods_dict.update({ALGORITHMS[9]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[10]), end="\r")
+                                                                      ALGORITHMS[10]), end="\r")
             estimator = HIQR(per_condition=False, normalize="zscore", iqr_range=(25, 75))
             df = estimator.fit_predict(X=X, y=y)
-            methods_dict.update({methods[10]: df})
+            methods_dict.update({ALGORITHMS[10]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[11]), end="\r")
+                                                                      ALGORITHMS[11]), end="\r")
             estimator = HIQR(per_condition=True, normalize="zscore", iqr_range=(25, 75))
             df = estimator.fit_predict(X=X, y=y)
-            methods_dict.update({methods[11]: df})
+            methods_dict.update({ALGORITHMS[11]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[12]), end="\r")
+                                                                      ALGORITHMS[12]), end="\r")
             estimator = DeltaIQRMean(calculate_deltamean=False, normalize="zscore", iqr_range=(25, 75))
             df = estimator.fit_predict(X=X, y=y)
-            methods_dict.update({methods[12]: df})
+            methods_dict.update({ALGORITHMS[12]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[13]), end="\r")
+                                                                      ALGORITHMS[13]), end="\r")
             estimator = DeltaIQRMean(calculate_deltamean=True, normalize="zscore", iqr_range=(25, 75))
             df = estimator.fit_predict(X=X, y=y)
-            methods_dict.update({methods[13]: df})
+            methods_dict.update({ALGORITHMS[13]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[14]), end="\r")
+                                                                      ALGORITHMS[14]), end="\r")
             estimator = COPA(q=75)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-            methods_dict.update({methods[14]: df})
+            methods_dict.update({ALGORITHMS[14]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[15]), end="\r")
+                                                                      ALGORITHMS[15]), end="\r")
             estimator = OutlierSumStatistic(q=75, iqr_range=(25, 75), two_sided_test=False)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-            methods_dict.update({methods[15]: df})
+            methods_dict.update({ALGORITHMS[15]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[16]), end="\r")
+                                                                      ALGORITHMS[16]), end="\r")
             estimator = OutlierRobustTstatistic(q=75, iqr_range=(25, 75))
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-            methods_dict.update({methods[16]: df})
+            methods_dict.update({ALGORITHMS[16]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[17]), end="\r")
+                                                                      ALGORITHMS[17]), end="\r")
             estimator = MOST()
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-            methods_dict.update({methods[17]: df})
+            methods_dict.update({ALGORITHMS[17]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[18]), end="\r")
+                                                                      ALGORITHMS[18]), end="\r")
             estimator = LSOSS(direction=direction)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-            methods_dict.update({methods[18]: df})
+            methods_dict.update({ALGORITHMS[18]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[19]), end="\r")
+                                                                      ALGORITHMS[19]), end="\r")
             estimator = DIDS(score_function="tanh", direction=direction)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-            methods_dict.update({methods[19]: df})
+            methods_dict.update({ALGORITHMS[19]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
-                                                                      methods[20]), end="\r")
+                                                                      ALGORITHMS[20]), end="\r")
             df = pd.read_csv(os.path.join(DATASET_PATH, temp_name + "_deco_features.csv"), sep=',')
             df = pd.DataFrame([(features_name[int(item[1][0])], item[1][1]) for item in df.iterrows()], 
                               columns=["features", "score"])
-            methods_dict.update({methods[20]: df})
+            methods_dict.update({ALGORITHMS[20]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[21]))
+                                                                      ALGORITHMS[21]))
             estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
                              calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=True,
                              feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.1, 0.4, 0.8])
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-            methods_dict.update({methods[21]: df})
+            methods_dict.update({ALGORITHMS[21]: df})
 
             print("\t>> Scoring results using known regulated features and outliers...")
             for method_idx, item in enumerate(methods_dict.items()):
                 method_name, df = item
-                if method_idx + 1 == len(methods):
-                    print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / len(methods)) * 100, method_name))
+                if method_idx + 1 == len(ALGORITHMS):
+                    print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / len(ALGORITHMS)) * 100, method_name))
                 else:
-                    print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((method_idx / len(methods)) * 100,
+                    print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((method_idx / len(ALGORITHMS)) * 100,
                                                                               method_name), end="\r")
                 if method_name in ['DECO', 't-statistic', 'Wilcoxon', 'LIMMA']:
                     temp_sign = [features_name.index(item) for item in df['features'].tolist()]
@@ -360,9 +359,9 @@ def train():
                 methods_outliers_scores[method_idx, current_idx] = score
 
     temp = [outlier_type + "%.2d" % outlier_idx for outlier_idx in list_data for outlier_type in data_type]
-    df = pd.DataFrame(methods_features, columns=temp, index=methods)
+    df = pd.DataFrame(methods_features, columns=temp, index=ALGORITHMS)
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_methods_features.csv"), sep=",")
-    df = pd.DataFrame(methods_outliers_scores, columns=temp, index=methods)
+    df = pd.DataFrame(methods_outliers_scores, columns=temp, index=ALGORITHMS)
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_methods_outliers_scores.csv"), sep=",")
 
 

@@ -25,6 +25,15 @@ from utility.utils import sort_features
 sns.set_theme()
 sns.set_style(style='white')
 
+METHODS = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma", "LIMMA", "LIMMA+Gamma",
+           "HVF (composite)", "HVF (by condition)", "ΔHVF", "ΔHVF+ΔMean", "IQR (composite)",
+           "IQR (by condition)", "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS",
+           "DECO", "PHet"]
+# Define colors
+PALETTE = sns.color_palette("tab20")
+PALETTE.append("#fcfc81")
+PALETTE.append("#C724B1")
+PALETTE = dict([(item, mcolors.to_hex(PALETTE[idx])) for idx, item in enumerate(METHODS)])
 
 def compute_score(lb, top_features_true, top_features_pred, probes2genes, genes2probes, 
                   range_topfeatures):
@@ -41,7 +50,6 @@ def compute_score(lb, top_features_true, top_features_pred, probes2genes, genes2
         temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
                                  metric="precision")
         temp_range.append(temp)
-    
     return temp_range
 
 def train():
@@ -55,11 +63,7 @@ def train():
 
     # Models parameters
     direction = "both"
-    methods = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma", "LIMMA", "LIMMA+Gamma",
-               "HVF (composite)", "HVF (by condition)", "ΔHVF", "ΔHVF+ΔMean", "IQR (composite)",
-               "IQR (by condition)", "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS",
-               "DECO", "PHet"]
-    
+
     # Load expression data
     X_control = pd.read_csv(os.path.join(DATASET_PATH, "her2_negative_matrix.csv"), sep=',')
     X_case = pd.read_csv(os.path.join(DATASET_PATH, "her2_positive_matrix.csv"), sep=',')
@@ -123,14 +127,14 @@ def train():
                                                                                                     selected_features))
     list_scores = list()
     current_progress = 1
-    total_progress = num_batches * len(methods)
+    total_progress = num_batches * len(METHODS)
     for batch_idx in range(num_batches):
         temp = np.random.choice(a=X_case.shape[0], size=subsample_size, replace=False)
         X = np.vstack((X_control, X_case[temp]))
         y = np.array(X_control.shape[0] * [0] + subsample_size * [1])
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[0]), end="\r")
+                                                                      METHODS[0]), end="\r")
         estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=False)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -144,7 +148,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[1]), end="\r")
+                                                                      METHODS[1]), end="\r")
         estimator = StudentTTest(use_statistics=True, direction=direction, adjust_pvalue=False)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -157,7 +161,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[2]), end="\r")
+                                                                      METHODS[2]), end="\r")
         estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=False)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -171,7 +175,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[3]), end="\r")
+                                                                      METHODS[3]), end="\r")
         estimator = WilcoxonRankSumTest(use_statistics=True, direction=direction, adjust_pvalue=False)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -184,7 +188,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                methods[4]), end="\r")
+                                                                METHODS[4]), end="\r")
         top_features_pred = X_limma[:, batch_idx]
         temp = np.nonzero(top_features_pred)[0]
         top_features_pred[temp] = np.max(top_features_pred) + 1 - top_features_pred[temp]
@@ -199,7 +203,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                methods[5]), end="\r")
+                                                                METHODS[5]), end="\r")
         top_features_pred = X_limma_distr[:, batch_idx]
         top_features_pred = top_features_pred.reshape(top_features_pred.shape[0], 1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -212,7 +216,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[6]), end="\r")
+                                                                      METHODS[6]), end="\r")
         estimator = SeuratHVF(per_condition=False, num_top_features=len(features_name),
                               min_disp=0.5, min_mean=0.0125, max_mean=3)
         temp_X = deepcopy(X)
@@ -228,7 +232,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[7]), end="\r")
+                                                                      METHODS[7]), end="\r")
         estimator = SeuratHVF(per_condition=True, num_top_features=len(features_name),
                               min_disp=0.5, min_mean=0.0125, max_mean=3)
         temp_X = deepcopy(X)
@@ -244,7 +248,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[8]), end="\r")
+                                                                      METHODS[8]), end="\r")
         estimator = DeltaHVFMean(calculate_deltamean=False, num_top_features=len(features_name), 
                                  min_disp=0.5, min_mean=0.0125, max_mean=3)
         temp_X = deepcopy(X)
@@ -260,7 +264,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[9]), end="\r")
+                                                                      METHODS[9]), end="\r")
         estimator = DeltaHVFMean(calculate_deltamean=True, num_top_features=len(features_name), 
                                  min_disp=0.5, min_mean=0.0125, max_mean=3)
         temp_X = deepcopy(X)
@@ -276,7 +280,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[10]), end="\r")
+                                                                      METHODS[10]), end="\r")
         estimator = HIQR(per_condition=False, normalize="zscore", iqr_range=(25, 75))
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -289,7 +293,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[11]), end="\r")
+                                                                      METHODS[11]), end="\r")
         estimator = HIQR(per_condition=True, normalize="zscore", iqr_range=(25, 75))
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -302,7 +306,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[12]), end="\r")
+                                                                      METHODS[12]), end="\r")
         estimator = DeltaIQRMean(calculate_deltamean=False, normalize="zscore", iqr_range=(25, 75))
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -315,7 +319,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[13]), end="\r")
+                                                                      METHODS[13]), end="\r")
         estimator = DeltaIQRMean(calculate_deltamean=True, normalize="zscore", iqr_range=(25, 75))
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -328,7 +332,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[14]), end="\r")
+                                                                      METHODS[14]), end="\r")
         estimator = COPA(q=75)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -341,7 +345,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[15]), end="\r")
+                                                                      METHODS[15]), end="\r")
         estimator = OutlierSumStatistic(q=75, iqr_range=(25, 75), two_sided_test=False)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -354,7 +358,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[16]), end="\r")
+                                                                      METHODS[16]), end="\r")
         estimator = OutlierRobustTstatistic(q=75, iqr_range=(25, 75))
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -367,7 +371,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[17]), end="\r")
+                                                                      METHODS[17]), end="\r")
         estimator = MOST()
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -380,7 +384,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[18]), end="\r")
+                                                                      METHODS[18]), end="\r")
         estimator = LSOSS(direction=direction)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -393,7 +397,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[19]), end="\r")
+                                                                      METHODS[19]), end="\r")
         estimator = DIDS(score_function="tanh", direction=direction)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -406,7 +410,7 @@ def train():
         current_progress += 1
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[20]), end="\r")
+                                                                      METHODS[20]), end="\r")
         top_features_pred = X_deco[:, batch_idx]
         temp = np.nonzero(top_features_pred)[0]
         top_features_pred[temp] = np.max(top_features_pred) + 1 - top_features_pred[temp]
@@ -422,10 +426,10 @@ def train():
 
         if total_progress == current_progress:
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[21]))
+                                                                      METHODS[21]))
         else:
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      methods[21]), end="\r")
+                                                                      METHODS[21]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
                          calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=True,
                          feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.1, 0.4, 0.8])
@@ -440,33 +444,27 @@ def train():
         current_progress += 1
 
     list_scores = np.array(list_scores)
-    list_scores = np.reshape(list_scores, (num_batches, len(methods) * len(range_topfeatures)))
+    list_scores = np.reshape(list_scores, (num_batches, len(METHODS) * len(range_topfeatures)))
 
     # Transform to dataframe
-    temp_methods = [m for m in methods for f in range_topfeatures]
+    temp_methods = [m for m in METHODS for f in range_topfeatures]
     df = pd.DataFrame(list_scores, index=range(num_batches), columns=temp_methods)
     df.index.name = 'Batch'
     df = pd.melt(df.reset_index(), id_vars='Batch', value_vars=temp_methods, var_name="Methods",
                  value_name="Scores")
-    temp_range = [f for m in methods for f in range_topfeatures for b in range(num_batches)]
+    temp_range = [f for m in METHODS for f in range_topfeatures for b in range(num_batches)]
     temp_range = pd.Series(temp_range)
     df["Range"] = temp_range
     df.to_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',', index=False)
     df = pd.read_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',')
     temp = [idx for idx, item in enumerate(df["Methods"].tolist())]
     df = df.iloc[temp]
-    palette = mcolors.get_named_colors_mapping()
-    palette = [(item[0], item[1]) for idx, item in enumerate(palette.items())
-            if idx % 7 == 0]
-    palette = dict(palette)
-    palette = dict([(methods[idx], item[1]) for idx, item in enumerate(palette.items())
-                    if idx + 1 <= len(methods)])
-    palette["PHet"] = "#000000"
+    
     # Plot lineplot
     print("## Plot lineplot using top k features...")
     plt.figure(figsize=(14, 8))
     sns.lineplot(data=df, x='Range', y='Scores', hue="Methods", 
-                 palette=palette, style="Methods")
+                 palette=PALETTE, style="Methods")
     plt.axvline(20, color='red')
     plt.xticks([item for item in range_topfeatures
                 if item % 25 == 0 or item == 1], fontsize=20, rotation=45)
