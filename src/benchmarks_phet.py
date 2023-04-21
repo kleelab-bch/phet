@@ -13,6 +13,8 @@ from utility.utils import sort_features, significant_features
 
 sns.set_theme(style="white")
 METHODS = ["PHet (ΔHVF)"]
+
+
 # METHODS = ["PHet"]
 
 
@@ -30,7 +32,7 @@ def train(num_jobs: int = 4):
     max_clusters = 10
     feature_metric = "f1"
     cluster_type = "spectral"
-    
+
     # Models parameters
     bin_pvalues = True
     phet_delta_type = "hvf"
@@ -43,7 +45,7 @@ def train(num_jobs: int = 4):
     if bin_pvalues:
         methods_save_name.append("PHet_b" + temp)
     else:
-        methods_save_name.append("PHet_nb"+ temp)
+        methods_save_name.append("PHet_nb" + temp)
 
     # descriptions of the data
     file_name = "yan"
@@ -155,9 +157,9 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             METHODS[0]))
-    estimator = PHeT(normalize = normalize, iqr_range=(25, 75), num_subsamples=1000, delta_type = phet_delta_type, 
-                     calculate_deltadisp = True, calculate_deltamean = False, calculate_fisher = True,
-                     calculate_profile = True, bin_pvalues = True, feature_weight=[0.4, 0.3, 0.2, 0.1], 
+    estimator = PHeT(normalize=normalize, iqr_range=(25, 75), num_subsamples=1000, delta_type=phet_delta_type,
+                     calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
+                     calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
                      weight_range=[0.2, 0.4, 0.8])
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({METHODS[0]: df})

@@ -7,9 +7,7 @@ import scanpy as sc
 import seaborn as sns
 
 from model.deltahvfmean import DeltaHVFMean
-from model.deltaiqrmean import DeltaIQRMean
-from model.hvf import SeuratHVF, HIQR
-from model.nonparametric_test import StudentTTest, WilcoxonRankSumTest
+from model.hvf import SeuratHVF
 from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.plot_utils import plot_umap, plot_barplot
 from utility.utils import comparative_score
@@ -117,8 +115,8 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[0]), end="\r")
-    estimator = SeuratHVF(per_condition=False, log_transform=log_transform, 
-                          num_top_features=num_features, min_disp=0.5, 
+    estimator = SeuratHVF(per_condition=False, log_transform=log_transform,
+                          num_top_features=num_features, min_disp=0.5,
                           min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)
     df = estimator.fit_predict(X=temp_X, y=y)
@@ -128,8 +126,8 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[1]), end="\r")
-    estimator = SeuratHVF(per_condition=True, log_transform=log_transform, 
-                          num_top_features=num_features, min_disp=0.5, 
+    estimator = SeuratHVF(per_condition=True, log_transform=log_transform,
+                          num_top_features=num_features, min_disp=0.5,
                           min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)
     df = estimator.fit_predict(X=temp_X, y=y)
@@ -139,7 +137,7 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[2]), end="\r")
-    estimator = DeltaHVFMean(calculate_deltamean=False, log_transform=log_transform, 
+    estimator = DeltaHVFMean(calculate_deltamean=False, log_transform=log_transform,
                              num_top_features=num_features, min_disp=0.5,
                              min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)
@@ -150,7 +148,7 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[3]))
-    estimator = DeltaHVFMean(calculate_deltamean=True, log_transform=log_transform, 
+    estimator = DeltaHVFMean(calculate_deltamean=True, log_transform=log_transform,
                              num_top_features=num_features, min_disp=0.5,
                              min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)

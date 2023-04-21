@@ -1,5 +1,4 @@
 import os
-from copy import deepcopy
 
 import numpy as np
 import pandas as pd
@@ -7,9 +6,8 @@ import scanpy as sc
 import seaborn as sns
 
 from model.deltaiqrmean import DeltaIQRMean
-from model.hvf import SeuratHVF, HIQR
 from utility.file_path import DATASET_PATH, RESULT_PATH
-from utility.plot_utils import plot_umap, plot_barplot
+from utility.plot_utils import plot_umap
 from utility.utils import comparative_score
 from utility.utils import sort_features, significant_features
 
@@ -213,6 +211,7 @@ def train(num_jobs: int = 4):
 
     df = pd.DataFrame(list_scores, columns=["Scores"], index=["All"] + METHODS)
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_cluster_quality.csv"), sep=",")
+
 
 if __name__ == "__main__":
     # for windows

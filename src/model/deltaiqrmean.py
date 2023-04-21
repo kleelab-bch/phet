@@ -41,7 +41,7 @@ class DeltaIQRMean:
                 X = X - min_value + 1
             X = np.log(X + 1)
             np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
-            
+
         # make transposed matrix with shape (feat per class, observation per class)
         # find mean and iqr difference between genes
         diff_iqrs = list()

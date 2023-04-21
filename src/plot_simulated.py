@@ -1,8 +1,8 @@
 import os
 
 import matplotlib.colors as mcolors
-import matplotlib.pyplot as plt
 import matplotlib.patches as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scanpy as sc
@@ -254,8 +254,8 @@ plt.figure(figsize=(14, 8))
 handles = [mpl.Patch(color=palette[x], label=x) for x in palette.keys()]
 # Create legend
 plt.legend(handles=handles, title="Methods", title_fontsize=30, fontsize=26, ncol=5,
-          loc="lower right", bbox_to_anchor=(1.0, 1.0),
-          facecolor="None")
+           loc="lower right", bbox_to_anchor=(1.0, 1.0),
+           facecolor="None")
 
 ##############################################################
 ############# ARI vs Sample Size vs Feature Size #############
@@ -263,9 +263,9 @@ plt.legend(handles=handles, title="Methods", title_fontsize=30, fontsize=26, nco
 sns.set_theme(style="ticks")
 result_scrna_path = os.path.join(RESULT_PATH, "scRNA")
 result_microarray_path = os.path.join(RESULT_PATH, "microarray")
-ds_files = ["allgse412", "bc_ccgse3726", "bladdergse89", "braintumor", 
-            "gastricgse2685", "glioblastoma", "leukemia_golub", 
-            "lunggse1987", "lung", "mll", "srbct", "baron1", "camp1", 
+ds_files = ["allgse412", "bc_ccgse3726", "bladdergse89", "braintumor",
+            "gastricgse2685", "glioblastoma", "leukemia_golub",
+            "lunggse1987", "lung", "mll", "srbct", "baron1", "camp1",
             "darmanis", "li", "patel", "yan"]
 # Cluster quality
 methods = list()
@@ -283,25 +283,25 @@ for result_path in [result_microarray_path, result_scrna_path]:
         methods.extend(df.iloc[1:, 0].to_list())
         ds_names.extend(len(df.iloc[1:, 0].to_list()) * [data_names[idx]])
 for f in ds_files:
-    temp = pd.read_csv(os.path.join(DATASET_PATH, 
+    temp = pd.read_csv(os.path.join(DATASET_PATH,
                                     f + "_feature_names.csv"), sep=',')
     feature_size.extend(len(methods_name) * [temp.shape[0]])
     temp = pd.read_csv(os.path.join(DATASET_PATH, f + "_classes.csv"), sep=',')
     sample_size.extend(len(methods_name) * [temp.shape[0]])
-df = pd.DataFrame([methods, scores, ds_names, 
+df = pd.DataFrame([methods, scores, ds_names,
                    np.log(feature_size), np.log(sample_size)]).T
 df.columns = ["Methods", "ARI", "Data", "Feature", "Sample"]
 df["Methods"] = df["Methods"].astype(str)
 df["ARI"] = df["ARI"].astype(np.float64)
 
 # Set up a grid to plot survival probability against several variables
-g = sns.PairGrid(df, y_vars="ARI", x_vars=["Methods", "Feature", "Sample"], 
+g = sns.PairGrid(df, y_vars="ARI", x_vars=["Methods", "Feature", "Sample"],
                  height=5, aspect=.5)
 # Draw a seaborn pointplot onto each Axes
 g.map(sns.scatterplot)
 g.map(sns.pointplot, scale=1.3, errwidth=4, color="xkcd:plum")
 for ax in g.axes.flatten():
-    ax.tick_params(rotation = 90)
+    ax.tick_params(rotation=90)
 g.set(ylim=(0, 1))
-g.fig.set_size_inches(16,4)
+g.fig.set_size_inches(16, 4)
 sns.despine(fig=g.fig, left=True)

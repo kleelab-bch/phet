@@ -25,10 +25,10 @@ sns.set_theme()
 sns.set_theme(style="white")
 np.random.seed(seed=12345)
 
-METHODS = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma",
-           "HVF (composite)", "HVF (by condition)", "ΔHVF", "ΔHVF+ΔMean",
-           "IQR (composite)", "IQR (by condition)", "ΔIQR", "ΔIQR+ΔMean",
-           "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "PHet"]
+METHODS = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma", "HVF (composite)", 
+           "HVF (by condition)", "ΔHVF", "ΔHVF+ΔMean", "IQR (composite)", "IQR (by condition)", 
+           "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "PHet (ΔHVF)", 
+           "PHet"]
 # Define colors
 PALETTE = sns.color_palette("tab20")
 PALETTE.append("#fcfc81")
@@ -94,7 +94,7 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[4]), end="\r")
-        estimator = SeuratHVF(per_condition=False, num_top_features=num_features,
+        estimator = SeuratHVF(per_condition=False, log_transform=True, num_top_features=num_features,
                               min_disp=0.5, min_mean=0.0125, max_mean=3)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
@@ -103,7 +103,7 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[5]), end="\r")
-        estimator = SeuratHVF(per_condition=True, num_top_features=num_features,
+        estimator = SeuratHVF(per_condition=True, log_transform=True, num_top_features=num_features,
                               min_disp=0.5, min_mean=0.0125, max_mean=3)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
@@ -112,8 +112,8 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[6]), end="\r")
-        estimator = DeltaHVFMean(calculate_deltamean=False, num_top_features=num_features, min_disp=0.5,
-                                 min_mean=0.0125, max_mean=3)
+        estimator = DeltaHVFMean(calculate_deltamean=False, log_transform=True, num_top_features=num_features,
+                                 min_disp=0.5, min_mean=0.0125, max_mean=3)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
@@ -121,8 +121,8 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[7]), end="\r")
-        estimator = DeltaHVFMean(calculate_deltamean=True, num_top_features=num_features, min_disp=0.5,
-                                 min_mean=0.0125, max_mean=3)
+        estimator = DeltaHVFMean(calculate_deltamean=True, log_transform=True, num_top_features=num_features,
+                                 min_disp=0.5, min_mean=0.0125, max_mean=3)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
@@ -208,15 +208,27 @@ def train():
         list_times.append(time.time() - curr_time)
         current_progress += 1
 
+        print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                METHODS[18]), end="\r")
+        estimator = PHeT(normalize=None, iqr_range=(25, 75), num_subsamples=1000, delta_type="hvf",
+                         calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
+                         calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                         weight_range=[0.2, 0.4, 0.8])
+        curr_time = time.time()
+        estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        list_times.append(time.time() - curr_time)
+        current_progress += 1
+
         if total_progress == current_progress:
             print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                    METHODS[18]))
+                                                                    METHODS[19]))
         else:
             print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                    METHODS[18]), end="\r")
-        estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
-                         delta_type=False, calculate_fisher=True, calculate_profile=True, bin_pvalues=True,
-                         feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.1, 0.4, 0.8])
+                                                                    METHODS[19]), end="\r")
+        estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, delta_type="iqr",
+                         calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
+                         calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                         weight_range=[0.2, 0.4, 0.8])
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)

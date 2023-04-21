@@ -182,10 +182,12 @@ pos.to_csv(os.path.join(RESULT_PATH, "pulseseq", "pulseseq_pos_ionocytes_feature
 neg.to_csv(os.path.join(RESULT_PATH, "pulseseq", "pulseseq_neg_ionocytes_features.csv"), sep=',',
            index=False, header=False)
 
+
 # Permutaion test
 # because our statistic is vectorized, we pass `vectorized=True`
 def statistic(x, y, axis):
     return np.mean(x, axis=axis) - np.mean(y, axis=axis)
+
 
 pvalues = []
 for feature in phet_features:
@@ -450,7 +452,7 @@ with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
                   swap_axes=False, figsize=(12, 6))
     sc.pl.heatmap(adata, markers_dict, groupby='clusters', layer='scaled', vmin=-2,
                   vmax=2, cmap='RdBu_r', dendrogram=True, swap_axes=True, figsize=(12, 3))
-    
+
 ##############################################################
 ############## Pulseseq Tuft Exclude (Markers) ###############
 ##############################################################
@@ -492,7 +494,7 @@ classes = pd.read_csv(os.path.join(DATASET_PATH,
                       sep=',').values.tolist()
 classes = np.squeeze(classes)
 samples_idx = np.where(classes == 0)[0]
-samples_name = ["Tuft"] * len(samples_idx) 
+samples_name = ["Tuft"] * len(samples_idx)
 timepoints = timepoints[samples_idx]
 
 # Load data
@@ -746,7 +748,7 @@ classes = pd.read_csv(os.path.join(DATASET_PATH,
                       sep=',').values.tolist()
 classes = np.squeeze(classes)
 samples_idx = np.where(classes == 0)[0]
-samples_name = ["Tuft"] * len(samples_idx) 
+samples_name = ["Tuft"] * len(samples_idx)
 timepoints = timepoints[samples_idx]
 
 # Load data
@@ -780,7 +782,7 @@ adata.rename_categories('clusters', new_cluster_names)
 # Plot UMAP
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
     sc.pl.umap(adata, color=['clusters', 'POU2F3', 'GNAT3', 'TRPM5', 'HCK',
-                             'LRMP', 'FOXE1', 'RGS2', 'RGS13', 'GNG13', 'ALOX5AP', 
+                             'LRMP', 'FOXE1', 'RGS2', 'RGS13', 'GNG13', 'ALOX5AP',
                              'ALOX5'],
                use_raw=False, add_outline=False, legend_loc='on data',
                legend_fontsize=30, legend_fontoutline=2, frameon=False)
@@ -822,9 +824,9 @@ with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
                   layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
                   swap_axes=False, figsize=(12, 6))
     sc.pl.heatmap(adata, markers_dict, groupby='clusters', layer='scaled', vmin=-2,
-                  vmax=2, cmap='RdBu_r', dendrogram=False, swap_axes=True, 
+                  vmax=2, cmap='RdBu_r', dendrogram=False, swap_axes=True,
                   figsize=(12, 3))
-    
+
 ##############################################################
 ######### Pulseseq Tuft vs Ionocytes Exclude (HVF) ###########
 ##############################################################
@@ -1010,7 +1012,7 @@ classes = pd.read_csv(os.path.join(DATASET_PATH,
                       sep=',').values.tolist()
 classes = np.squeeze(classes)
 samples_idx = np.where(classes == 0)[0]
-samples_name = ["Tuft"] * len(samples_idx) 
+samples_name = ["Tuft"] * len(samples_idx)
 timepoints = timepoints[samples_idx]
 # Load data
 adata = sc.read_mtx(os.path.join(DATASET_PATH,
@@ -1088,5 +1090,5 @@ with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
                   layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
                   swap_axes=False, figsize=(12, 6))
     sc.pl.heatmap(adata, markers_dict, groupby='clusters', layer='scaled', vmin=-2,
-                  vmax=2, cmap='RdBu_r', dendrogram=False, swap_axes=True, 
+                  vmax=2, cmap='RdBu_r', dendrogram=False, swap_axes=True,
                   figsize=(12, 3))

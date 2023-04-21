@@ -42,7 +42,7 @@ def train(num_jobs: int = 4):
     bin_pvalues = True
     normalize = "zscore"
     hvf_log_transform = False
-    phet_delta_type = "iqr" # PHet
+    phet_delta_type = "iqr"  # PHet
     methods_save_name = ["ttest_p", "ttest_g", "wilcoxon_p", "wilcoxon_g", "limma_p", "limma_g", "hvf_a",
                          "hvf_c", "deltahvf", "deltahvfmean", "iqr_a", "iqr_c", "deltaiqr", "deltaiqrmean",
                          "copa", "os", "ort", "most", "lsoss", "dids", "deco"]
@@ -53,7 +53,7 @@ def train(num_jobs: int = 4):
     if bin_pvalues:
         methods_save_name.append("PHet_b" + temp)
     else:
-        methods_save_name.append("PHet_nb"+ temp)
+        methods_save_name.append("PHet_nb" + temp)
 
     # Clustering and UMAP parameters
     sort_by_pvalue = True
@@ -200,8 +200,8 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[6]), end="\r")
-    estimator = SeuratHVF(per_condition=False, log_transform=hvf_log_transform, 
-                          num_top_features=num_features, min_disp=0.5, 
+    estimator = SeuratHVF(per_condition=False, log_transform=hvf_log_transform,
+                          num_top_features=num_features, min_disp=0.5,
                           min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)
     df = estimator.fit_predict(X=temp_X, y=y)
@@ -211,8 +211,8 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[7]), end="\r")
-    estimator = SeuratHVF(per_condition=True, log_transform=hvf_log_transform, 
-                          num_top_features=num_features, min_disp=0.5, 
+    estimator = SeuratHVF(per_condition=True, log_transform=hvf_log_transform,
+                          num_top_features=num_features, min_disp=0.5,
                           min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)
     df = estimator.fit_predict(X=temp_X, y=y)
@@ -222,7 +222,7 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[8]), end="\r")
-    estimator = DeltaHVFMean(calculate_deltamean=False, log_transform=hvf_log_transform, 
+    estimator = DeltaHVFMean(calculate_deltamean=False, log_transform=hvf_log_transform,
                              num_top_features=num_features, min_disp=0.5,
                              min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)
@@ -233,7 +233,7 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[9]), end="\r")
-    estimator = DeltaHVFMean(calculate_deltamean=True, log_transform=hvf_log_transform, 
+    estimator = DeltaHVFMean(calculate_deltamean=True, log_transform=hvf_log_transform,
                              num_top_features=num_features, min_disp=0.5,
                              min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)
@@ -322,9 +322,9 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[21]))
-    estimator = PHeT(normalize = normalize, iqr_range=(25, 75), num_subsamples=1000, delta_type = phet_delta_type, 
-                     calculate_deltadisp = True, calculate_deltamean = False, calculate_fisher = True,
-                     calculate_profile = True, bin_pvalues = bin_pvalues, 
+    estimator = PHeT(normalize=normalize, iqr_range=(25, 75), num_subsamples=1000, delta_type=phet_delta_type,
+                     calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
+                     calculate_profile=True, bin_pvalues=bin_pvalues,
                      feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.2, 0.4, 0.8])
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({METHODS[21]: df})

@@ -29,7 +29,7 @@ sns.set_style(style='white')
 METHODS = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma", "LIMMA", "LIMMA+Gamma",
            "HVF (composite)", "HVF (by condition)", "ΔHVF", "ΔHVF+ΔMean", "IQR (composite)",
            "IQR (by condition)", "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS",
-           "DECO", "PHet"]
+           "DECO", "PHet (ΔHVF)", "PHet"]
 # Define colors
 PALETTE = sns.color_palette("tab20")
 PALETTE.append("#fcfc81")
@@ -134,7 +134,8 @@ def train():
         temp = np.random.choice(a=X_case.shape[0], size=subsample_size, replace=False)
         X = np.vstack((X_control, X_case[temp]))
         y = np.array(X_control.shape[0] * [0] + subsample_size * [1])
-
+        num_features = X.shape[1]
+        
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                   METHODS[0]), end="\r")
         estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=False)
@@ -219,7 +220,7 @@ def train():
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                   METHODS[6]), end="\r")
-        estimator = SeuratHVF(per_condition=False, num_top_features=len(features_name),
+        estimator = SeuratHVF(per_condition=False, log_transform=False, num_top_features=num_features,
                               min_disp=0.5, min_mean=0.0125, max_mean=3)
         temp_X = deepcopy(X)
         top_features_pred = estimator.fit_predict(X=temp_X, y=y, control_class=0, case_class=1)
@@ -235,7 +236,7 @@ def train():
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                   METHODS[7]), end="\r")
-        estimator = SeuratHVF(per_condition=True, num_top_features=len(features_name),
+        estimator = SeuratHVF(per_condition=True, log_transform=False, num_top_features=num_features,
                               min_disp=0.5, min_mean=0.0125, max_mean=3)
         temp_X = deepcopy(X)
         top_features_pred = estimator.fit_predict(X=temp_X, y=y, control_class=0, case_class=1)
@@ -251,7 +252,7 @@ def train():
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                   METHODS[8]), end="\r")
-        estimator = DeltaHVFMean(calculate_deltamean=False, num_top_features=len(features_name),
+        estimator = DeltaHVFMean(calculate_deltamean=False, log_transform=False, num_top_features=num_features,
                                  min_disp=0.5, min_mean=0.0125, max_mean=3)
         temp_X = deepcopy(X)
         top_features_pred = estimator.fit_predict(X=temp_X, y=y, control_class=0, case_class=1)
@@ -267,7 +268,7 @@ def train():
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                   METHODS[9]), end="\r")
-        estimator = DeltaHVFMean(calculate_deltamean=True, num_top_features=len(features_name),
+        estimator = DeltaHVFMean(calculate_deltamean=True, log_transform=False, num_top_features=num_features,
                                  min_disp=0.5, min_mean=0.0125, max_mean=3)
         temp_X = deepcopy(X)
         top_features_pred = estimator.fit_predict(X=temp_X, y=y, control_class=0, case_class=1)
@@ -426,15 +427,32 @@ def train():
         list_scores.append(temp_range)
         current_progress += 1
 
+        print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                                  METHODS[21]), end="\r")
+        estimator = PHeT(normalize=None, iqr_range=(25, 75), num_subsamples=1000, delta_type="hvf",
+                         calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
+                         calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                         weight_range=[0.2, 0.4, 0.8])
+        top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
+                                          X_map=None, map_genes=False)
+        temp_range = compute_score(lb=lb, top_features_true=top_features_true,
+                                   top_features_pred=top_features_pred,
+                                   probes2genes=probes2genes, genes2probes=genes2probes,
+                                   range_topfeatures=range_topfeatures)
+        list_scores.append(temp_range)
+        current_progress += 1
+
         if total_progress == current_progress:
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      METHODS[21]))
+                                                                      METHODS[22]))
         else:
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                                      METHODS[21]), end="\r")
-        estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
-                         calculate_fisher=True, calculate_profile=True, bin_pvalues=True,
-                         feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.1, 0.4, 0.8])
+                                                                      METHODS[22]), end="\r")
+        estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, delta_type="iqr",
+                         calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
+                         calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                         weight_range=[0.2, 0.4, 0.8])
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
