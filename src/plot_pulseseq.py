@@ -141,6 +141,7 @@ adata.var_names = [f.upper() for idx, f in enumerate(full_features) if f in phet
 samples_name = pd.Series(samples_name, dtype="category")
 samples_name.index = adata.obs.index
 adata.obs["clusters"] = samples_name
+X = copy.deepcopy(adata.X)
 # QC calculations
 sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
 # Regress out effects of total counts per cell 
@@ -161,6 +162,7 @@ sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
            maxiter=2000)
 # Clustering the neighborhood graph
 sc.tl.leiden(adata, resolution=0.4, key_added="clusters")
+adata.X = X
 # Rename clusters
 new_cluster_names = ['Ionocyte', 'Unconventional']
 adata.rename_categories('clusters', new_cluster_names)
@@ -180,12 +182,10 @@ pos.to_csv(os.path.join(RESULT_PATH, "pulseseq", "pulseseq_pos_ionocytes_feature
 neg.to_csv(os.path.join(RESULT_PATH, "pulseseq", "pulseseq_neg_ionocytes_features.csv"), sep=',',
            index=False, header=False)
 
-
 # Permutaion test
 # because our statistic is vectorized, we pass `vectorized=True`
 def statistic(x, y, axis):
     return np.mean(x, axis=axis) - np.mean(y, axis=axis)
-
 
 pvalues = []
 for feature in phet_features:
@@ -320,7 +320,6 @@ df = df.to_numpy()[pos_samples]
 df = pd.DataFrame(df, columns=columns)
 df.to_csv(os.path.join(DATASET_PATH, "pulseseq_tuft_vs_ionocyte_exclude_types.csv"),
           sep=',', index=False)
-
 ##############################################################
 ####### Pulseseq Tuft vs Ionocytes Exclude (Markers) #########
 ##############################################################
@@ -371,6 +370,7 @@ tuft_samples = np.where(classes == 0)[0]
 ionocyte_samples = np.where(classes == 1)[0]
 samples_idx = np.append(tuft_samples, ionocyte_samples)
 samples_name = ["Tuft"] * len(tuft_samples) + ["Ionocyte"] * len(ionocyte_samples)
+
 # Load data
 adata = sc.read_mtx(os.path.join(DATASET_PATH,
                                  "pulseseq_tuft_vs_ionocyte_exclude_matrix.mtx"))
@@ -384,14 +384,10 @@ adata.obs["timepoints"] = timepoints
 X = copy.deepcopy(adata.X)
 # QC calculations
 sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
-# Total-count normalize (library-size correct) the data matrix X to 10,000 reads per cell, so that counts become comparable among cells.
-sc.pp.normalize_total(adata, target_sum=1e4)
-# Logarithmize the data:
-sc.pp.log1p(adata)
 # Regress out effects of total counts per cell 
-sc.pp.regress_out(adata, ['total_counts'])
-# Scale each gene to unit variance. Clip values exceeding standard deviation 10.
-sc.pp.scale(adata, max_value=10)
+# sc.pp.regress_out(adata, ['total_counts'])
+# # Scale each gene to unit variance. Clip values exceeding standard deviation 10.
+# sc.pp.scale(adata, max_value=10)
 # Computing the neighborhood graph
 sc.pp.neighbors(adata, n_neighbors=30, n_pcs=50)
 # UMAP (Embedding the neighborhood graph)
@@ -400,12 +396,12 @@ sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
 # Clustering the neighborhood graph
 sc.tl.leiden(adata, resolution=0.8, key_added="clusters")
 # Rename clusters
-new_cluster_names = ['Tuft-1', 'Tuft-2', 'Ionocyte', 'Tuft-3']
+adata.X = X
+new_cluster_names = ['Ionocyte', 'Tuft-2', 'Tuft-3', 'Tuft-1']
 adata.rename_categories('clusters', new_cluster_names)
 # Plot UMAP 
-adata.X = X
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
-    sc.pl.umap(adata, color=['clusters', 'timepoints', 'POU2F3', 'GNAT3', 'TRPM5',
+    sc.pl.umap(adata, color=['clusters', 'POU2F3', 'GNAT3', 'TRPM5',
                              'HCK', 'LRMP', 'RGS13', 'GNG13', 'ALOX5AP', 'CFTR',
                              'FOXI1', 'ASCL3'],
                use_raw=False, add_outline=False, legend_loc='on data',
@@ -438,7 +434,7 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
     sc.pl.dotplot(adata, markers_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of expressed cells (%)")
+                  size_title="Fraction of expressed \n cells (%)")
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
@@ -450,6 +446,119 @@ with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
                   layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
                   swap_axes=False, figsize=(12, 6))
     sc.pl.heatmap(adata, ionocyte_markers, groupby='clusters',
+                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
+                  swap_axes=False, figsize=(12, 6))
+    sc.pl.heatmap(adata, markers_dict, groupby='clusters', layer='scaled', vmin=-2,
+                  vmax=2, cmap='RdBu_r', dendrogram=True, swap_axes=True, figsize=(12, 3))
+    
+##############################################################
+############## Pulseseq Tuft Exclude (Markers) ###############
+##############################################################
+full_features = pd.read_csv(os.path.join(DATASET_PATH,
+                                         "pulseseq_tuft_vs_ionocyte_exclude_feature_names.csv"), sep=',')
+full_features = full_features["features"].to_list()
+full_features = [f.upper() for f in full_features]
+# Tuft markers
+markers = pd.read_csv(os.path.join(DATASET_PATH,
+                                   "pulseseq_tuft_vs_ionocyte_markers.csv"), sep=',').replace(np.nan, -1)
+tuft_markers = np.squeeze(markers[["Tuft", "Tuft-1", "Tuft-2"]].values.tolist()).flatten()[1:]
+tuft_markers = [f.upper() for f in tuft_markers]
+tuft_markers = np.unique(tuft_markers)[1:]
+tuft_markers = [f for f in tuft_markers if f in full_features]
+# Extract all pulseseq tuft and ionocytes markers
+markers = np.unique(tuft_markers)
+markers = [f for f in markers if f in full_features]
+# selected markers
+markers_dict = {'Tuft': ['POU2F3', 'GNAT3', 'TRPM5', 'HCK', 'LRMP',
+                         'RGS13', 'GNG13', 'ALOX5AP', "PTPRC"]}
+temp_dict = {}
+for key, items in markers_dict.items():
+    temp = []
+    for item in items:
+        if item in markers:
+            temp.append(item)
+    if len(temp) > 0:
+        temp_dict[key] = temp
+markers_dict = temp_dict
+del temp, temp_dict
+# timelabels
+timepoints = pd.read_csv(os.path.join(DATASET_PATH, "pulseseq_tuft_vs_ionocyte_exclude_timepoints.csv"),
+                         sep=',').values.tolist()
+timepoints = np.squeeze(timepoints)
+timepoints = pd.Series(timepoints, dtype="category")
+# Classes
+classes = pd.read_csv(os.path.join(DATASET_PATH,
+                                   "pulseseq_tuft_vs_ionocyte_exclude_classes.csv"),
+                      sep=',').values.tolist()
+classes = np.squeeze(classes)
+samples_idx = np.where(classes == 0)[0]
+samples_name = ["Tuft"] * len(samples_idx) 
+timepoints = timepoints[samples_idx]
+
+# Load data
+adata = sc.read_mtx(os.path.join(DATASET_PATH,
+                                 "pulseseq_tuft_vs_ionocyte_exclude_matrix.mtx"))
+adata = adata[samples_idx][:, [idx for idx, f in enumerate(full_features) if f in markers]]
+adata.var_names = [f for idx, f in enumerate(full_features) if f in markers]
+samples_name = pd.Series(samples_name, dtype="category")
+samples_name.index = adata.obs.index
+adata.obs["clusters"] = samples_name
+timepoints.index = adata.obs.index
+adata.obs["timepoints"] = timepoints
+X = copy.deepcopy(adata.X)
+# QC calculations
+sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
+# Regress out effects of total counts per cell 
+sc.pp.regress_out(adata, ['total_counts'])
+# Scale each gene to unit variance. Clip values exceeding standard deviation 10.
+sc.pp.scale(adata, max_value=10)
+# Computing the neighborhood graph
+sc.pp.neighbors(adata, n_neighbors=30, n_pcs=50)
+# UMAP (Embedding the neighborhood graph)
+sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
+           maxiter=2000)
+# Clustering the neighborhood graph
+sc.tl.leiden(adata, resolution=0.8, key_added="clusters")
+# Rename clusters
+adata.X = X
+# Plot UMAP 
+with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
+    sc.pl.umap(adata, color=['clusters', 'POU2F3', 'GNAT3', 'TRPM5',
+                             'HCK', 'LRMP', 'RGS13', 'GNG13', 'ALOX5AP'],
+               use_raw=False, add_outline=False, legend_loc='on data',
+               legend_fontsize=30, legend_fontoutline=2, frameon=False)
+# Violin plot
+with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
+                     'axes.titlesize': '30', 'axes.labelsize': '30',
+                     'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
+    sc.pl.violin(adata, ['POU2F3', 'GNAT3', 'TRPM5', 'HCK', 'LRMP', 'RGS13',
+                         'GNG13', 'ALOX5AP'],
+                 groupby='clusters', xlabel="Clusters", stripplot=False,
+                 inner='box')
+# Tracksplot
+with plt.rc_context({'figure.figsize': (12, 6), 'figure.labelsize': '30',
+                     'axes.titlesize': '30', 'axes.labelsize': '20',
+                     'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
+    sc.pl.rank_genes_groups_tracksplot(adata, n_genes=15, dendrogram=True,
+                                       xlabel="Clusters")
+with plt.rc_context({'figure.figsize': (12, 6), 'figure.labelsize': '30',
+                     'axes.titlesize': '30', 'axes.labelsize': '20',
+                     'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
+    sc.pl.tracksplot(adata, markers_dict, groupby='clusters',
+                     dendrogram=True)
+# Dotplot
+with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
+                     'axes.titlesize': '30', 'axes.labelsize': '30',
+                     'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
+    sc.pl.dotplot(adata, markers_dict, groupby='clusters',
+                  title=None, colorbar_title="Mean expression values",
+                  size_title="Fraction of expressed \n cells (%)")
+# Heatmaps
+adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
+with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
+                     'axes.labelsize': '30', 'xtick.labelsize': '35',
+                     'ytick.labelsize': '12'}):
+    sc.pl.heatmap(adata, tuft_markers, groupby='clusters',
                   layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
                   swap_axes=False, figsize=(12, 6))
     sc.pl.heatmap(adata, markers_dict, groupby='clusters', layer='scaled', vmin=-2,
@@ -511,7 +620,8 @@ tuft_samples = np.where(classes == 0)[0]
 ionocyte_samples = np.where(classes == 1)[0]
 samples_idx = np.append(tuft_samples, ionocyte_samples)
 samples_name = ["Tuft"] * len(tuft_samples) + ["Ionocyte"] * len(ionocyte_samples)
-# Load data
+
+#  Load data
 adata = sc.read_mtx(os.path.join(DATASET_PATH,
                                  "pulseseq_tuft_vs_ionocyte_exclude_matrix.mtx"))
 adata = adata[samples_idx][:, [idx for idx, f in enumerate(full_features) if f in phet_features]]
@@ -540,6 +650,7 @@ sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
 # Clustering the neighborhood graph
 sc.tl.leiden(adata, resolution=0.4, key_added="clusters")
 # Rename clusters
+adata.X = X
 new_cluster_names = ['Tuft-1', 'Ionocyte', 'Tuft-2', 'Tuft-3']
 adata.rename_categories('clusters', new_cluster_names)
 # Plot UMAP
@@ -563,36 +674,157 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
 with plt.rc_context({'figure.figsize': (12, 6), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '20',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
-    sc.pl.rank_genes_groups_tracksplot(adata, n_genes=15, dendrogram=True,
+    sc.pl.rank_genes_groups_tracksplot(adata, n_genes=15, dendrogram=False,
                                        xlabel="Clusters")
 with plt.rc_context({'figure.figsize': (12, 6), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '20',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
     sc.pl.tracksplot(adata, markers_dict, groupby='clusters',
-                     dendrogram=True)
+                     dendrogram=False)
 # Dotplot
 with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
     sc.pl.dotplot(adata, markers_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of expressed cells (%)")
+                  size_title="Fraction of expressed \n cells (%)")
+# Heatmaps
+adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
+with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
+                     'axes.labelsize': '30', 'xtick.labelsize': '35',
+                     'ytick.labelsize': '15'}):
+    sc.pl.heatmap(adata, tuft_markers, groupby='clusters',
+                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
+                  swap_axes=False, figsize=(12, 6))
+    # sc.pl.heatmap(adata, ionocyte_markers, groupby='clusters',
+    #               layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
+    #               swap_axes=False, figsize=(12, 6))
+    sc.pl.heatmap(adata, markers_dict, groupby='clusters', layer='scaled', vmin=-2,
+                  vmax=2, cmap='RdBu_r', dendrogram=False, swap_axes=True, figsize=(12, 3))
+
+##############################################################
+################ Pulseseq Tuft Exclude (PHet) ################
+##############################################################
+full_features = pd.read_csv(os.path.join(DATASET_PATH,
+                                         "pulseseq_tuft_vs_ionocyte_exclude_feature_names.csv"), sep=',')
+full_features = full_features["features"].to_list()
+full_features = [f.upper() for f in full_features]
+phet_features = pd.read_csv(os.path.join(RESULT_PATH, "pulseseq",
+                                         "pulseseq_tuft_vs_ionocyte_exclude_phet_b_features.csv"),
+                            sep=',', header=None)
+phet_features = np.squeeze(phet_features.values.tolist())
+phet_features = [f.upper() for f in phet_features]
+# Tuft markers
+markers = pd.read_csv(os.path.join(DATASET_PATH, "pulseseq_tuft_vs_ionocyte_markers.csv"), sep=',').replace(np.nan, -1)
+tuft_markers = np.squeeze(markers[["Tuft", "Tuft-1", "Tuft-2"]].values.tolist()).flatten()[1:]
+tuft_markers = [f.upper() for f in tuft_markers if f.upper() in phet_features]
+tuft_markers = np.unique(tuft_markers)
+# Extract all pulseseq tuft markers
+markers = np.unique(tuft_markers)
+markers = [f for f in markers if f in full_features]
+# selected markers
+markers_dict = {'Tuft': ['POU2F3', 'GNAT3', 'TRPM5', 'HCK', 'LRMP',
+                         'RGS13', 'GNG13', 'ALOX5AP', "PTPRC"]}
+temp_dict = {}
+for key, items in markers_dict.items():
+    temp = []
+    for item in items:
+        if item in phet_features:
+            temp.append(item)
+    if len(temp) > 0:
+        temp_dict[key] = temp
+markers_dict = temp_dict
+del temp, temp_dict
+# timelabels
+timepoints = pd.read_csv(os.path.join(DATASET_PATH, "pulseseq_tuft_vs_ionocyte_exclude_timepoints.csv"),
+                         sep=',').values.tolist()
+timepoints = np.squeeze(timepoints)
+timepoints = pd.Series(timepoints, dtype="category")
+# Classes
+classes = pd.read_csv(os.path.join(DATASET_PATH,
+                                   "pulseseq_tuft_vs_ionocyte_exclude_classes.csv"),
+                      sep=',').values.tolist()
+classes = np.squeeze(classes)
+samples_idx = np.where(classes == 0)[0]
+samples_name = ["Tuft"] * len(samples_idx) 
+timepoints = timepoints[samples_idx]
+
+# Load data
+adata = sc.read_mtx(os.path.join(DATASET_PATH,
+                                 "pulseseq_tuft_vs_ionocyte_exclude_matrix.mtx"))
+adata = adata[samples_idx][:, [idx for idx, f in enumerate(full_features) if f in phet_features]]
+adata.var_names = [f for idx, f in enumerate(full_features) if f in phet_features]
+samples_name = pd.Series(samples_name, dtype="category")
+samples_name.index = adata.obs.index
+adata.obs["clusters"] = samples_name
+timepoints.index = adata.obs.index
+adata.obs["timepoints"] = timepoints
+X = copy.deepcopy(adata.X)
+# QC calculations
+sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
+# Regress out effects of total counts per cell 
+sc.pp.regress_out(adata, ['total_counts'])
+# Scale each gene to unit variance. Clip values exceeding standard deviation 10.
+sc.pp.scale(adata, max_value=10)
+# Computing the neighborhood graph
+sc.pp.neighbors(adata, n_neighbors=30, n_pcs=50)
+# UMAP (Embedding the neighborhood graph)
+sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
+           maxiter=2000)
+# Clustering the neighborhood graph
+sc.tl.leiden(adata, resolution=0.4, key_added="clusters")
+# Rename clusters
+adata.X = X
+new_cluster_names = ['Tuft-1', 'Tuft-2', 'Tuft-3']
+adata.rename_categories('clusters', new_cluster_names)
+# Plot UMAP
+with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
+    sc.pl.umap(adata, color=['clusters', 'POU2F3', 'GNAT3', 'TRPM5', 'HCK',
+                             'LRMP', 'FOXE1', 'RGS2', 'RGS13', 'GNG13', 'ALOX5AP', 
+                             'ALOX5'],
+               use_raw=False, add_outline=False, legend_loc='on data',
+               legend_fontsize=30, legend_fontoutline=2, frameon=False)
+# Find differentially expressed features
+sc.tl.rank_genes_groups(adata, 'clusters', method='wilcoxon',
+                        corr_method='benjamini-hochberg', tie_correct=True)
+# Violin plot
+with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
+                     'axes.titlesize': '30', 'axes.labelsize': '30',
+                     'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
+    sc.pl.violin(adata, ['POU2F3', 'GNAT3', 'TRPM5', 'HCK', 'LRMP', 'RGS13',
+                         'GNG13', 'ALOX5AP'],
+                 groupby='clusters', xlabel="Clusters", stripplot=False,
+                 inner='box')
+# Tracksplot
+with plt.rc_context({'figure.figsize': (12, 6), 'figure.labelsize': '30',
+                     'axes.titlesize': '30', 'axes.labelsize': '20',
+                     'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
+    sc.pl.rank_genes_groups_tracksplot(adata, n_genes=15, dendrogram=False,
+                                       xlabel="Clusters")
+with plt.rc_context({'figure.figsize': (12, 6), 'figure.labelsize': '30',
+                     'axes.titlesize': '30', 'axes.labelsize': '20',
+                     'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
+    sc.pl.tracksplot(adata, markers_dict, groupby='clusters',
+                     dendrogram=False)
+# Dotplot
+with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
+                     'axes.titlesize': '30', 'axes.labelsize': '30',
+                     'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
+    sc.pl.dotplot(adata, markers_dict, groupby='clusters',
+                  title=None, colorbar_title="Mean expression values",
+                  size_title="Fraction of expressed \n cells (%)")
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
                      'axes.labelsize': '30', 'xtick.labelsize': '35',
                      'ytick.labelsize': '12'}):
-    # sc.pl.rank_genes_groups_heatmap(adata, n_genes=15, groupby='clusters',
-    #                                 dendrogram=False)
     sc.pl.heatmap(adata, tuft_markers, groupby='clusters',
                   layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
                   swap_axes=False, figsize=(12, 6))
-    sc.pl.heatmap(adata, ionocyte_markers, groupby='clusters',
-                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
-                  swap_axes=False, figsize=(12, 6))
     sc.pl.heatmap(adata, markers_dict, groupby='clusters', layer='scaled', vmin=-2,
-                  vmax=2, cmap='RdBu_r', dendrogram=True, swap_axes=True, figsize=(12, 3))
-
+                  vmax=2, cmap='RdBu_r', dendrogram=False, swap_axes=True, 
+                  figsize=(12, 3))
+    
 ##############################################################
 ######### Pulseseq Tuft vs Ionocytes Exclude (HVF) ###########
 ##############################################################
@@ -644,6 +876,7 @@ tuft_samples = np.where(classes == 0)[0]
 ionocyte_samples = np.where(classes == 1)[0]
 samples_idx = np.append(tuft_samples, ionocyte_samples)
 samples_name = ["Tuft"] * len(tuft_samples) + ["Ionocyte"] * len(ionocyte_samples)
+
 # Load data
 adata = sc.read_mtx(os.path.join(DATASET_PATH,
                                  "pulseseq_tuft_vs_ionocyte_exclude_matrix.mtx"))
@@ -654,19 +887,29 @@ samples_name.index = adata.obs.index
 adata.obs["clusters"] = samples_name
 timepoints.index = adata.obs.index
 adata.obs["timepoints"] = timepoints
+X = copy.deepcopy(adata.X)
 # QC calculations
 sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
-# Total-count normalize (library-size correct) the data matrix X to 10,000 reads per cell, so that counts become comparable among cells.
-# sc.pp.normalize_total(adata, target_sum=1e4)
-# # Logarithmize the data:
-# sc.pp.log1p(adata)
 # Identify highly-variable genes.
 sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
+X = X[:, adata.var.highly_variable]
 adata = adata[:, adata.var.highly_variable]
+# Filter markers
+temp_dict = {}
+for key, items in markers_dict.items():
+    temp = []
+    for item in items:
+        if item in adata.var_names:
+            temp.append(item)
+    if len(temp) > 0:
+        temp_dict[key] = temp
+markers_dict = temp_dict
+tuft_markers = [item for item in tuft_markers if item in adata.var_names]
+ionocyte_markers = [item for item in ionocyte_markers if item in adata.var_names]
 # Regress out effects of total counts per cell 
-# sc.pp.regress_out(adata, ['total_counts'])
+sc.pp.regress_out(adata, ['total_counts'])
 # Scale each gene to unit variance. Clip values exceeding standard deviation 10.
-# sc.pp.scale(adata, max_value=10)
+sc.pp.scale(adata, max_value=10)
 # Computing the neighborhood graph
 sc.pp.neighbors(adata, n_neighbors=30, n_pcs=50)
 # UMAP (Embedding the neighborhood graph)
@@ -711,7 +954,7 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
     sc.pl.dotplot(adata, markers_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of expressed cells (%)")
+                  size_title="Fraction of expressed \n cells (%)")
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
@@ -727,3 +970,123 @@ with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
                   swap_axes=False, figsize=(12, 6))
     sc.pl.heatmap(adata, markers_dict, groupby='clusters', layer='scaled', vmin=-2,
                   vmax=2, cmap='RdBu_r', dendrogram=True, swap_axes=True, figsize=(12, 3))
+
+##############################################################
+################ Pulseseq Tuft Exclude (HVF) #################
+##############################################################
+full_features = pd.read_csv(os.path.join(DATASET_PATH,
+                                         "pulseseq_tuft_vs_ionocyte_exclude_feature_names.csv"), sep=',')
+full_features = full_features["features"].to_list()
+full_features = [f.upper() for f in full_features]
+# Tuft markers
+markers = pd.read_csv(os.path.join(DATASET_PATH, "pulseseq_tuft_vs_ionocyte_markers.csv"), sep=',').replace(np.nan, -1)
+tuft_markers = np.squeeze(markers[["Tuft", "Tuft-1", "Tuft-2"]].values.tolist()).flatten()[1:]
+tuft_markers = [f.upper() for f in tuft_markers if f.upper() in full_features]
+tuft_markers = np.unique(tuft_markers)
+# Extract all pulseseq tuft markers
+markers = np.unique(tuft_markers)
+markers = [f for f in markers if f in full_features]
+# selected markers
+markers_dict = {'Tuft': ['POU2F3', 'GNAT3', 'TRPM5', 'HCK', 'LRMP',
+                         'RGS13', 'GNG13', 'ALOX5AP', "PTPRC"]}
+temp_dict = {}
+for key, items in markers_dict.items():
+    temp = []
+    for item in items:
+        if item in full_features:
+            temp.append(item)
+    if len(temp) > 0:
+        temp_dict[key] = temp
+markers_dict = temp_dict
+del temp, temp_dict
+# timelabels
+timepoints = pd.read_csv(os.path.join(DATASET_PATH, "pulseseq_tuft_vs_ionocyte_exclude_timepoints.csv"),
+                         sep=',').values.tolist()
+timepoints = np.squeeze(timepoints)
+timepoints = pd.Series(timepoints, dtype="category")
+# Classes
+classes = pd.read_csv(os.path.join(DATASET_PATH,
+                                   "pulseseq_tuft_vs_ionocyte_exclude_classes.csv"),
+                      sep=',').values.tolist()
+classes = np.squeeze(classes)
+samples_idx = np.where(classes == 0)[0]
+samples_name = ["Tuft"] * len(samples_idx) 
+timepoints = timepoints[samples_idx]
+# Load data
+adata = sc.read_mtx(os.path.join(DATASET_PATH,
+                                 "pulseseq_tuft_vs_ionocyte_exclude_matrix.mtx"))
+adata = adata[samples_idx]
+adata.var_names = full_features
+samples_name = pd.Series(samples_name, dtype="category")
+samples_name.index = adata.obs.index
+adata.obs["clusters"] = samples_name
+timepoints.index = adata.obs.index
+adata.obs["timepoints"] = timepoints
+X = copy.deepcopy(adata.X)
+# QC calculations
+sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
+# Identify highly-variable genes.
+sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
+X = X[:, adata.var.highly_variable]
+adata = adata[:, adata.var.highly_variable]
+# Filter markers
+temp_dict = {}
+for key, items in markers_dict.items():
+    temp = []
+    for item in items:
+        if item in adata.var_names:
+            temp.append(item)
+    if len(temp) > 0:
+        temp_dict[key] = temp
+markers_dict = temp_dict
+tuft_markers = [item for item in tuft_markers if item in adata.var_names]
+# Regress out effects of total counts per cell 
+sc.pp.regress_out(adata, ['total_counts'])
+# Scale each gene to unit variance. Clip values exceeding standard deviation 10.
+sc.pp.scale(adata, max_value=10)
+# Computing the neighborhood graph
+sc.pp.neighbors(adata, n_neighbors=30, n_pcs=50)
+# UMAP (Embedding the neighborhood graph)
+sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
+           maxiter=2000)
+# Clustering the neighborhood graph
+sc.tl.leiden(adata, resolution=0.4, key_added="clusters")
+# Rename clusters
+new_cluster_names = ['Tuft-2', 'Tuft-1', 'Tuft-3']
+adata.rename_categories('clusters', new_cluster_names)
+# Plot UMAP
+with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
+    sc.pl.umap(adata, color=['clusters', 'HCK', 'RGS13', 'ALOX5AP'],
+               use_raw=False, add_outline=False, legend_loc='on data',
+               legend_fontsize=30, legend_fontoutline=2, frameon=False)
+# Violin plot
+with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
+                     'axes.titlesize': '30', 'axes.labelsize': '30',
+                     'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
+    sc.pl.violin(adata, ['HCK', 'RGS13', 'ALOX5AP'],
+                 groupby='clusters', xlabel="Clusters", stripplot=False,
+                 inner='box')
+# Tracksplot
+with plt.rc_context({'figure.figsize': (12, 6), 'figure.labelsize': '30',
+                     'axes.titlesize': '30', 'axes.labelsize': '20',
+                     'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
+    sc.pl.tracksplot(adata, markers_dict, groupby='clusters',
+                     dendrogram=False)
+# Dotplot
+with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
+                     'axes.titlesize': '30', 'axes.labelsize': '30',
+                     'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
+    sc.pl.dotplot(adata, markers_dict, groupby='clusters',
+                  title=None, colorbar_title="Mean expression values",
+                  size_title="Fraction of expressed \n cells (%)")
+# Heatmaps
+adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
+with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
+                     'axes.labelsize': '30', 'xtick.labelsize': '35',
+                     'ytick.labelsize': '12'}):
+    sc.pl.heatmap(adata, tuft_markers, groupby='clusters',
+                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
+                  swap_axes=False, figsize=(12, 6))
+    sc.pl.heatmap(adata, markers_dict, groupby='clusters', layer='scaled', vmin=-2,
+                  vmax=2, cmap='RdBu_r', dendrogram=False, swap_axes=True, 
+                  figsize=(12, 3))

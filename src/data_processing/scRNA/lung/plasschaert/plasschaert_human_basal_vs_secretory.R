@@ -32,11 +32,11 @@ df[df == "Interm. basal>secr."] <- "Basal>Secretory"
 df[df == "Interm. secr.>cil."] <- "Secretory>Ciliated"
 enriched_features <- df$EnrichedIn %in% c("Basal", "Secretory")
 features <- rownames(df)[enriched_features]
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(file_name, "_markers.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 donors <- donors[condition]
-write.table(as.data.frame(donors), 
+write.table(as.data.frame(donors),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 # already normalized
@@ -59,19 +59,19 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
 subtypes <- metadata
-write.table(as.data.frame(subtypes), 
+write.table(as.data.frame(subtypes),
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
-            file = file.path(working_dir, 
+write.table(as.data.frame(features),
+            file = file.path(working_dir,
                              paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
@@ -150,14 +150,14 @@ plotDensities(gset, group = gs, main = title, legend = "topright")
 # UMAP plot (dimensionality reduction)
 gset <- na.omit(gset) # eliminate rows with NAs
 gset <- gset[!duplicated(gset),]  # remove duplicates
-temp <- tT[tT$adj.P.Val <= 0.01, ]$ID
-gset <- gset[temp, ]
+temp <- tT[tT$adj.P.Val <= 0.01,]$ID
+gset <- gset[temp,]
 classes <- factor(classes)
-ump <- umap(t(gset), n_neighbors = 5, min_dist = 0.01, n_epochs = 2000, 
+ump <- umap(t(gset), n_neighbors = 5, min_dist = 0.01, n_epochs = 2000,
             random_state = 123)
 par(mar = c(3, 3, 2, 6), xpd = TRUE)
-plot(ump$layout, main = paste(toupper(file_name), "\nFeatures: ", length(temp)), 
-     xlab = "", ylab = "", 
+plot(ump$layout, main = paste(toupper(file_name), "\nFeatures: ", length(temp)),
+     xlab = "", ylab = "",
      col = classes, pch = 20, cex = 1.5)
 legend("topright", inset = c(-0.15, 0), legend = levels(classes), pch = 20,
        col = 1:nlevels(classes), title = "Group", pt.cex = 1.5)

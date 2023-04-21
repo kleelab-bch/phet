@@ -28,15 +28,15 @@ df <- read.table(file.path(working_dir,
                  stringsAsFactors = FALSE)
 enriched_features <- df$EnrichedIn %in% c("Basal", "Pre-ciliated", "Ciliated")
 features <- rownames(df)[enriched_features]
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(file_name, "_markers.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 donors <- donors[condition]
-write.table(as.data.frame(donors), 
+write.table(as.data.frame(donors),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 timepoints <- timepoints[condition]
-write.table(as.data.frame(timepoints), 
+write.table(as.data.frame(timepoints),
             file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 # already normalized
@@ -59,19 +59,19 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
 subtypes <- metadata
-write.table(as.data.frame(subtypes), 
+write.table(as.data.frame(subtypes),
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
-            file = file.path(working_dir, 
+write.table(as.data.frame(features),
+            file = file.path(working_dir,
                              paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 

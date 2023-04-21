@@ -8,15 +8,15 @@ file_name <- "GSE134174_Processed_invitro"
 save_name_prefix <- "gse134174_invitro"
 
 ### Load data
-metadata <- read.delim(file.path(working_dir, 
+metadata <- read.delim(file.path(working_dir,
                                  paste(file_name, "_metadata.txt",
                                        sep = "")))
 metadata$cell_type1 <- metadata$clust_ident
 metadata$clust_ident <- NULL
 donors <- metadata$donor
 timepoints <- metadata$day
-gset <- read.table(file.path(working_dir, paste(file_name, "_norm.txt", 
-                                                sep = "")), 
+gset <- read.table(file.path(working_dir, paste(file_name, "_norm.txt",
+                                                sep = "")),
                    stringsAsFactors = F)
 features <- rownames(gset)
 gset <- as.sparse(gset)
@@ -42,7 +42,7 @@ save_name <- paste(save_name_prefix, save_name, sep = "")
 # group membership for all samples
 # 0 (Basal): "Basal colonies", "Basal subconfluent proliferating", "Basal confluent",  "Differentiating basal", "Basal proliferating within epithelium"    
 # 1 (non Basal): "Secretory cells 1", "Secretory cells 2", "Later ciliating cells", "Rare cells", "Mature ciliated cells", "FOXN4+ early ciliating cells" 
-gsms <- c(0,0,1,0,1,0,0,1,1,1,1)
+gsms <- c(0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1)
 names(gsms) <- unique(metadata)
 gsms <- gsms[metadata]
 gsms <- paste0(gsms, collapse = "")
@@ -50,28 +50,28 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save celltypes 
 celltypes <- metadata
-write.table(as.data.frame(celltypes), 
+write.table(as.data.frame(celltypes),
             file = file.path(working_dir, paste(save_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(save_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(save_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(as.data.frame(donors), 
+write.table(as.data.frame(donors),
             file = file.path(working_dir, paste(save_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(as.data.frame(timepoints), 
+write.table(as.data.frame(timepoints),
             file = file.path(working_dir, paste(save_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
@@ -83,8 +83,8 @@ writeMM(t(gset), file = file.path(working_dir, paste(save_name, "_matrix.mtx", s
 ################## Basal vs Secretory ###################
 #########################################################
 condition <- metadata %in% c("Basal colonies", "Basal subconfluent proliferating",
-                             "Basal confluent",  "Differentiating basal", 
-                             "Basal proliferating within epithelium", 
+                             "Basal confluent", "Differentiating basal",
+                             "Basal proliferating within epithelium",
                              "Secretory cells 1", "Secretory cells 2")
 save_name <- "_basal_vs_secretory"
 save_name <- paste(save_name_prefix, save_name, sep = "")
@@ -92,7 +92,7 @@ save_name <- paste(save_name_prefix, save_name, sep = "")
 # group membership for all samples
 # 0 (Basal): "Basal colonies", "Basal subconfluent proliferating", "Basal confluent",  "Differentiating basal", "Basal proliferating within epithelium"
 # 1 (Secretory): "Secretory cells 1", "Secretory cells 2"
-gsms <- c(0,0,1,0,1,0,0)
+gsms <- c(0, 0, 1, 0, 1, 0, 0)
 names(gsms) <- unique(metadata[condition])
 gsms <- gsms[metadata[condition]]
 gsms <- paste0(gsms, collapse = "")
@@ -100,43 +100,43 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save celltypes 
 celltypes <- metadata[condition]
-write.table(as.data.frame(celltypes), 
+write.table(as.data.frame(celltypes),
             file = file.path(working_dir, paste(save_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(save_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(save_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
+write.table(data.frame(donors = donors[condition]),
             file = file.path(working_dir, paste(save_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
+write.table(data.frame(timepoints = timepoints[condition]),
             file = file.path(working_dir, paste(save_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(t(gset[, condition]), 
+writeMM(t(gset[, condition]),
         file = file.path(working_dir, paste(save_name, "_matrix.mtx", sep = "")))
 
 #########################################################
 #################### Basal vs Ciliated ##################
 #########################################################
 condition <- metadata %in% c("Basal colonies", "Basal subconfluent proliferating",
-                             "Basal confluent",  "Differentiating basal", 
+                             "Basal confluent", "Differentiating basal",
                              "Basal proliferating within epithelium",
-                             "Later ciliating cells", "Mature ciliated cells", 
+                             "Later ciliating cells", "Mature ciliated cells",
                              "FOXN4+ early ciliating cells")
 save_name <- "_basal_vs_ciliated"
 save_name <- paste(save_name_prefix, save_name, sep = "")
@@ -144,7 +144,7 @@ save_name <- paste(save_name_prefix, save_name, sep = "")
 # group membership for all samples
 # 0 (Basal): "Basal colonies", "Basal subconfluent proliferating", "Basal confluent",  "Differentiating basal", "Basal proliferating within epithelium"
 # 1 (Ciliated): "Later ciliating cells", "Mature ciliated cells", "FOXN4+ early ciliating cells"
-gsms <- c(0,0,0,0,0,1,1,1)
+gsms <- c(0, 0, 0, 0, 0, 1, 1, 1)
 names(gsms) <- unique(metadata[condition])
 gsms <- gsms[metadata[condition]]
 gsms <- paste0(gsms, collapse = "")
@@ -152,41 +152,41 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save celltypes 
 celltypes <- metadata[condition]
-write.table(as.data.frame(celltypes), 
+write.table(as.data.frame(celltypes),
             file = file.path(working_dir, paste(save_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(save_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(save_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
+write.table(data.frame(donors = donors[condition]),
             file = file.path(working_dir, paste(save_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
+write.table(data.frame(timepoints = timepoints[condition]),
             file = file.path(working_dir, paste(save_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(t(gset[, condition]), 
+writeMM(t(gset[, condition]),
         file = file.path(working_dir, paste(save_name, "_matrix.mtx", sep = "")))
 
 #########################################################
 ##################### Basal vs Rare #####################
 #########################################################
 condition <- metadata %in% c("Basal colonies", "Basal subconfluent proliferating",
-                             "Basal confluent", "Differentiating basal", 
+                             "Basal confluent", "Differentiating basal",
                              "Basal proliferating within epithelium", "Rare cells")
 save_name <- "_basal_vs_rare"
 save_name <- paste(save_name_prefix, save_name, sep = "")
@@ -194,7 +194,7 @@ save_name <- paste(save_name_prefix, save_name, sep = "")
 # group membership for all samples
 # 0 (Basal): "Basal colonies", "Basal subconfluent proliferating", "Basal confluent",  "Differentiating basal", "Basal proliferating within epithelium"
 # 1 (Rare): "Rare cells"
-gsms <- c(0,0,0,0,0,1)
+gsms <- c(0, 0, 0, 0, 0, 1)
 names(gsms) <- unique(metadata[condition])
 gsms <- gsms[metadata[condition]]
 gsms <- paste0(gsms, collapse = "")
@@ -202,41 +202,41 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save celltypes 
 celltypes <- metadata[condition]
-write.table(as.data.frame(celltypes), 
+write.table(as.data.frame(celltypes),
             file = file.path(working_dir, paste(save_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(save_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(save_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
+write.table(data.frame(donors = donors[condition]),
             file = file.path(working_dir, paste(save_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
+write.table(data.frame(timepoints = timepoints[condition]),
             file = file.path(working_dir, paste(save_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(t(gset[, condition]), 
+writeMM(t(gset[, condition]),
         file = file.path(working_dir, paste(save_name, "_matrix.mtx", sep = "")))
 
 #########################################################
 ################# Secretory vs Ciliated ################# 
 #########################################################
-condition <- metadata %in% c("Secretory cells 1", "Secretory cells 2", 
-                             "Later ciliating cells", "Mature ciliated cells", 
+condition <- metadata %in% c("Secretory cells 1", "Secretory cells 2",
+                             "Later ciliating cells", "Mature ciliated cells",
                              "FOXN4+ early ciliating cells")
 save_name <- "_secretory_vs_ciliated"
 save_name <- paste(save_name_prefix, save_name, sep = "")
@@ -244,7 +244,7 @@ save_name <- paste(save_name_prefix, save_name, sep = "")
 # group membership for all samples
 # 0 (Secretory): "Secretory cells 1", "Secretory cells 2"
 # 1 (Ciliated): "Later ciliating cells", "Mature ciliated cells", "FOXN4+ early ciliating cells"
-gsms <- c(0,0,1,1,1)
+gsms <- c(0, 0, 1, 1, 1)
 names(gsms) <- unique(metadata[condition])
 gsms <- gsms[metadata[condition]]
 gsms <- paste0(gsms, collapse = "")
@@ -252,34 +252,34 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save celltypes 
 celltypes <- metadata[condition]
-write.table(as.data.frame(celltypes), 
+write.table(as.data.frame(celltypes),
             file = file.path(working_dir, paste(save_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(save_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(save_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
+write.table(data.frame(donors = donors[condition]),
             file = file.path(working_dir, paste(save_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
+write.table(data.frame(timepoints = timepoints[condition]),
             file = file.path(working_dir, paste(save_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(t(gset[, condition]), 
+writeMM(t(gset[, condition]),
         file = file.path(working_dir, paste(save_name, "_matrix.mtx", sep = "")))
 
 #########################################################
@@ -300,40 +300,40 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save celltypes 
 celltypes <- metadata[condition]
-write.table(as.data.frame(celltypes), 
+write.table(as.data.frame(celltypes),
             file = file.path(working_dir, paste(save_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(save_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(save_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
+write.table(data.frame(donors = donors[condition]),
             file = file.path(working_dir, paste(save_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
+write.table(data.frame(timepoints = timepoints[condition]),
             file = file.path(working_dir, paste(save_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(t(gset[, condition]), 
+writeMM(t(gset[, condition]),
         file = file.path(working_dir, paste(save_name, "_matrix.mtx", sep = "")))
 
 #########################################################
 #################### Ciliated vs Rare ################### 
 #########################################################
-condition <- metadata %in% c("Later ciliating cells", "Mature ciliated cells", 
+condition <- metadata %in% c("Later ciliating cells", "Mature ciliated cells",
                              "FOXN4+ early ciliating cells", "Rare cells")
 save_name <- "_ciliated_vs_rare"
 save_name <- paste(save_name_prefix, save_name, sep = "")
@@ -349,32 +349,32 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save celltypes 
 celltypes <- metadata[condition]
-write.table(as.data.frame(celltypes), 
+write.table(as.data.frame(celltypes),
             file = file.path(working_dir, paste(save_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(save_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(save_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
+write.table(data.frame(donors = donors[condition]),
             file = file.path(working_dir, paste(save_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
+write.table(data.frame(timepoints = timepoints[condition]),
             file = file.path(working_dir, paste(save_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(t(gset[, condition]), 
+writeMM(t(gset[, condition]),
         file = file.path(working_dir, paste(save_name, "_matrix.mtx", sep = "")))

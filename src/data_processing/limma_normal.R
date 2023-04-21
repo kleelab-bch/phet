@@ -12,8 +12,8 @@ for (per in outlier_per) {
   for (t in data_type) {
     print(paste("Loading ", file_name, per, t, ".csv...", sep = ""))
     # Load data
-    gset <- read.csv(file.path(working_dir, 
-                               paste(file_name, per, t, ".csv", sep = "")), 
+    gset <- read.csv(file.path(working_dir,
+                               paste(file_name, per, t, ".csv", sep = "")),
                      header = T)
     classes <- gset$class
     gset <- gset[!(names(gset) %in% c("class"))]
@@ -29,7 +29,7 @@ for (per in outlier_per) {
     gset[is.na(gset)] <- 0
     featureIDs <- seq(0, nrow(gset) - 1)
     rownames(gset) <- featureIDs
-  
+
     ### LIMMA
     fit <- lmFit(gset, design)  # fit linear model
     # set up contrasts of interest and recalculate model coefficients
@@ -42,9 +42,9 @@ for (per in outlier_per) {
     temp <- rownames(tT)
     rownames(tT) <- NULL
     tT <- cbind("ID" = temp, tT)
-    write.table(tT, file = file.path(working_dir, 
-                                     paste(file_name, per, t, "_limma_features.csv", 
-                                           sep = "")), 
+    write.table(tT, file = file.path(working_dir,
+                                     paste(file_name, per, t, "_limma_features.csv",
+                                           sep = "")),
                 sep = ",", quote = FALSE, row.names = FALSE)
   }
 }

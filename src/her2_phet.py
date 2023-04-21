@@ -75,7 +75,7 @@ def train():
         print("\t >> Progress: {0:.4f}%; Method: {1:35}".format((current_progress / total_progress) * 100,
                                                                 methods[0]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
-                         calculate_fisher=False, calculate_profile=False, bin_KS_pvalues=bin_KS_pvalues,
+                         calculate_fisher=False, calculate_profile=False, bin_pvalues=bin_KS_pvalues,
                          feature_weight=feature_weight, weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -93,7 +93,7 @@ def train():
         print("\t >> Progress: {0:.4f}%; Method: {1:35}".format((current_progress / total_progress) * 100,
                                                                 methods[1]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=False,
-                         calculate_fisher=True, calculate_profile=False, bin_KS_pvalues=bin_KS_pvalues,
+                         calculate_fisher=True, calculate_profile=False, bin_pvalues=bin_KS_pvalues,
                          feature_weight=feature_weight, weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -112,7 +112,7 @@ def train():
         print("\t >> Progress: {0:.4f}%; Method: {1:35}".format((current_progress / total_progress) * 100,
                                                                 methods[2]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=False,
-                         calculate_fisher=False, calculate_profile=True, bin_KS_pvalues=bin_KS_pvalues,
+                         calculate_fisher=False, calculate_profile=True, bin_pvalues=bin_KS_pvalues,
                          feature_weight=feature_weight, weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -130,7 +130,7 @@ def train():
         print("\t >> Progress: {0:.4f}%; Method: {1:35}".format((current_progress / total_progress) * 100,
                                                                 methods[3]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
-                         calculate_fisher=True, calculate_profile=False, bin_KS_pvalues=bin_KS_pvalues,
+                         calculate_fisher=True, calculate_profile=False, bin_pvalues=bin_KS_pvalues,
                          feature_weight=feature_weight, weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -148,7 +148,7 @@ def train():
         print("\t >> Progress: {0:.4f}%; Method: {1:35}".format((current_progress / total_progress) * 100,
                                                                 methods[4]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
-                         calculate_fisher=False, calculate_profile=True, bin_KS_pvalues=bin_KS_pvalues,
+                         calculate_fisher=False, calculate_profile=True, bin_pvalues=bin_KS_pvalues,
                          feature_weight=feature_weight, weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -166,7 +166,7 @@ def train():
         print("\t >> Progress: {0:.4f}%; Method: {1:35}".format((current_progress / total_progress) * 100,
                                                                 methods[5]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=False,
-                         calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=bin_KS_pvalues,
+                         calculate_fisher=True, calculate_profile=True, bin_pvalues=bin_KS_pvalues,
                          feature_weight=feature_weight, weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -184,7 +184,7 @@ def train():
         print("\t >> Progress: {0:.4f}%; Method: {1:35}".format((current_progress / total_progress) * 100,
                                                                 methods[6]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
-                         calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=False,
+                         calculate_fisher=True, calculate_profile=True, bin_pvalues=False,
                          feature_weight=feature_weight, weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -206,7 +206,7 @@ def train():
             print("\t >> Progress: {0:.4f}%; Method: {1:35}".format((current_progress / total_progress) * 100,
                                                                     methods[7]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
-                         calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=True,
+                         calculate_fisher=True, calculate_profile=True, bin_pvalues=True,
                          feature_weight=feature_weight, weight_range=weight_range)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,

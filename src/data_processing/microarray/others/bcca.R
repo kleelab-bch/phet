@@ -34,21 +34,21 @@ gset <- gset[, sel]
 
 # collect subtypes 
 subtypes <- gset@phenoData@data[["pam50_class:ch1"]]
-write.table(as.data.frame(subtypes), 
+write.table(as.data.frame(subtypes),
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
 features <- gset@featureData@data["ID"]
 names(features) <- "features"
-write.table(as.data.frame(features), 
-            file = file.path(working_dir, 
+write.table(as.data.frame(features),
+            file = file.path(working_dir,
                              paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 

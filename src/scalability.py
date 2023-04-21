@@ -1,9 +1,13 @@
 import os
 import time
+
+import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
+
 from model.copa import COPA
 from model.deltahvfmean import DeltaHVFMean
 from model.deltaiqrmean import DeltaIQRMean
@@ -16,22 +20,21 @@ from model.ort import OutlierRobustTstatistic
 from model.oss import OutlierSumStatistic
 from model.phet import PHeT
 from utility.file_path import DATASET_PATH, RESULT_PATH
-import matplotlib.colors as mcolors
-import matplotlib.pyplot as plt
 
 sns.set_theme()
 sns.set_theme(style="white")
 np.random.seed(seed=12345)
 
-METHODS = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma", 
-           "HVF (composite)", "HVF (by condition)", "ΔHVF", "ΔHVF+ΔMean", 
-           "IQR (composite)", "IQR (by condition)", "ΔIQR", "ΔIQR+ΔMean", 
+METHODS = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma",
+           "HVF (composite)", "HVF (by condition)", "ΔHVF", "ΔHVF+ΔMean",
+           "IQR (composite)", "IQR (by condition)", "ΔIQR", "ΔIQR+ΔMean",
            "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "PHet"]
 # Define colors
 PALETTE = sns.color_palette("tab20")
 PALETTE.append("#fcfc81")
 PALETTE.append("#C724B1")
 PALETTE = dict([(item, mcolors.to_hex(PALETTE[idx])) for idx, item in enumerate(METHODS)])
+
 
 def train():
     # Arguments
@@ -212,8 +215,8 @@ def train():
             print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                     METHODS[18]), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
-                     calculate_deltahvf=False, calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=True, 
-                     feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.1, 0.4, 0.8])
+                         delta_type=False, calculate_fisher=True, calculate_profile=True, bin_pvalues=True,
+                         feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.1, 0.4, 0.8])
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
@@ -230,10 +233,10 @@ def train():
     # Plot boxplot
     print("## Plot boxplot using top k features...")
     plt.figure(figsize=(14, 8))
-    sns.boxplot(y='Times', x='Methods', data=df, width=0.85, 
-                 palette=PALETTE)
+    sns.boxplot(y='Times', x='Methods', data=df, width=0.85,
+                palette=PALETTE)
     sns.swarmplot(y='Times', x='Methods', data=df, color="black", s=10, linewidth=0,
-                alpha=.7)
+                  alpha=.7)
     plt.xticks(fontsize=18, rotation=45)
     plt.yticks(fontsize=18)
     plt.xlabel('Methods', fontsize=22)

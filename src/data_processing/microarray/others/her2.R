@@ -29,37 +29,37 @@ gsms <- paste0(gsms, collapse = "")
 sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
-write.table(data.frame(subtypes = metadata), 
-            file = file.path(working_dir, 
+write.table(data.frame(subtypes = metadata),
+            file = file.path(working_dir,
                              paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
 features <- row.names(exprs(control))
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = control@phenoData@data[["clinical subtype:ch1"]]), 
+write.table(data.frame(donors = control@phenoData@data[["clinical subtype:ch1"]]),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 ex <- exprs(control)
 ex <- as.data.frame(t(ex))
-write.table(ex, 
+write.table(ex,
             file = file.path(working_dir, paste(file_name, "_matrix.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 ex <- data.matrix(ex)
 ex <- as(ex, "dgCMatrix")
-writeMM(ex, 
+writeMM(ex,
         file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 remove(ex)
 
@@ -78,37 +78,37 @@ gsms <- paste0(gsms, collapse = "")
 sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
-write.table(data.frame(subtypes = metadata), 
-            file = file.path(working_dir, 
+write.table(data.frame(subtypes = metadata),
+            file = file.path(working_dir,
                              paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
 features <- row.names(exprs(case))
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = case@phenoData@data[["clinical subtype:ch1"]]), 
+write.table(data.frame(donors = case@phenoData@data[["clinical subtype:ch1"]]),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 ex <- exprs(case)
 ex <- as.data.frame(t(ex))
-write.table(ex, 
+write.table(ex,
             file = file.path(working_dir, paste(file_name, "_matrix.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 ex <- data.matrix(ex)
 ex <- as(ex, "dgCMatrix")
-writeMM(ex, 
+writeMM(ex,
         file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 remove(ex)
 
@@ -129,25 +129,25 @@ remove(control)
 remove(case)
 
 # save subtypes 
-write.table(data.frame(subtypes = metadata), 
-            file = file.path(working_dir, 
+write.table(data.frame(subtypes = metadata),
+            file = file.path(working_dir,
                              paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
 features <- row.names(exprs(gset))
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = gset@phenoData@data[["clinical subtype:ch1"]]), 
+write.table(data.frame(donors = gset@phenoData@data[["clinical subtype:ch1"]]),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
@@ -155,7 +155,7 @@ write.table(data.frame(donors = gset@phenoData@data[["clinical subtype:ch1"]]),
 ex <- exprs(gset)
 ex <- data.matrix(ex)
 ex <- as(ex, "dgCMatrix")
-writeMM(t(ex), 
+writeMM(t(ex),
         file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 remove(ex)
 
@@ -173,7 +173,7 @@ qx <- as.numeric(quantile(ex, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm = T))
 LogC <- (qx[5] > 100) ||
   (qx[6] - qx[1] > 50 && qx[2] > 0)
 if (LogC) { ex[which(ex <= 0)] <- NaN
-exprs(gset) <- log2(ex) }
+  exprs(gset) <- log2(ex) }
 
 # assign samples to groups and set up design matrix
 gs <- factor(sml)
@@ -194,7 +194,7 @@ fit2 <- contrasts.fit(fit, cont.matrix)
 fit2 <- eBayes(fit2, 0.01)
 tT <- topTable(fit2, adjust = "fdr", sort.by = "B", number = 10000)
 tT <- subset(tT, select = c("ID", "adj.P.Val", "P.Value", "t", "B", "logFC", "Gene.symbol"))
-write.table(tT, file = file.path(working_dir, 
+write.table(tT, file = file.path(working_dir,
                                  paste(file_name, "_limma_features.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
@@ -236,7 +236,7 @@ ex <- na.omit(ex) # eliminate rows with NAs
 ex <- ex[!duplicated(ex),]  # remove duplicates
 ump <- umap(t(ex), n_neighbors = 15, random_state = 123)
 par(mar = c(3, 3, 2, 6), xpd = TRUE)
-plot(ump$layout, main = "UMAP plot, nbrs=15", xlab = "", ylab = "", 
+plot(ump$layout, main = "UMAP plot, nbrs=15", xlab = "", ylab = "",
      col = gs, pch = 20, cex = 1.5)
 legend("topright", inset = c(-0.15, 0), legend = levels(gs), pch = 20,
        col = 1:nlevels(gs), title = "Group", pt.cex = 1.5)

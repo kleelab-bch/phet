@@ -14,8 +14,8 @@ iterations <- 1000
 q.val <- 0.01
 
 # load positive and negative HER2 data
-X_control <- read.csv(file.path(working_dir, 
-                                paste(file_name, "_negative_matrix.csv", sep = "")), 
+X_control <- read.csv(file.path(working_dir,
+                                paste(file_name, "_negative_matrix.csv", sep = "")),
                       header = T)
 X_control <- as.data.frame(t(X_control))
 X_control <- data.matrix(X_control)
@@ -24,8 +24,8 @@ featureIDs <- seq(0, nrow(X_control) - 1)
 rownames(X_control) <- featureIDs
 X_control <- SummarizedExperiment(assays = list(counts = X_control))
 
-X_case <- read.csv(file.path(working_dir, 
-                             paste(file_name, "_positive_matrix.csv", sep = "")), 
+X_case <- read.csv(file.path(working_dir,
+                             paste(file_name, "_positive_matrix.csv", sep = "")),
                    header = T)
 X_case <- as.data.frame(t(X_case))
 X_case <- data.matrix(X_case)

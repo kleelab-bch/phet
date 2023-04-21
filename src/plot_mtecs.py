@@ -1,5 +1,5 @@
 import os
-
+from copy import deepcopy
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -249,20 +249,26 @@ adata.var_names = [f for idx, f in enumerate(full_features) if f in markers]
 samples_name = pd.Series(samples_name, dtype="category")
 samples_name.index = adata.obs.index
 adata.obs["clusters"] = samples_name
+X = deepcopy(adata.X)
 # QC calculations
 sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
-# Basic filtering
-sc.pp.filter_cells(adata, min_genes=10)
-sc.pp.filter_genes(adata, min_cells=5)
-# Total-count normalize (library-size correct) the data matrix X to 10,000 reads per cell, so that counts become comparable among cells.
-sc.pp.normalize_total(adata, target_sum=1e4)
-# Logarithmize the data:
-sc.pp.log1p(adata)
-# Identify highly-variable genes.
 # Regress out effects of total counts per cell 
 sc.pp.regress_out(adata, ['total_counts'])
 # Scale each gene to unit variance. Clip values exceeding standard deviation 10.
 sc.pp.scale(adata, max_value=10)
+# Computing the neighborhood graph
+sc.pp.neighbors(adata, n_neighbors=30, n_pcs=50)
+# UMAP (Embedding the neighborhood graph)
+sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
+           maxiter=2000)
+adata.X = X
+sc.pp.scale(adata, max_value=10)
+# Plot UMAP
+with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
+    sc.pl.umap(adata, color=['clusters'],
+               use_raw=False, add_outline=False, legend_loc='on data',
+               legend_fontsize=40, legend_fontoutline=2, frameon=False,
+               palette={"Bottom cluster": "black", "Top cluster": "red"})
 # Find differentially expressed features
 sc.tl.rank_genes_groups(adata, 'clusters', method='wilcoxon',
                         corr_method='benjamini-hochberg', tie_correct=True)
@@ -272,17 +278,6 @@ with plt.rc_context({'figure.figsize': (8, 6), 'figure.labelsize': '20',
                      'xtick.labelsize': '14', 'ytick.labelsize': '14'}):
     sc.pl.rank_genes_groups(adata, n_genes=20, fontsize=18, sharey=False,
                             **{"axes.xlabel": "Ranking"})
-# Computing the neighborhood graph
-sc.pp.neighbors(adata, n_neighbors=30, n_pcs=50)
-# UMAP (Embedding the neighborhood graph)
-sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
-           maxiter=2000)
-# Plot UMAP 
-with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
-    sc.pl.umap(adata, color=['clusters'],
-               use_raw=False, add_outline=False, legend_loc='on data',
-               legend_fontsize=40, legend_fontoutline=2, frameon=False,
-               palette={"Bottom cluster": "black", "Top cluster": "red"})
 # Filter markers
 temp_dict = {}
 for key, items in markers_dict.items():
@@ -324,26 +319,26 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
     sc.pl.dotplot(adata, selected_features_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of expressed cells (%)")
+                  size_title="Fraction of expressed \n cells (%)")
     selected_samples = adata.obs['clusters'] == "Top cluster"
-    median_expressions = adata[selected_samples, markers_dict["Ciliated"]].to_df().median()
-    median_expressions = np.where(median_expressions > 0.5)[0]
-    sc.pl.dotplot(adata, np.array(markers_dict["Ciliated"])[median_expressions],
+    mean_expressions = adata[selected_samples, markers_dict["Ciliated"]].to_df().median()
+    mean_expressions = np.where(mean_expressions > 0.0)[0]
+    sc.pl.dotplot(adata, np.array(markers_dict["Ciliated"])[mean_expressions],
                   groupby='clusters', title=None,
                   colorbar_title="Mean expression values",
-                  size_title="Fraction of expressed cells (%)")
-    median_expressions = adata[selected_samples, markers_dict["Secretory"]].to_df().median()
-    median_expressions = np.where(median_expressions > 0.5)[0]
-    sc.pl.dotplot(adata, np.array(markers_dict["Secretory"])[median_expressions],
+                  size_title="Fraction of expressed \n cells (%)")
+    mean_expressions = adata[selected_samples, markers_dict["Secretory"]].to_df().median()
+    mean_expressions = np.where(mean_expressions > 0.0)[0]
+    sc.pl.dotplot(adata, np.array(markers_dict["Secretory"])[mean_expressions],
                   groupby='clusters', title=None,
                   colorbar_title="Mean expression values",
-                  size_title="Fraction of expressed cells (%)")
-    median_expressions = adata[selected_samples, markers_dict["Cycling basal"]].to_df().median()
-    median_expressions = np.where(median_expressions > 0.5)[0]
-    sc.pl.dotplot(adata, np.array(markers_dict["Cycling basal"])[median_expressions],
+                  size_title="Fraction of expressed \n cells (%)")
+    mean_expressions = adata[selected_samples, markers_dict["Cycling basal"]].to_df().median()
+    mean_expressions = np.where(mean_expressions > 0.0)[0]
+    sc.pl.dotplot(adata, np.array(markers_dict["Cycling basal"])[mean_expressions],
                   groupby='clusters', title=None,
                   colorbar_title="Mean expression values",
-                  size_title="Fraction of expressed cells (%)")
+                  size_title="Fraction of expressed \n cells (%)")
 
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
@@ -501,12 +496,9 @@ adata = adata[samples_idx][:, [idx for idx, f in enumerate(full_features)
 adata.var_names = [f for idx, f in enumerate(full_features) if f in markers]
 donors.index = adata.obs.index
 adata.obs["donors"] = donors
+X = deepcopy(adata.X)
 # QC calculations
 sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
-# Total-count normalize (library-size correct) the data matrix X to 10,000 reads per cell, so that counts become comparable among cells.
-sc.pp.normalize_total(adata, target_sum=1e4)
-# Logarithmize the data:
-sc.pp.log1p(adata)
 # Regress out effects of total counts per cell 
 sc.pp.regress_out(adata, ['total_counts'])
 # Scale each gene to unit variance. Clip values exceeding standard deviation 10.
@@ -521,6 +513,8 @@ sc.tl.leiden(adata, resolution=0.5, key_added="clusters")
 adata.obs["clusters"] = ["2" if item in ["3", "4"] else item for item in adata.obs['clusters']]
 adata.obs["clusters"] = pd.Series(adata.obs["clusters"], name="clusters", dtype="category")
 # Rename clusters
+adata.X = X
+sc.pp.scale(adata, max_value=10)
 new_cluster_names = ['Basal-1', 'Basal-2', 'Basal-3']
 adata.rename_categories('clusters', new_cluster_names)
 # Find differentially expressed features
@@ -594,18 +588,9 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
 with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
-    # sc.pl.dotplot(adata, basal_subsets_markers, groupby='clusters',
-    #               title=None, colorbar_title="Mean expression values",
-    #               size_title="Fraction of expressed cells (%)")
-    # sc.pl.dotplot(adata, markers_dict["Basal"], groupby='clusters',
-    #               title=None, colorbar_title="Mean expression values",
-    #               size_title="Fraction of expressed cells (%)")
-    # sc.pl.dotplot(adata, markers_dict["Secretory"], groupby='clusters',
-    #               title=None, colorbar_title="Mean expression values",
-    #               size_title="Fraction of expressed cells (%)")
     sc.pl.dotplot(adata, selected_features_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of expressed cells (%)")
+                  size_title="Fraction of expressed \n cells (%)")
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
@@ -690,14 +675,13 @@ adata = adata[samples_idx][:, [idx for idx, f in enumerate(full_features)
 adata.var_names = [f for idx, f in enumerate(full_features) if f in phet_features]
 donors.index = adata.obs.index
 adata.obs["donors"] = donors
+X = deepcopy(adata.X)
 # QC calculations
 sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
 # Total-count normalize (library-size correct) the data matrix X to 10,000 reads per cell, so that counts become comparable among cells.
 sc.pp.normalize_total(adata, target_sum=1e4)
 # Logarithmize the data:
 sc.pp.log1p(adata)
-# Identify highly-variable genes.
-sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
 # Regress out effects of total counts per cell 
 sc.pp.regress_out(adata, ['total_counts'])
 # Scale each gene to unit variance. Clip values exceeding standard deviation 10.
@@ -731,11 +715,10 @@ markers = [f for k, item in markers_dict.items() for f in item]
 basal_markers = ["KRT5", "KRT14", "KRT15", "KRT19", "TRP63", "PDPN", "NGFR",
                  "ITGA6", "ITGB4", "LAMB3", "BCAM", "DST", "DCN", "COL17A1",
                  "ABI3BP", "TSPAN1", "WFDC2", "ATP1B1", "DUT", "CXCL17"]
-# basal_markers = ['ABI3BP', 'BCAM', 'COL17A1', 'DCN', 'ITGB4', 'KRT15', 'KRT5', 
-#  'LAMB3', 'NGFR', 'PDPN', 'TRP63']
 basal_markers += [f.upper() for item in basal_subsets_markers.values() for f in item]
+# basal_markers = ['KRT5', 'TRP63', 'LAMB3', 'KRT15', "TSPAN1", 'COL17A1']
 basal_markers = sorted(list(set(basal_markers)))
-secretory_markers = ["SCGB1A1", "MUC5AC", "MUC5B", "TFF3", "SCGB3A1", "SCGB3A2",
+secretory_markers = ["MUC5AC", "MUC5B", "TFF3", "SCGB3A1", "SCGB3A2",
                      "BPIFB1", "MSMB", "SLPI", "WFDC2", "BPIFA1", "MSLN", "AGR2"]
 # secretory_markers = ['AGR2', 'BPIFA1', 'MSLN', 'MUC5B', 'SCGB1A1', 'SCGB3A2']
 secretory_markers = sorted(list(set(secretory_markers)))
@@ -770,6 +753,8 @@ with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
                use_raw=False, add_outline=False, legend_loc='on data',
                legend_fontsize=40, legend_fontoutline=2, frameon=False)
 # Violin plot
+adata.X = X
+sc.pp.scale(adata)
 adata.var_names_make_unique()
 with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '30',
@@ -789,13 +774,13 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                   size_title="Fraction of expressed \n cells (%)")
     # sc.pl.dotplot(adata, markers_dict["Basal"], groupby='clusters',
     #               title=None, colorbar_title="Mean expression values",
-    #               size_title="Fraction of expressed cells (%)")
+    #               size_title="Fraction of expressed \n cells (%)")
     # sc.pl.dotplot(adata, markers_dict["Secretory"], groupby='clusters',
     #               title=None, colorbar_title="Mean expression values",
-    #               size_title="Fraction of expressed cells (%)")
+    #               size_title="Fraction of expressed \n cells (%)")
     sc.pl.dotplot(adata, selected_features_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of expressed cells (%)")
+                  size_title="Fraction of expressed \n cells (%)")
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
@@ -879,31 +864,30 @@ adata = adata[samples_idx]
 adata.var_names = full_features
 donors.index = adata.obs.index
 adata.obs["donors"] = donors
+X = deepcopy(adata.X)
 # QC calculations
 sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
-# Basic filtering
-sc.pp.filter_cells(adata, min_genes=10)
-sc.pp.filter_genes(adata, min_cells=5)
 # Total-count normalize (library-size correct) the data matrix X to 10,000 reads per cell, so that counts become comparable among cells.
 sc.pp.normalize_total(adata, target_sum=1e4)
 # Logarithmize the data:
 sc.pp.log1p(adata)
 # Identify highly-variable genes.
 sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
+X = X[:, adata.var.highly_variable]
 adata = adata[:, adata.var.highly_variable]
 # Regress out effects of total counts per cell 
 sc.pp.regress_out(adata, ['total_counts'])
 # Scale each gene to unit variance. Clip values exceeding standard deviation 10.
 sc.pp.scale(adata, max_value=10)
+# Computing the neighborhood graph
+sc.pp.neighbors(adata, n_neighbors=30, n_pcs=50)
 # UMAP (Embedding the neighborhood graph)
 sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
            maxiter=2000)
-# Computing the neighborhood graph
-sc.pp.neighbors(adata, n_neighbors=30, n_pcs=50)
 # Clustering the neighborhood graph
 sc.tl.leiden(adata, resolution=0.4, key_added="clusters")
-adata.obs["clusters"] = ["1" if item == "4" else item for item in adata.obs['clusters']]
-adata.obs["clusters"] = ["1" if item == "5" else item for item in adata.obs['clusters']]
+adata.obs["clusters"] = ["0" if item == "4" else item for item in adata.obs['clusters']]
+adata.obs["clusters"] = ["0" if item == "5" else item for item in adata.obs['clusters']]
 adata.obs["clusters"] = ["0" if item == "3" else item for item in adata.obs['clusters']]
 adata.obs["clusters"] = pd.Series(adata.obs["clusters"], name="clusters", dtype="category")
 # Rename clusters
@@ -968,6 +952,7 @@ with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
                use_raw=False, add_outline=False, legend_loc='on data',
                legend_fontsize=40, legend_fontoutline=2, frameon=False)
 # Violin plot
+adata.X = X
 adata.var_names_make_unique()
 with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '30',
@@ -987,13 +972,13 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                   size_title="Fraction of expressed \n cells (%)")
     # sc.pl.dotplot(adata, markers_dict["Basal"], groupby='clusters',
     #               title=None, colorbar_title="Mean expression values",
-    #               size_title="Fraction of expressed cells (%)")
+    #               size_title="Fraction of expressed \n cells (%)")
     # sc.pl.dotplot(adata, markers_dict["Secretory"], groupby='clusters',
     #               title=None, colorbar_title="Mean expression values",
-    #               size_title="Fraction of expressed cells (%)")
+    #               size_title="Fraction of expressed \n cells (%)")
     sc.pl.dotplot(adata, selected_features_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of expressed cells (%)")
+                  size_title="Fraction of expressed \n cells (%)")
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',

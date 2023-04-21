@@ -211,7 +211,7 @@ def train(args):
                                                             METHODS[8]))
     estimator = PHeT(normalize=args.normalize, iqr_range=args.iqr_range, num_subsamples=args.num_subsamples,
                      calculate_deltaiqr=args.calculate_deltaiqr, calculate_fisher=args.calculate_fisher,
-                     calculate_profile=args.calculate_profile, bin_KS_pvalues=args.bin_KS_pvalues,
+                     calculate_profile=args.calculate_profile, bin_pvalues=args.bin_KS_pvalues,
                      feature_weight=args.feature_weight, weight_range=args.weight_range)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({METHODS[8]: df})

@@ -5,15 +5,15 @@ import pandas as pd
 import scanpy as sc
 import seaborn as sns
 
-from model.phet import PHeT
+from sklearn.linear_model import SGDClassifier
+from sklearn.feature_selection import RFE
 from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.plot_utils import plot_umap, plot_barplot
 from utility.utils import comparative_score
 from utility.utils import sort_features, significant_features
 
 sns.set_theme(style="white")
-METHODS = ["PHet (ΔHVF)"]
-# METHODS = ["PHet"]
+METHODS = ["LogisticRegression"]
 
 
 def train(num_jobs: int = 4):
@@ -25,29 +25,16 @@ def train(num_jobs: int = 4):
     if not sort_by_pvalue:
         plot_topKfeatures = True
     is_filter = True
-    export_spring = False
     num_neighbors = 5
     max_clusters = 10
     feature_metric = "f1"
-    cluster_type = "spectral"
-    
-    # Models parameters
-    bin_pvalues = True
-    phet_delta_type = "hvf"
-    normalize = "zscore"
-    methods_save_name = []
-    if phet_delta_type == "hvf":
-        temp = "h"
-    else:
-        temp = "r"
-    if bin_pvalues:
-        methods_save_name.append("PHet_b" + temp)
-    else:
-        methods_save_name.append("PHet_nb"+ temp)
+    cluster_type = "kmeans"
+    export_spring = False
+    methods_save_name = ["logit"]
 
     # descriptions of the data
-    file_name = "yan"
-    suptitle_name = "Yan"
+    file_name = "srbct"
+    suptitle_name = "srbct"
     control_name = "0"
     case_name = "1"
 
@@ -155,11 +142,14 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             METHODS[0]))
-    estimator = PHeT(normalize = normalize, iqr_range=(25, 75), num_subsamples=1000, delta_type = phet_delta_type, 
-                     calculate_deltadisp = True, calculate_deltamean = False, calculate_fisher = True,
-                     calculate_profile = True, bin_pvalues = True, feature_weight=[0.4, 0.3, 0.2, 0.1], 
-                     weight_range=[0.2, 0.4, 0.8])
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+    estimator = SGDClassifier(loss="log_loss", penalty="l2", fit_intercept=True, max_iter=1000, tol=1e-3,
+                              n_jobs=num_jobs, learning_rate="optimal")
+    estimator.fit(X=X, y=y)
+    # selector = RFE(estimator, n_features_to_select=10, step=1)
+    # selector = selector.fit(X, y)
+    # df = np.max(selector.ranking_) + 1 - selector.ranking_
+    # df = df[:, None]
+    df = np.absolute(estimator.coef_.T)
     methods_dict.update({METHODS[0]: df})
     current_progress += 1
 

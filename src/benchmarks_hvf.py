@@ -19,15 +19,11 @@ sns.set_theme()
 sns.set_theme(style="white")
 np.random.seed(seed=12345)
 
-METHODS = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma",
-           "LIMMA", "LIMMA+Gamma", "HVF (composite)", "HVF (by condition)",
-           "ΔHVF", "ΔHVF+ΔMean", "IQR (composite)", "IQR (by condition)",
-           "ΔIQR", "ΔIQR+ΔMean"]
+METHODS = ["HVF (composite)", "HVF (by condition)", "ΔHVF", "ΔHVF+ΔMean"]
 
 
 def train(num_jobs: int = 4):
     # Arguments
-    direction = "both"
     minimum_samples = 5
     pvalue = 0.01
     sort_by_pvalue = True
@@ -39,13 +35,12 @@ def train(num_jobs: int = 4):
     num_neighbors = 5
     max_clusters = 10
     feature_metric = "f1"
-    cluster_type = "kmeans"
-    methods_save_name = ["ttest_p", "ttest_g", "wilcoxon_p", "wilcoxon_g", "limma_p",
-                         "limma_g", "hvf_a", "hvf_c", "deltahvf", "deltahvfmean",
-                         "iqr_a", "iqr_c", "deltaiqr", "deltaiqrmean"]
+    log_transform = False
+    cluster_type = "spectral"
+    methods_save_name = ["hvf_a", "hvf_c", "deltahvf", "deltahvfmean"]
     # Descriptions of the data
-    file_name = "bladdergse89"
-    suptitle_name = "GSE89"
+    file_name = "patel"
+    suptitle_name = "Patel"
 
     # Exprssion, classes, subtypes, donors, timepoints Files
     expression_file_name = file_name + "_matrix.mtx"
@@ -122,124 +117,46 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[0]), end="\r")
-    estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=False)
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False)
-    df.sort_values(by="score", inplace=True, ascending=True)
-    df = df[df["score"] <= pvalue]
+    estimator = SeuratHVF(per_condition=False, log_transform=log_transform, 
+                          num_top_features=num_features, min_disp=0.5, 
+                          min_mean=0.0125, max_mean=3)
+    temp_X = deepcopy(X)
+    df = estimator.fit_predict(X=temp_X, y=y)
+    del temp_X
     methods_dict.update({METHODS[0]: df})
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[1]), end="\r")
-    estimator = StudentTTest(use_statistics=True, direction=direction, adjust_pvalue=False)
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+    estimator = SeuratHVF(per_condition=True, log_transform=log_transform, 
+                          num_top_features=num_features, min_disp=0.5, 
+                          min_mean=0.0125, max_mean=3)
+    temp_X = deepcopy(X)
+    df = estimator.fit_predict(X=temp_X, y=y)
+    del temp_X
     methods_dict.update({METHODS[1]: df})
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[2]), end="\r")
-    estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=False)
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False)
-    df.sort_values(by="score", inplace=True, ascending=True)
-    df = df[df["score"] <= pvalue]
+    estimator = DeltaHVFMean(calculate_deltamean=False, log_transform=log_transform, 
+                             num_top_features=num_features, min_disp=0.5,
+                             min_mean=0.0125, max_mean=3)
+    temp_X = deepcopy(X)
+    df = estimator.fit_predict(X=temp_X, y=y)
+    del temp_X
     methods_dict.update({METHODS[2]: df})
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            METHODS[3]), end="\r")
-    estimator = WilcoxonRankSumTest(use_statistics=True, direction=direction, adjust_pvalue=False)
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+                                                            METHODS[3]))
+    estimator = DeltaHVFMean(calculate_deltamean=True, log_transform=log_transform, 
+                             num_top_features=num_features, min_disp=0.5,
+                             min_mean=0.0125, max_mean=3)
+    temp_X = deepcopy(X)
+    df = estimator.fit_predict(X=temp_X, y=y)
+    del temp_X
     methods_dict.update({METHODS[3]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            METHODS[4]), end="\r")
-    df = pd.read_csv(os.path.join(DATASET_PATH, file_name + "_limma_features.csv"), sep=',')
-    df = df[["ID", "adj.P.Val", "B"]]
-    df = df[df["adj.P.Val"] <= pvalue]
-    df = df[["ID", "B"]]
-    df.columns = ["features", "score"]
-    methods_dict.update({METHODS[4]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            METHODS[5]), end="\r")
-    df = pd.read_csv(os.path.join(DATASET_PATH, file_name + "_limma_features.csv"), sep=',')
-    df = df[["ID", "B"]]
-    temp = [features_name.index(item) for item in df["ID"].to_list() if item in features_name]
-    df = np.absolute(df.iloc[temp]["B"].to_numpy()[:, None])
-    methods_dict.update({METHODS[5]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            METHODS[6]), end="\r")
-    estimator = SeuratHVF(per_condition=False, num_top_features=num_features,
-                          min_disp=0.5, min_mean=0.0125, max_mean=3)
-    temp_X = deepcopy(X)
-    df = estimator.fit_predict(X=temp_X, y=y)
-    del temp_X
-    methods_dict.update({METHODS[6]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            METHODS[7]), end="\r")
-    estimator = SeuratHVF(per_condition=True, num_top_features=num_features,
-                          min_disp=0.5, min_mean=0.0125, max_mean=3)
-    temp_X = deepcopy(X)
-    df = estimator.fit_predict(X=temp_X, y=y)
-    del temp_X
-    methods_dict.update({METHODS[7]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            METHODS[8]), end="\r")
-    estimator = DeltaHVFMean(calculate_deltamean=False, num_top_features=num_features, min_disp=0.5,
-                             min_mean=0.0125, max_mean=3)
-    temp_X = deepcopy(X)
-    df = estimator.fit_predict(X=temp_X, y=y)
-    del temp_X
-    methods_dict.update({METHODS[8]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            METHODS[9]), end="\r")
-    estimator = DeltaHVFMean(calculate_deltamean=True, num_top_features=num_features, min_disp=0.5,
-                             min_mean=0.0125, max_mean=3)
-    temp_X = deepcopy(X)
-    df = estimator.fit_predict(X=temp_X, y=y)
-    del temp_X
-    methods_dict.update({METHODS[9]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            METHODS[10]), end="\r")
-    estimator = HIQR(per_condition=False, normalize="zscore", iqr_range=(25, 75))
-    df = estimator.fit_predict(X=X, y=y)
-    methods_dict.update({METHODS[10]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            METHODS[11]), end="\r")
-    estimator = HIQR(per_condition=True, normalize="zscore", iqr_range=(25, 75))
-    df = estimator.fit_predict(X=X, y=y)
-    methods_dict.update({METHODS[11]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            METHODS[12]), end="\r")
-    estimator = DeltaIQRMean(calculate_deltamean=False, normalize="zscore", iqr_range=(25, 75))
-    df = estimator.fit_predict(X=X, y=y)
-    methods_dict.update({METHODS[12]: df})
-    current_progress += 1
-
-    print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            METHODS[13]))
-    estimator = DeltaIQRMean(calculate_deltamean=True, normalize="zscore", iqr_range=(25, 75))
-    df = estimator.fit_predict(X=X, y=y)
-    methods_dict.update({METHODS[13]: df})
-    current_progress += 1
 
     if sort_by_pvalue:
         print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))

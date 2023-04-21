@@ -1,5 +1,4 @@
 from copy import deepcopy
-
 import anndata as ad
 import numpy as np
 import scanpy as sc
@@ -8,9 +7,11 @@ from scipy.stats import zscore
 
 
 class SeuratHVF:
-    def __init__(self, per_condition: bool = False, num_top_features: int = None, min_disp: float = 0.5,
+    def __init__(self, per_condition: bool = False, log_transform: bool = False,
+                 num_top_features: int = None, min_disp: float = 0.5,
                  min_mean: float = 0.0125, max_mean: float = 3):
         self.per_condition = per_condition
+        self.log_transform = log_transform
         self.num_top_features = num_top_features
         self.min_disp = min_disp
         self.min_mean = min_mean
@@ -19,16 +20,15 @@ class SeuratHVF:
     def fit_predict(self, X, y, control_class: int = 0, case_class: int = 1):
         num_features = X.shape[1]
         num_classes = len(np.unique(y))
-        # X = 2 ** X
+        # Shift data 
+        min_value = X.min(0)
+        if len(np.where(min_value < 0)[0]) > 0:
+            X = X - min_value + 1
         adata = ad.AnnData(X=X)
-        # QC calculations
-        sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
-        # Total-count normalize (library-size correct) the data matrix X to 10,000 reads per cell,
-        # so that counts become comparable among cells.
-        sc.pp.normalize_total(adata, target_sum=1e4)
-        # Logarithmize the data:
-        sc.pp.log1p(adata)
-        np.nan_to_num(adata.X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+        # Logarithm transformation
+        if self.log_transform:
+            sc.pp.log1p(adata)
+            np.nan_to_num(adata.X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
         results = np.zeros((num_features))
         if self.per_condition:
             X = deepcopy(adata.X)
@@ -48,7 +48,6 @@ class SeuratHVF:
                                         max_mean=self.max_mean)
             features_idx = adata.var["highly_variable"]
             results[features_idx] = np.absolute(adata.var[features_idx]["dispersions_norm"])
-
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
         results = np.reshape(results, (results.shape[0], 1))
         return results

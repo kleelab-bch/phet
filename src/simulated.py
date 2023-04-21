@@ -1,9 +1,10 @@
 import os
+from copy import deepcopy
 
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from copy import deepcopy
+
 from model.copa import COPA
 from model.deltahvfmean import DeltaHVFMean
 from model.deltaiqrmean import DeltaIQRMean
@@ -91,7 +92,7 @@ def train():
 
     # Models parameters
     direction = "both"
-    
+
     # dataset name
     list_data = list(range(1, 11))
     data_type = ["minority_features", "mixed_features"]
@@ -150,7 +151,7 @@ def train():
                                                                       ALGORITHMS[0]), end="\r")
             estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=False)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-            df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False, 
+            df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False,
                                ascending=True)
             df = df[df["score"] <= pvalue]
             methods_dict.update({ALGORITHMS[0]: df})
@@ -167,7 +168,7 @@ def train():
                                                                       ALGORITHMS[2]), end="\r")
             estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=False)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-            df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False, 
+            df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False,
                                ascending=True)
             df = df[df["score"] <= pvalue]
             methods_dict.update({ALGORITHMS[2]: df})
@@ -314,7 +315,7 @@ def train():
             print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                                       ALGORITHMS[20]), end="\r")
             df = pd.read_csv(os.path.join(DATASET_PATH, temp_name + "_deco_features.csv"), sep=',')
-            df = pd.DataFrame([(features_name[int(item[1][0])], item[1][1]) for item in df.iterrows()], 
+            df = pd.DataFrame([(features_name[int(item[1][0])], item[1][1]) for item in df.iterrows()],
                               columns=["features", "score"])
             methods_dict.update({ALGORITHMS[20]: df})
             current_progress += 1
@@ -322,7 +323,7 @@ def train():
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       ALGORITHMS[21]))
             estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
-                             calculate_fisher=True, calculate_profile=True, bin_KS_pvalues=True,
+                             calculate_fisher=True, calculate_profile=True, bin_pvalues=True,
                              feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.1, 0.4, 0.8])
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             methods_dict.update({ALGORITHMS[21]: df})
@@ -331,7 +332,9 @@ def train():
             for method_idx, item in enumerate(methods_dict.items()):
                 method_name, df = item
                 if method_idx + 1 == len(ALGORITHMS):
-                    print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / len(ALGORITHMS)) * 100, method_name))
+                    print(
+                        "\t\t--> Progress: {0:.4f}%; Method: {1:20}".format(((method_idx + 1) / len(ALGORITHMS)) * 100,
+                                                                            method_name))
                 else:
                     print("\t\t--> Progress: {0:.4f}%; Method: {1:20}".format((method_idx / len(ALGORITHMS)) * 100,
                                                                               method_name), end="\r")

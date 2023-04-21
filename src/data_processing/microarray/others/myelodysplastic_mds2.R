@@ -68,21 +68,21 @@ gset <- gset[, sel]
 
 # collect subtypes 
 subtypes <- gset@phenoData@data[["leukemia class:ch1"]]
-write.table(as.data.frame(subtypes), 
+write.table(as.data.frame(subtypes),
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
 features <- gset@featureData@data["ID"]
 names(features) <- "features"
-write.table(as.data.frame(features), 
-            file = file.path(working_dir, 
+write.table(as.data.frame(features),
+            file = file.path(working_dir,
                              paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
@@ -98,7 +98,7 @@ qx <- as.numeric(quantile(ex, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm = T))
 LogC <- (qx[5] > 100) ||
   (qx[6] - qx[1] > 50 && qx[2] > 0)
 if (LogC) { ex[which(ex <= 0)] <- NaN
-exprs(gset) <- log2(ex) }
+  exprs(gset) <- log2(ex) }
 
 # assign samples to groups and set up design matrix
 gs <- factor(sml)

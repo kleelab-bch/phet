@@ -1,10 +1,11 @@
 import os
+from copy import deepcopy
 
 import numpy as np
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
-from copy import deepcopy
+
 from model.copa import COPA
 from model.deltahvfmean import DeltaHVFMean
 from model.deltaiqrmean import DeltaIQRMean
@@ -30,6 +31,7 @@ METHODS = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma", "LI
            "IQR (by condition)", "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS",
            "DECO", "PHet"]
 
+
 def train(num_jobs: int = 4):
     # Filtering arguments
     minimum_samples = 5
@@ -37,14 +39,21 @@ def train(num_jobs: int = 4):
 
     # Models parameters
     direction = "both"
-    bin_KS_pvalues = True
+    bin_pvalues = True
+    normalize = "zscore"
+    hvf_log_transform = False
+    phet_delta_type = "iqr" # PHet
     methods_save_name = ["ttest_p", "ttest_g", "wilcoxon_p", "wilcoxon_g", "limma_p", "limma_g", "hvf_a",
                          "hvf_c", "deltahvf", "deltahvfmean", "iqr_a", "iqr_c", "deltaiqr", "deltaiqrmean",
                          "copa", "os", "ort", "most", "lsoss", "dids", "deco"]
-    if bin_KS_pvalues:
-        methods_save_name.append("PHet_b")
+    if phet_delta_type == "hvf":
+        temp = "h"
     else:
-        methods_save_name.append("PHet_nb")
+        temp = "r"
+    if bin_pvalues:
+        methods_save_name.append("PHet_b" + temp)
+    else:
+        methods_save_name.append("PHet_nb"+ temp)
 
     # Clustering and UMAP parameters
     sort_by_pvalue = True
@@ -59,8 +68,8 @@ def train(num_jobs: int = 4):
     cluster_type = "spectral"
 
     # Descriptions of the data
-    file_name = "bc_ccgse3726"
-    suptitle_name = "bc_ccgse3726"
+    file_name = "yan"
+    suptitle_name = "Yan"
 
     # Exprssion, classes, subtypes, donors, timepoints Files
     expression_file_name = file_name + "_matrix.mtx"
@@ -114,7 +123,7 @@ def train(num_jobs: int = 4):
 
     # Load up/down regulated features
     top_features_true = pd.read_csv(os.path.join(DATASET_PATH, differential_features_file), sep=',',
-                                        index_col="ID")
+                                    index_col="ID")
     temp = [feature for feature in top_features_true.index.to_list() if str(feature) in features_name]
     if top_features_true.shape[1] > 0:
         top_features_true = top_features_true.loc[temp]
@@ -140,7 +149,7 @@ def train(num_jobs: int = 4):
                                                             METHODS[0]), end="\r")
     estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=False)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, 
+    df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False,
                        ttest=False, ascending=True)
     df = df[df["score"] <= pvalue]
     methods_dict.update({METHODS[0]: df})
@@ -157,7 +166,7 @@ def train(num_jobs: int = 4):
                                                             METHODS[2]), end="\r")
     estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=False)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-    df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, 
+    df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False,
                        ttest=False, ascending=True)
     df = df[df["score"] <= pvalue]
     methods_dict.update({METHODS[2]: df})
@@ -191,8 +200,9 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[6]), end="\r")
-    estimator = SeuratHVF(per_condition=False, num_top_features=num_features,
-                          min_disp=0.5, min_mean=0.0125, max_mean=3)
+    estimator = SeuratHVF(per_condition=False, log_transform=hvf_log_transform, 
+                          num_top_features=num_features, min_disp=0.5, 
+                          min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)
     df = estimator.fit_predict(X=temp_X, y=y)
     del temp_X
@@ -201,8 +211,9 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[7]), end="\r")
-    estimator = SeuratHVF(per_condition=True, num_top_features=num_features,
-                          min_disp=0.5, min_mean=0.0125, max_mean=3)
+    estimator = SeuratHVF(per_condition=True, log_transform=hvf_log_transform, 
+                          num_top_features=num_features, min_disp=0.5, 
+                          min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)
     df = estimator.fit_predict(X=temp_X, y=y)
     del temp_X
@@ -211,7 +222,8 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[8]), end="\r")
-    estimator = DeltaHVFMean(calculate_deltamean=False, num_top_features=num_features, min_disp=0.5,
+    estimator = DeltaHVFMean(calculate_deltamean=False, log_transform=hvf_log_transform, 
+                             num_top_features=num_features, min_disp=0.5,
                              min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)
     df = estimator.fit_predict(X=temp_X, y=y)
@@ -221,7 +233,8 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[9]), end="\r")
-    estimator = DeltaHVFMean(calculate_deltamean=True, num_top_features=num_features, min_disp=0.5,
+    estimator = DeltaHVFMean(calculate_deltamean=True, log_transform=hvf_log_transform, 
+                             num_top_features=num_features, min_disp=0.5,
                              min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)
     df = estimator.fit_predict(X=temp_X, y=y)
@@ -231,28 +244,28 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[10]), end="\r")
-    estimator = HIQR(per_condition=False, normalize="zscore", iqr_range=(25, 75))
+    estimator = HIQR(per_condition=False, normalize=normalize, iqr_range=(25, 75))
     df = estimator.fit_predict(X=X, y=y)
     methods_dict.update({METHODS[10]: df})
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[11]), end="\r")
-    estimator = HIQR(per_condition=True, normalize="zscore", iqr_range=(25, 75))
+    estimator = HIQR(per_condition=True, normalize=normalize, iqr_range=(25, 75))
     df = estimator.fit_predict(X=X, y=y)
     methods_dict.update({METHODS[11]: df})
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[12]), end="\r")
-    estimator = DeltaIQRMean(calculate_deltamean=False, normalize="zscore", iqr_range=(25, 75))
+    estimator = DeltaIQRMean(calculate_deltamean=False, normalize=normalize, iqr_range=(25, 75))
     df = estimator.fit_predict(X=X, y=y)
     methods_dict.update({METHODS[12]: df})
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[13]), end="\r")
-    estimator = DeltaIQRMean(calculate_deltamean=True, normalize="zscore", iqr_range=(25, 75))
+    estimator = DeltaIQRMean(calculate_deltamean=True, normalize=normalize, iqr_range=(25, 75))
     df = estimator.fit_predict(X=X, y=y)
     methods_dict.update({METHODS[13]: df})
     current_progress += 1
@@ -309,10 +322,10 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[21]))
-    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, calculate_deltaiqr=True,
-                     calculate_deltahvf=False, calculate_fisher=True, calculate_profile=True,
-                     bin_KS_pvalues=bin_KS_pvalues, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                     weight_range=[0.1, 0.4, 0.8])
+    estimator = PHeT(normalize = normalize, iqr_range=(25, 75), num_subsamples=1000, delta_type = phet_delta_type, 
+                     calculate_deltadisp = True, calculate_deltamean = False, calculate_fisher = True,
+                     calculate_profile = True, bin_pvalues = bin_pvalues, 
+                     feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.2, 0.4, 0.8])
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({METHODS[21]: df})
 
@@ -415,7 +428,7 @@ def train(num_jobs: int = 4):
     df = pd.DataFrame(list_scores, columns=["Scores"], index=["All"] + METHODS)
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_cluster_quality.csv"), sep=",")
 
-    print("## Plot barplot using to demonstrate clustering accuracy...".format(topKfeatures))
+    print("## Plot bar plot using to demonstrate clustering accuracy...".format(topKfeatures))
     plot_barplot(X=list_scores, methods_name=["All"] + METHODS, metric="ari",
                  suptitle=suptitle_name, file_name=file_name, save_path=RESULT_PATH)
 

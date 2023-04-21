@@ -18,33 +18,28 @@ SEED_VALUE = 0.001
 
 class PHeT:
     def __init__(self, normalize: str = "zscore", iqr_range: float = (25, 75), num_subsamples: int = 1000,
-                 subsampling_size: int = None, partition_by_anova: bool = False, calculate_deltaiqr: bool = True,
-                 calculate_deltahvf: bool = False, calculate_deltamean: bool = True, calculate_fisher: bool = True,
-                 calculate_profile: bool = True, binary_clustering: bool = True, bin_KS_pvalues: bool = False,
+                 subsampling_size: int = None, partition_by_anova: bool = False, delta_type: str = "iqr", 
+                 calculate_deltadisp: bool = True, calculate_deltamean: bool = False, calculate_fisher: bool = True,
+                 calculate_profile: bool = True, binary_clustering: bool = True, bin_pvalues: bool = False,
                  feature_weight: list = None, weight_range: list = None, num_jobs: int = 2):
-        self.normalize = normalize  # robust or zscore
+        self.normalize = normalize  # robust, zscore, or log
         self.iqr_range = iqr_range
         self.num_subsamples = num_subsamples
         self.subsampling_size = subsampling_size
         self.partition_by_anova = partition_by_anova
-        self.calculate_deltaiqr = calculate_deltaiqr
-        self.calculate_deltahvf = calculate_deltahvf
+        self.delta_type = delta_type
+        if delta_type == "hvf":
+            if self.normalize is not None:
+                self.normalize = "log"
+        self.calculate_deltadisp = calculate_deltadisp
         self.calculate_deltamean = calculate_deltamean
         self.calculate_fisher = calculate_fisher
         self.calculate_profile = calculate_profile
-        if calculate_deltaiqr and calculate_fisher and calculate_profile:
-            self.calculate_deltaiqr = True
-            self.calculate_fisher = True
-            self.calculate_profile = True
-        if calculate_deltahvf and calculate_fisher and calculate_profile:
-            self.calculate_deltahvf = True
-            self.calculate_fisher = True
-            self.calculate_profile = True
         self.binary_clustering = binary_clustering
-        self.bin_KS_pvalues = bin_KS_pvalues
+        self.bin_pvalues = bin_pvalues
         if len(feature_weight) < 2:
             feature_weight = [0.4, 0.3, 0.2, 0.1]
-        if not bin_KS_pvalues:
+        if not bin_pvalues:
             if len(feature_weight) > 4:
                 feature_weight = [0.4, 0.3, 0.2, 0.1]
             if len(weight_range) != 3:
@@ -89,7 +84,6 @@ class PHeT:
                     case_class: int = 1):
         # Extract properties
         num_examples, num_features = X.shape
-
         # Check if classes information is not provided (unsupervised analysis)
         num_classes = 1
         if y is not None:
@@ -115,7 +109,16 @@ class PHeT:
         # Total number of combinations
         num_combinations = len(list(combinations(range(num_classes), 2)))
 
-        if not self.calculate_deltahvf:
+        if self.delta_type == "hvf":
+            # Shift data 
+            min_value = X.min(0)
+            if len(np.where(min_value < 0)[0]) > 0:
+                X = X - min_value + 1
+            # Logarithm transformation
+            if self.normalize == "log":
+                X = np.log(X + 1)
+            np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+        else:
             if self.normalize == "robust":
                 # Robustly estimate median by classes
                 med = list()
@@ -132,16 +135,12 @@ class PHeT:
                 del class_idx, example_med, temp, med
             elif self.normalize == "zscore":
                 X = zscore(X, axis=0)
-        else:
-            adata = ad.AnnData(X=X)
-            # Total-count normalize (library-size correct) the data matrix X to 10,000 reads per cell,
-            # so that counts become comparable among cells.
-            sc.pp.normalize_total(adata, target_sum=1e4)
-            # Logarithmize the data:
-            sc.pp.log1p(adata)
-            X = adata.X
-            np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
-            del adata
+            elif self.normalize == "log":
+                min_value = X.min(0)
+                if len(np.where(min_value < 0)[0]) > 0:
+                    X = X - min_value + 1
+                X = np.log1p(X)
+                np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
         # Define the initial subsampling size for recurrent-sampling differential analysis
         num_subsamples = self.num_subsamples
@@ -171,7 +170,7 @@ class PHeT:
             if subsampling_size > temp:
                 subsampling_size = temp
 
-        if self.calculate_deltaiqr or self.calculate_deltahvf or self.calculate_fisher:
+        if self.calculate_deltadisp or self.calculate_fisher:
             # Step 1: Recurrent-sampling differential analysis to select and rank
             # significant features
             # Define frequency raw p-value P matrices
@@ -188,7 +187,7 @@ class PHeT:
                         examples_j = np.where(y == j)[0]
                         examples_i = np.random.choice(a=examples_i, size=subsampling_size, replace=False)
                         examples_j = np.random.choice(a=examples_j, size=subsampling_size, replace=False)
-                        if self.calculate_deltahvf:
+                        if self.delta_type == "hvf":
                             adata = ad.AnnData(X=X[examples_i])
                             sc.pp.highly_variable_genes(adata, n_top_genes=num_features)
                             disp1 = adata.var["dispersions_norm"].to_numpy()
@@ -203,7 +202,7 @@ class PHeT:
                             delta_h = np.absolute(iq_range_i - iq_range_j)
                         np.nan_to_num(delta_h, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
                         delta_means = 0
-                        if not self.calculate_deltamean:
+                        if self.calculate_deltamean:
                             mean_i = np.mean(X[examples_i], axis=0)
                             mean_j = np.mean(X[examples_j], axis=0)
                             delta_means = np.absolute(mean_i - mean_j)
@@ -216,7 +215,7 @@ class PHeT:
                         P[:, sample_idx] += pvalue / num_combinations
                     combination_idx += 1
                 R = np.max(temp, axis=1)
-                if self.calculate_deltahvf:
+                if self.delta_type == "hvf":
                     del temp, disp1, disp2, delta_h
                 else:
                     del temp, iq_range_i, iq_range_j, delta_h
@@ -267,7 +266,7 @@ class PHeT:
             slice_size = subsampling_size
             weight_range = self.weight_range
             O = np.zeros((num_features, 4))
-            if self.bin_KS_pvalues:
+            if self.bin_pvalues:
                 O = np.zeros((num_features, 1))
             for feature_idx in range(num_features):
                 if num_classes > 1:
@@ -292,7 +291,7 @@ class PHeT:
                         # TODO: delete
                         # pvalue = ks_2samp(examples_i, examples_j)[1]
                         temp_pvalues.append(pvalue)
-                    if self.bin_KS_pvalues:
+                    if self.bin_pvalues:
                         O[feature_idx] = np.mean(temp_pvalues)
                         continue
                     # Complete change
@@ -309,7 +308,7 @@ class PHeT:
                         O[feature_idx, 3] = 1
                 else:
                     temp_pvalues = 1 - norm.cdf(zscore(X[:, feature_idx]))
-                    if self.bin_KS_pvalues:
+                    if self.bin_pvalues:
                         O[feature_idx] = np.mean(temp_pvalues)
                         continue
                     # Complete change
@@ -324,7 +323,7 @@ class PHeT:
                     # Mixed change
                     else:
                         O[feature_idx, 3] = 1
-            if self.bin_KS_pvalues:
+            if self.bin_pvalues:
                 temp = KBinsDiscretizer(n_bins=len(self.feature_weight), encode="ordinal",
                                         strategy="uniform").fit_transform(O)
                 O = np.zeros((num_features, len(self.feature_weight)), dtype=np.int8)
@@ -333,7 +332,7 @@ class PHeT:
                 del temp
 
         # Step 4: Estimating features statistics based on combined parameters (I, O, R)
-        if self.calculate_deltaiqr:
+        if self.calculate_deltadisp:
             R /= R.sum()
         else:
             R = 0
@@ -347,7 +346,7 @@ class PHeT:
         else:
             I = O
             I /= I.sum()
-        H = R + I
-        np.nan_to_num(H, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
-        results = np.reshape(H, (H.shape[0], 1))
+        results = R + I
+        np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+        results = np.reshape(results, (results.shape[0], 1))
         return results

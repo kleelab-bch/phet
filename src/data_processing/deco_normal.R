@@ -18,8 +18,8 @@ for (per in outlier_per) {
   for (t in data_type) {
     print(paste("Loading ", file_name, per, t, ".csv ...", sep = ""))
     # Load data
-    gset <- read.csv(file.path(working_dir, 
-                               paste(file_name, per, t, ".csv", sep = "")), 
+    gset <- read.csv(file.path(working_dir,
+                               paste(file_name, per, t, ".csv", sep = "")),
                      header = T)
     classes <- gset$class
     gset <- gset[!(names(gset) %in% c("class"))]
@@ -31,11 +31,11 @@ for (per in outlier_per) {
     featureIDs <- seq(0, nrow(gset) - 1)
     rownames(gset) <- featureIDs
     gset <- SummarizedExperiment(assays = list(counts = gset))
-    
+
     #######################################################################
     # RUNNING SUBSAMPLING OF DATA: BINARY design (two classes of samples) #
     #######################################################################
-    
+
     subSampling <- decoRDA(data = assay(gset), classes = classes, q.val = q.val,
                            rm.xy = FALSE, r = NULL, control = "0", annot = FALSE,
                            iterations = iterations, bpparam = bpparam)
@@ -43,8 +43,8 @@ for (per in outlier_per) {
     StatFeature <- StatFeature[c("ID", "Standard.Chi.Square")]
     colnames(StatFeature) <- c("features", "score")
     write.table(as.data.frame(StatFeature),
-                file = file.path(working_dir, 
-                                 paste(file_name, per, t, "_deco_features.csv", sep = "")), 
+                file = file.path(working_dir,
+                                 paste(file_name, per, t, "_deco_features.csv", sep = "")),
                 sep = ",", quote = FALSE, row.names = FALSE)
     remove(StatFeature, gset)
   }

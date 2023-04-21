@@ -56,7 +56,7 @@ gse134174_invivo_combined_basal_vs_basallineages
 #### For the paper: 
 1. Microarray datasets: allgse412, bc_ccgse3726, bladdergse89, braintumor, gastricgse2685, glioblastoma, 
 leukemia_golub, lunggse1987, lung, mll, srbct
-2. scRNA datasets: baron_1, camp1, darmanis, li, patel, and yan
+2. scRNA datasets: baron1, camp1, darmanis, li, patel, and yan
 3. Plasschaert-Human: plasschaert_human
 4. Plasschaert-Mouse: plasschaert_mouse
 5. Pulseseq data: pulseseq, pulseseq_tuft_vs_ionocyte, pulseseq_tuft_vs_ionocyte_exclude

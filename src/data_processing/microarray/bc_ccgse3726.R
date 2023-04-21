@@ -34,19 +34,19 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # collect subtypes 
 subtypes <- classes
-write.table(as.data.frame(subtypes), 
+write.table(as.data.frame(subtypes),
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
-            file = file.path(working_dir, 
+write.table(as.data.frame(features),
+            file = file.path(working_dir,
                              paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
@@ -71,17 +71,17 @@ gset <- t(gset)
 gset[is.na(gset)] <- 0
 
 ### edgeR
-count_norm <- DGEList(counts=gset, group=gs)
+count_norm <- DGEList(counts = gset, group = gs)
 count_norm <- calcNormFactors(count_norm)
 edger_design <- model.matrix(~gs)
-count_norm <- estimateDisp(count_norm, edger_design) 
+count_norm <- estimateDisp(count_norm, edger_design)
 # perform quasi-likelihood F-tests:
 fit <- glmQLFit(count_norm, edger_design)
-fit <- glmQLFTest(fit, coef=2)
-tT <- topTags(fit, n=nrow(gset), adjust.method = "BH", sort.by = "PValue", 
+fit <- glmQLFTest(fit, coef = 2)
+tT <- topTags(fit, n = nrow(gset), adjust.method = "BH", sort.by = "PValue",
               p.value = 1)
 tT <- tT[["table"]]
-tT <- as.data.frame(cbind("ID"= rownames(tT), "logFC" = tT$logFC, "F" = tT$F, 
+tT <- as.data.frame(cbind("ID" = rownames(tT), "logFC" = tT$logFC, "F" = tT$F,
                           "FDR" = tT$FDR, "adj.P.Val" = tT$PValue))
 write.table(tT, file = file.path(working_dir, paste(file_name, "_edger_features.csv",
                                                     sep = "")),
@@ -89,18 +89,18 @@ write.table(tT, file = file.path(working_dir, paste(file_name, "_edger_features.
 remove(count_norm, edger_design, fit, tT)
 
 ### dearseq
-count_norm <- DGEList(counts=gset, group=gs)
+count_norm <- DGEList(counts = gset, group = gs)
 # perform TMM normalization and transfer to CPM (Counts Per Million)
-count_norm <- calcNormFactors(count_norm, method="TMM")
-count_norm <- cpm(count_norm, log=TRUE)
-tT <- dear_seq(exprmat=count_norm, 
-               variables2test=matrix(as.numeric(sml), ncol=1), 
-               which_test="asymptotic", padjust_methods="BH",
-               parallel_comp=F, preprocessed=T)
-tT<-tT[["pvals"]]
+count_norm <- calcNormFactors(count_norm, method = "TMM")
+count_norm <- cpm(count_norm, log = TRUE)
+tT <- dear_seq(exprmat = count_norm,
+               variables2test = matrix(as.numeric(sml), ncol = 1),
+               which_test = "asymptotic", padjust_methods = "BH",
+               parallel_comp = F, preprocessed = T)
+tT <- tT[["pvals"]]
 tT$adjPval <- as.numeric(as.character(tT$adjPval))
-tT <- tT[order(tT$adjPval, decreasing = FALSE), ]
-tT <- as.data.frame(cbind("ID"= rownames(tT), "P.Value" = tT$rawPval, 
+tT <- tT[order(tT$adjPval, decreasing = FALSE),]
+tT <- as.data.frame(cbind("ID" = rownames(tT), "P.Value" = tT$rawPval,
                           "adj.P.Val" = tT$adjPval))
 write.table(tT, file = file.path(working_dir, paste(file_name, "_dearseq_features.csv",
                                                     sep = "")),
@@ -108,19 +108,19 @@ write.table(tT, file = file.path(working_dir, paste(file_name, "_dearseq_feature
 remove(count_norm, tT)
 
 ### Wilcoxon rank-sum test
-count_norm <- DGEList(counts=gset, group=gs)
+count_norm <- DGEList(counts = gset, group = gs)
 # perform TMM normalization and transfer to CPM (Counts Per Million)
-count_norm <- calcNormFactors(count_norm, method="TMM")
+count_norm <- calcNormFactors(count_norm, method = "TMM")
 count_norm <- cpm(count_norm)
 count_norm <- as.data.frame(count_norm)
 dataMem1 <- count_norm[, c(which(gs == levels(gs)[1]))]
 dataMem2 <- count_norm[, c(which(gs == levels(gs)[2]))]
 tT <- row_wilcoxon_twosample(dataMem1, dataMem2)
 fdr <- p.adjust(tT$pvalue, method = "BH")
-tT <- as.data.frame(cbind("ID"= rownames(tT), "statistic" = tT$statistic, 
+tT <- as.data.frame(cbind("ID" = rownames(tT), "statistic" = tT$statistic,
                           "P.Value" = tT$pvalue, "adj.P.Val" = fdr))
 tT$adj.P.Val <- as.numeric(as.character(tT$adj.P.Val))
-tT <- tT[order(tT$adj.P.Val, decreasing = FALSE), ]
+tT <- tT[order(tT$adj.P.Val, decreasing = FALSE),]
 write.table(tT, file = file.path(working_dir, paste(file_name, "_wilcoxon_features.csv",
                                                     sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
@@ -181,14 +181,14 @@ plotDensities(gset, group = gs, main = title, legend = "topright")
 # UMAP plot (dimensionality reduction)
 gset <- na.omit(gset) # eliminate rows with NAs
 gset <- gset[!duplicated(gset),]  # remove duplicates
-temp <- tT[tT$adj.P.Val <= 0.01, ]$ID
-gset <- gset[temp, ]
+temp <- tT[tT$adj.P.Val <= 0.01,]$ID
+gset <- gset[temp,]
 classes <- factor(classes)
-ump <- umap(t(gset), n_neighbors = 5, min_dist = 0.01, n_epochs = 2000, 
+ump <- umap(t(gset), n_neighbors = 5, min_dist = 0.01, n_epochs = 2000,
             random_state = 123)
 par(mar = c(3, 3, 2, 6), xpd = TRUE)
-plot(ump$layout, main = paste(toupper(file_name), "\nFeatures: ", length(temp)), 
-     xlab = "", ylab = "", 
+plot(ump$layout, main = paste(toupper(file_name), "\nFeatures: ", length(temp)),
+     xlab = "", ylab = "",
      col = classes, pch = 20, cex = 1.5)
 legend("topright", inset = c(-0.15, 0), legend = levels(classes), pch = 20,
        col = 1:nlevels(classes), title = "Group", pt.cex = 1.5)

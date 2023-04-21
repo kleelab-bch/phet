@@ -1,34 +1,34 @@
 from copy import deepcopy
-
 import anndata as ad
 import numpy as np
 import scanpy as sc
 
 
 class DeltaHVFMean:
-    def __init__(self, calculate_deltamean: bool = True, num_top_features: int = None, min_disp: float = 0.5,
+    def __init__(self, calculate_deltamean: bool = True, log_transform: bool = False,
+                 num_top_features: int = None, min_disp: float = 0.5,
                  min_mean: float = 0.0125, max_mean: float = 3):
         self.calculate_deltamean = calculate_deltamean
+        self.log_transform = log_transform
         self.num_top_features = num_top_features
         self.min_disp = min_disp
         self.min_mean = min_mean
         self.max_mean = max_mean
 
     def fit_predict(self, X, y, control_class: int = 0, case_class: int = 1):
-
         num_features = X.shape[1]
         num_classes = len(np.unique(y))
         results = np.zeros((num_features))
-
+        # Shift data 
+        min_value = X.min(0)
+        if len(np.where(min_value < 0)[0]) > 0:
+            X = X - min_value + 1
         adata = ad.AnnData(X=X)
-        # Total-count normalize (library-size correct) the data matrix X to 10,000 reads per cell,
-        # so that counts become comparable among cells.
-        sc.pp.normalize_total(adata, target_sum=1e4)
-        # Logarithmize the data:
-        sc.pp.log1p(adata)
-        np.nan_to_num(adata.X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
-
-        delta_disps = list()
+        # Logarithm transformation
+        if self.log_transform:
+            sc.pp.log1p(adata)
+            np.nan_to_num(adata.X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+        delta_vars = list()
         delta_means = list()
         X = deepcopy(adata.X)
         for i in range(num_classes):
@@ -49,9 +49,9 @@ class DeltaHVFMean:
                 features_idx = adata.var["highly_variable"]
                 disp2 = adata.var[features_idx]["dispersions_norm"].to_numpy()
                 mean2 = np.mean(X[examples_j], axis=0)
-                delta_disps.append(np.abs(disp1 - disp2))
+                delta_vars.append(np.abs(disp1 - disp2))
                 delta_means.append(np.abs(mean1 - mean2))
-        results = np.max(delta_disps, axis=0)
+        results = np.max(delta_vars, axis=0)
         if self.calculate_deltamean:
             results += np.max(delta_means, axis=0)
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)

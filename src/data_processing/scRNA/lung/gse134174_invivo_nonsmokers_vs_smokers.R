@@ -17,8 +17,8 @@ load_object <- function(file) {
 ################ non Smokers vs Smokers ################# 
 #########################################################
 ### Load data
-gset <- load_object(file = file.path(working_dir, 
-                                     paste(file_name, "_seurat.Rdata", 
+gset <- load_object(file = file.path(working_dir,
+                                     paste(file_name, "_seurat.Rdata",
                                            sep = "")))
 metadata <- as.character(gset@meta.data$cluster_ident)
 metadata[metadata == "Differentiating.basal"] <- "Differentiating basal"
@@ -42,7 +42,7 @@ save_name <- paste(save_name_prefix, save_name, sep = "")
 # group membership for all samples
 # 0 (Non smokers): "Non smokers"
 # 1 (Smokers): "Smokers"
-gsms <- c(1,1,0)
+gsms <- c(1, 1, 0)
 names(gsms) <- unique(condition)
 gsms <- gsms[condition]
 gsms <- paste0(gsms, collapse = "")
@@ -50,47 +50,47 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save celltypes 
 celltypes <- metadata
-write.table(as.data.frame(celltypes), 
-            file = file.path(working_dir, 
+write.table(as.data.frame(celltypes),
+            file = file.path(working_dir,
                              paste(save_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
-            file = file.path(working_dir, 
+write.table(as.data.frame(classes),
+            file = file.path(working_dir,
                              paste(save_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
-            file = file.path(working_dir, 
+write.table(as.data.frame(features),
+            file = file.path(working_dir,
                              paste(save_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors), 
-            file = file.path(working_dir, 
+write.table(data.frame(donors = donors),
+            file = file.path(working_dir,
                              paste(save_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints), 
-            file = file.path(working_dir, 
+write.table(data.frame(timepoints = timepoints),
+            file = file.path(working_dir,
                              paste(save_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
-writeMM(t(gset), 
-        file = file.path(working_dir, 
+writeMM(t(gset),
+        file = file.path(working_dir,
                          paste(save_name, "_matrix.mtx", sep = "")))
 
 #########################################################
 #################### Rest of Analysis ################### 
 #########################################################
 ### Load data
-gset <- load_object(file = file.path(working_dir, 
-                                     paste(file_name, "_seurat.Rdata", 
+gset <- load_object(file = file.path(working_dir,
+                                     paste(file_name, "_seurat.Rdata",
                                            sep = "")))
 metadata <- as.character(gset@meta.data$cluster_ident)
 metadata[metadata == "Differentiating.basal"] <- "Differentiating basal"
@@ -126,7 +126,7 @@ condition_smokes_smgbasal <- condition_smokes[condition]
 # group membership for all samples
 # 0 (Non smokers): "SMG basal"
 # 1 (Smokers): "SMG basal"
-gsms <- c(1,1,0)
+gsms <- c(1, 1, 0)
 names(gsms) <- unique(condition_smokes_smgbasal)
 gsms <- gsms[condition_smokes_smgbasal]
 gsms <- paste0(gsms, collapse = "")
@@ -134,39 +134,39 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save celltypes 
 celltypes <- metadata[condition]
-write.table(as.data.frame(celltypes), 
-            file = file.path(working_dir, 
+write.table(as.data.frame(celltypes),
+            file = file.path(working_dir,
                              paste(save_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
-            file = file.path(working_dir, 
+write.table(as.data.frame(classes),
+            file = file.path(working_dir,
                              paste(save_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
-            file = file.path(working_dir, 
+write.table(as.data.frame(features),
+            file = file.path(working_dir,
                              paste(save_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
-            file = file.path(working_dir, 
+write.table(data.frame(donors = donors[condition]),
+            file = file.path(working_dir,
                              paste(save_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
-            file = file.path(working_dir, 
+write.table(data.frame(timepoints = timepoints[condition]),
+            file = file.path(working_dir,
                              paste(save_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
-writeMM(t(gset_smgbasal), 
-        file = file.path(working_dir, 
+writeMM(t(gset_smgbasal),
+        file = file.path(working_dir,
                          paste(save_name, "_matrix.mtx", sep = "")))
 rm(gset_smgbasal)
 
@@ -182,7 +182,7 @@ condition_smokes_mucus <- condition_smokes[condition]
 # group membership for all samples
 # 0 (Non smokers): "Mucus secretory"
 # 1 (Smokers): "Mucus secretory"
-gsms <- c(1,1,0)
+gsms <- c(1, 1, 0)
 names(gsms) <- unique(condition_smokes_mucus)
 gsms <- gsms[condition_smokes_mucus]
 gsms <- paste0(gsms, collapse = "")
@@ -190,37 +190,37 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save celltypes 
 celltypes <- metadata[condition]
-write.table(as.data.frame(celltypes), 
-            file = file.path(working_dir, 
+write.table(as.data.frame(celltypes),
+            file = file.path(working_dir,
                              paste(save_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
-            file = file.path(working_dir, 
+write.table(as.data.frame(classes),
+            file = file.path(working_dir,
                              paste(save_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
-            file = file.path(working_dir, 
+write.table(as.data.frame(features),
+            file = file.path(working_dir,
                              paste(save_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
-            file = file.path(working_dir, 
+write.table(data.frame(donors = donors[condition]),
+            file = file.path(working_dir,
                              paste(save_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
-            file = file.path(working_dir, 
+write.table(data.frame(timepoints = timepoints[condition]),
+            file = file.path(working_dir,
                              paste(save_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
-writeMM(t(gset), 
-        file = file.path(working_dir, 
+writeMM(t(gset),
+        file = file.path(working_dir,
                          paste(save_name, "_matrix.mtx", sep = "")))

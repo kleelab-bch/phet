@@ -2,8 +2,9 @@ import numpy as np
 from scipy.stats import ttest_ind, mannwhitneyu
 from statsmodels.stats.multitest import fdrcorrection
 
+
 class StudentTTest:
-    def __init__(self, use_statistics: bool = False, direction: str = "both", 
+    def __init__(self, use_statistics: bool = False, direction: str = "both",
                  perform_permutation: bool = False, adjust_pvalue: bool = False,
                  num_rounds: int = 10000):
         self.use_statistics = use_statistics

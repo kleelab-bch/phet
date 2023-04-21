@@ -35,7 +35,13 @@ class DeltaIQRMean:
             del example_idx, example_med, temp, med
         elif self.normalize == "zscore":
             X = zscore(X, axis=0)
-
+        elif self.normalize == "log":
+            min_value = X.min(0)
+            if len(np.where(min_value < 0)[0]) > 0:
+                X = X - min_value + 1
+            X = np.log(X + 1)
+            np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+            
         # make transposed matrix with shape (feat per class, observation per class)
         # find mean and iqr difference between genes
         diff_iqrs = list()
@@ -74,9 +80,9 @@ class DeltaIQRMean:
         results.columns = ['iqr']
         results['median_diff'] = diff_means
         results['ttest'] = ttest_statistics
-        results['score'] = np.array(diff_iqrs)
+        results['score'] = np.array(diff_iqrs) / np.sum(diff_iqrs)
         if self.calculate_deltamean:
-            results['score'] += np.array(diff_means)
+            results['score'] += np.array(diff_means) / np.sum(diff_means)
         results['class_diff'] = classes
         results = results.to_numpy()
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)

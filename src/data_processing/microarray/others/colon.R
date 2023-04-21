@@ -25,19 +25,19 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # collect subtypes 
 subtypes <- classes
-write.table(as.data.frame(subtypes), 
+write.table(as.data.frame(subtypes),
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
-            file = file.path(working_dir, 
+write.table(as.data.frame(features),
+            file = file.path(working_dir,
                              paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
@@ -110,11 +110,11 @@ plotDensities(gset, group = gs, main = title, legend = "topright")
 # UMAP plot (dimensionality reduction)
 gset <- na.omit(gset) # eliminate rows with NAs
 gset <- gset[!duplicated(gset),]  # remove duplicates
-temp <- row.names(tT2[tT2$adj.P.Val <= 0.01, ])
-gset <- gset[temp, ]
+temp <- row.names(tT2[tT2$adj.P.Val <= 0.01,])
+gset <- gset[temp,]
 ump <- umap(t(gset), n_neighbors = 5, random_state = 123)
 par(mar = c(3, 3, 2, 6), xpd = TRUE)
-plot(ump$layout, main = "UMAP plot, nbrs=5", xlab = "", ylab = "", 
+plot(ump$layout, main = "UMAP plot, nbrs=5", xlab = "", ylab = "",
      col = gs, pch = 20, cex = 1.5)
 legend("topright", inset = c(-0.15, 0), legend = levels(gs), pch = 20,
        col = 1:nlevels(gs), title = "Group", pt.cex = 1.5)

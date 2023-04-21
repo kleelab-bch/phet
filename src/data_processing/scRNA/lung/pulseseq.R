@@ -39,40 +39,40 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
 subtypes <- metadata
-write.table(as.data.frame(subtypes), 
+write.table(as.data.frame(subtypes),
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(as.data.frame(donors), 
+write.table(as.data.frame(donors),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(as.data.frame(timepoints), 
+write.table(as.data.frame(timepoints),
             file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(t(gset), 
+writeMM(t(gset),
         file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 
 #########################################################
 ############### Basal vs Club & its Lineage #############
 #########################################################
-condition <- metadata %in% c("Basal", "Proliferating", 
+condition <- metadata %in% c("Basal", "Proliferating",
                              "Club", "Ciliated", "Goblet")
 file_name <- "pulseseq_basal_vs_clubandlineage"
 
@@ -87,41 +87,41 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
 subtypes <- metadata[condition]
-write.table(as.data.frame(subtypes), 
+write.table(as.data.frame(subtypes),
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
+write.table(data.frame(donors = donors[condition]),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
+write.table(data.frame(timepoints = timepoints[condition]),
             file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(t(gset[, condition]), 
+writeMM(t(gset[, condition]),
         file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 
 #########################################################
 ################ Basal vs Non club lineage ##############
 #########################################################
-condition <- metadata %in% c("Basal", "Proliferating", 
-                             "Neuroendocrine", "Ionocyte", 
+condition <- metadata %in% c("Basal", "Proliferating",
+                             "Neuroendocrine", "Ionocyte",
                              "Tuft")
 file_name <- "pulseseq_basal_vs_nonclublineage"
 
@@ -136,40 +136,40 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
 subtypes <- metadata[condition]
-write.table(as.data.frame(subtypes), 
+write.table(as.data.frame(subtypes),
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
+write.table(data.frame(donors = donors[condition]),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
+write.table(data.frame(timepoints = timepoints[condition]),
             file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(t(gset[, condition]), 
+writeMM(t(gset[, condition]),
         file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 
 #########################################################
 ################ Basal vs Neuroendocrine ################
 #########################################################
-condition <- metadata %in% c("Basal", "Proliferating", 
+condition <- metadata %in% c("Basal", "Proliferating",
                              "Neuroendocrine")
 file_name <- "pulseseq_basal_vs_neuroendocrine"
 
@@ -184,40 +184,40 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
 subtypes <- metadata[condition]
-write.table(as.data.frame(subtypes), 
+write.table(as.data.frame(subtypes),
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
+write.table(data.frame(donors = donors[condition]),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
+write.table(data.frame(timepoints = timepoints[condition]),
             file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(t(gset[, condition]), 
+writeMM(t(gset[, condition]),
         file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 
 #########################################################
 ##################### Basal vs Tuft #####################
 #########################################################
-condition <- metadata %in% c("Basal", "Proliferating", 
+condition <- metadata %in% c("Basal", "Proliferating",
                              "Tuft")
 file_name <- "pulseseq_basal_vs_tuft"
 
@@ -232,40 +232,40 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
 subtypes <- metadata[condition]
-write.table(as.data.frame(subtypes), 
+write.table(as.data.frame(subtypes),
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
+write.table(data.frame(donors = donors[condition]),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
+write.table(data.frame(timepoints = timepoints[condition]),
             file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(t(gset[, condition]), 
+writeMM(t(gset[, condition]),
         file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 
 #########################################################
 ################### Basal vs Ionocyte ###################
 #########################################################
-condition <- metadata %in% c("Basal", "Proliferating", 
+condition <- metadata %in% c("Basal", "Proliferating",
                              "Ionocyte")
 file_name <- "pulseseq_basal_vs_ionocyte"
 
@@ -280,42 +280,42 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
 subtypes <- metadata[condition]
-write.table(as.data.frame(subtypes), 
+write.table(as.data.frame(subtypes),
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
+write.table(data.frame(donors = donors[condition]),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
+write.table(data.frame(timepoints = timepoints[condition]),
             file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(t(gset[, condition]), 
+writeMM(t(gset[, condition]),
         file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 
 #########################################################
 ################ Club & Lineage vs Rare #################
 #########################################################
 # The population of proliferating cells are predominantly basal cells
-condition <- metadata %in% c("Club", "Ciliated", "Goblet", 
-                             "Neuroendocrine", "Ionocyte", 
+condition <- metadata %in% c("Club", "Ciliated", "Goblet",
+                             "Neuroendocrine", "Ionocyte",
                              "Tuft")
 file_name <- "pulseseq_clubandlineage_vs_rare"
 
@@ -330,34 +330,34 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
 subtypes <- metadata[condition]
-write.table(as.data.frame(subtypes), 
+write.table(as.data.frame(subtypes),
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
+write.table(data.frame(donors = donors[condition]),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
+write.table(data.frame(timepoints = timepoints[condition]),
             file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(t(gset[, condition]), 
+writeMM(t(gset[, condition]),
         file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 
 #########################################################
@@ -378,34 +378,34 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
 subtypes <- metadata[condition]
-write.table(as.data.frame(subtypes), 
+write.table(as.data.frame(subtypes),
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
+write.table(data.frame(donors = donors[condition]),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
+write.table(data.frame(timepoints = timepoints[condition]),
             file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(t(gset[, condition]), 
+writeMM(t(gset[, condition]),
         file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 
 #########################################################
@@ -426,34 +426,34 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
 subtypes <- metadata[condition]
-write.table(as.data.frame(subtypes), 
+write.table(as.data.frame(subtypes),
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
+write.table(data.frame(donors = donors[condition]),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
+write.table(data.frame(timepoints = timepoints[condition]),
             file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(t(gset[, condition]), 
+writeMM(t(gset[, condition]),
         file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 
 #########################################################
@@ -474,34 +474,34 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
 subtypes <- metadata[condition]
-write.table(as.data.frame(subtypes), 
+write.table(as.data.frame(subtypes),
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
+write.table(data.frame(donors = donors[condition]),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
+write.table(data.frame(timepoints = timepoints[condition]),
             file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(t(gset[, condition]), 
+writeMM(t(gset[, condition]),
         file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 
 #########################################################
@@ -521,34 +521,34 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
 subtypes <- metadata[condition]
-write.table(as.data.frame(subtypes), 
+write.table(as.data.frame(subtypes),
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
+write.table(data.frame(donors = donors[condition]),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
+write.table(data.frame(timepoints = timepoints[condition]),
             file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(t(gset[, condition]), 
+writeMM(t(gset[, condition]),
         file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 
 #########################################################
@@ -569,34 +569,34 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
 subtypes <- metadata[condition]
-write.table(as.data.frame(subtypes), 
+write.table(as.data.frame(subtypes),
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
+write.table(data.frame(donors = donors[condition]),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
+write.table(data.frame(timepoints = timepoints[condition]),
             file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(t(gset[, condition]), 
+writeMM(t(gset[, condition]),
         file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
 
 #########################################################
@@ -616,32 +616,32 @@ sml <- strsplit(gsms, split = "")[[1]]
 
 # save subtypes 
 subtypes <- metadata[condition]
-write.table(as.data.frame(subtypes), 
+write.table(as.data.frame(subtypes),
             file = file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save classes
 classes <- as.numeric(sml)
-write.table(as.data.frame(classes), 
+write.table(as.data.frame(classes),
             file = file.path(working_dir, paste(file_name, "_classes.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save feature names
-write.table(as.data.frame(features), 
+write.table(as.data.frame(features),
             file = file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save donors
-write.table(data.frame(donors = donors[condition]), 
+write.table(data.frame(donors = donors[condition]),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save timepoints
-write.table(data.frame(timepoints = timepoints[condition]), 
+write.table(data.frame(timepoints = timepoints[condition]),
             file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 
 # save features data
 rownames(gset) <- features
-writeMM(t(gset[, condition]), 
+writeMM(t(gset[, condition]),
         file = file.path(working_dir, paste(file_name, "_matrix.mtx", sep = "")))
