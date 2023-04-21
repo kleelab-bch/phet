@@ -3,6 +3,8 @@ Unraveling cellular Heterogeneity by analyzing intra-cellular
 variation.
 '''
 
+from typing import Optional
+
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -12,7 +14,7 @@ from scipy.stats import zscore
 
 class DeltaIQRMean:
     def __init__(self, calculate_deltamean: bool = True, normalize: str = None,
-                 iqr_range: int = (25, 75)):
+                 iqr_range: Optional[tuple] = (25, 75)):
         self.calculate_deltamean = calculate_deltamean
         self.normalize = normalize
         self.iqr_range = iqr_range

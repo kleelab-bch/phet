@@ -57,8 +57,8 @@ def compute_score(lb, top_features_true, top_features_pred, probes2genes, genes2
 def train():
     # Filtering and subsampling arguments
     pvalue = 0.01
-    topKfeatures = 500
-    range_topfeatures = list(range(0, topKfeatures + 5, 5))
+    top_k_features = 500
+    range_topfeatures = list(range(0, top_k_features + 5, 5))
     range_topfeatures[0] = 1
     num_batches = 1000
     subsample_size = 10
@@ -75,7 +75,7 @@ def train():
     lb = LabelBinarizer()
     lb.fit(y=features_name)
 
-    # Load genes genes that are known to be encoded on chromosome 17
+    # Load genes that are known to be encoded on chromosome 17
     X_humchr17 = pd.read_csv(os.path.join(DATASET_PATH, "humchr17.csv"), sep=',')
     temp = [idx for idx, item in enumerate(X_humchr17["Chromosomal position"].tolist())
             if item == "17q12" or item == "17q21.1"]
@@ -102,7 +102,7 @@ def train():
                          for probe in probes])
     top_features_true = top_features_true.iloc[temp]["ID"].tolist()
     top_features_true = lb.transform(top_features_true).sum(axis=0).astype(int)
-    topKfeatures = sum(top_features_true).astype(int)
+    top_k_features = sum(top_features_true).astype(int)
 
     # Load DECO and LIMMA results    
     X_deco = pd.read_csv(os.path.join(DATASET_PATH, "her2_deco_features.csv"), sep=',', header=None)
@@ -135,7 +135,7 @@ def train():
         X = np.vstack((X_control, X_case[temp]))
         y = np.array(X_control.shape[0] * [0] + subsample_size * [1])
         num_features = X.shape[1]
-        
+
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                   METHODS[0]), end="\r")
         estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=False)

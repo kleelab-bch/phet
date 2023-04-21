@@ -204,7 +204,7 @@ def train():
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       METHODS[6]), end="\r")
-            estimator = SeuratHVF(per_condition=False, log_transform=True, num_top_features=num_features, 
+            estimator = SeuratHVF(per_condition=False, log_transform=True, num_top_features=num_features,
                                   min_disp=0.5, min_mean=0.0125, max_mean=3)
             temp_X = deepcopy(X)
             df = estimator.fit_predict(X=temp_X, y=y)
@@ -214,7 +214,7 @@ def train():
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       METHODS[7]), end="\r")
-            estimator = SeuratHVF(per_condition=True, log_transform=True, num_top_features=num_features, 
+            estimator = SeuratHVF(per_condition=True, log_transform=True, num_top_features=num_features,
                                   min_disp=0.5, min_mean=0.0125, max_mean=3)
             temp_X = deepcopy(X)
             df = estimator.fit_predict(X=temp_X, y=y)
@@ -224,7 +224,7 @@ def train():
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       METHODS[8]), end="\r")
-            estimator = DeltaHVFMean(calculate_deltamean=False, log_transform=True, num_top_features=num_features, 
+            estimator = DeltaHVFMean(calculate_deltamean=False, log_transform=True, num_top_features=num_features,
                                      min_disp=0.5, min_mean=0.0125, max_mean=3)
             temp_X = deepcopy(X)
             df = estimator.fit_predict(X=temp_X, y=y)
@@ -234,7 +234,7 @@ def train():
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       METHODS[9]), end="\r")
-            estimator = DeltaHVFMean(calculate_deltamean=True, log_transform=True, num_top_features=num_features, 
+            estimator = DeltaHVFMean(calculate_deltamean=True, log_transform=True, num_top_features=num_features,
                                      min_disp=0.5, min_mean=0.0125, max_mean=3)
             temp_X = deepcopy(X)
             df = estimator.fit_predict(X=temp_X, y=y)
@@ -323,9 +323,9 @@ def train():
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       METHODS[21]), end="\r")
             estimator = PHeT(normalize="log", iqr_range=(25, 75), num_subsamples=1000, delta_type="hvf",
-                            calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
-                            calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                            weight_range=[0.2, 0.4, 0.8])
+                             calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
+                             calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                             weight_range=[0.2, 0.4, 0.8])
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             methods_dict.update({METHODS[21]: df})
             current_progress += 1
@@ -333,9 +333,9 @@ def train():
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       METHODS[22]))
             estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, delta_type="iqr",
-                            calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
-                            calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                            weight_range=[0.2, 0.4, 0.8])
+                             calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
+                             calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                             weight_range=[0.2, 0.4, 0.8])
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             methods_dict.update({METHODS[21]: df})
 

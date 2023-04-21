@@ -6,12 +6,14 @@ differential gene expression analysis. Biostatistics, 8(1),
 pp.2-8.
 '''
 
+from typing import Optional
+
 import numpy as np
 from scipy.stats import iqr
 
 
 class OutlierSumStatistic:
-    def __init__(self, q: float = 75, iqr_range: float = (25, 75), two_sided_test: bool = True):
+    def __init__(self, q: float = 75, iqr_range: Optional[tuple] = (25, 75), two_sided_test: bool = True):
         self.q = q
         self.iqr_range = iqr_range
         self.two_sided_test = two_sided_test

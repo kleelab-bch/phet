@@ -25,9 +25,9 @@ sns.set_theme()
 sns.set_theme(style="white")
 np.random.seed(seed=12345)
 
-METHODS = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma", "HVF (composite)", 
-           "HVF (by condition)", "ΔHVF", "ΔHVF+ΔMean", "IQR (composite)", "IQR (by condition)", 
-           "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "PHet (ΔHVF)", 
+METHODS = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma", "HVF (composite)",
+           "HVF (by condition)", "ΔHVF", "ΔHVF+ΔMean", "IQR (composite)", "IQR (by condition)",
+           "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "PHet (ΔHVF)",
            "PHet"]
 # Define colors
 PALETTE = sns.color_palette("tab20")

@@ -1,9 +1,11 @@
+from typing import Optional
+
 import numpy as np
 from scipy.stats import iqr
 
 
 class OutlierRobustTstatistic:
-    def __init__(self, q: float = 75, iqr_range: float = (25, 75)):
+    def __init__(self, q: float = 75, iqr_range: Optional[tuple] = (25, 75)):
         self.q = q
         self.iqr_range = iqr_range
 

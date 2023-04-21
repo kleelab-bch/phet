@@ -3,6 +3,7 @@ DeteCtion of celluLar hEterogeneity by anAlyzing variatioNs of cElls.
 '''
 
 from itertools import combinations
+from typing import Optional
 
 import anndata as ad
 import numpy as np
@@ -17,7 +18,8 @@ SEED_VALUE = 0.001
 
 
 class PHeT:
-    def __init__(self, normalize: str = "zscore", iqr_range: float = (25, 75), num_subsamples: int = 1000,
+    def __init__(self, normalize: Optional[str] = "zscore", iqr_range: Optional[tuple] = (25, 75),
+                 num_subsamples: int = 1000,
                  subsampling_size: int = None, partition_by_anova: bool = False, delta_type: str = "iqr",
                  calculate_deltadisp: bool = True, calculate_deltamean: bool = False, calculate_fisher: bool = True,
                  calculate_profile: bool = True, binary_clustering: bool = True, bin_pvalues: bool = False,

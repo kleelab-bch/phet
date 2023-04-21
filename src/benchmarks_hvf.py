@@ -40,7 +40,7 @@ def train(num_jobs: int = 4):
     file_name = "patel"
     suptitle_name = "Patel"
 
-    # Exprssion, classes, subtypes, donors, timepoints Files
+    # Expression, classes, subtypes, donors, timepoints Files
     expression_file_name = file_name + "_matrix.mtx"
     features_file_name = file_name + "_feature_names.csv"
     classes_file_name = file_name + "_classes.csv"

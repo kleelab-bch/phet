@@ -15,15 +15,12 @@ sc.settings.set_figure_params(dpi=80, facecolor='white')
 sns.set_theme()
 sns.set_style(style='white')
 
-methods_name = {"ttest_p": "t-statistic", "ttest_g": "t-statistic+Gamma",
-                "wilcoxon_p": "Wilcoxon", "wilcoxon_g": "Wilcoxon+Gamma",
-                "limma_p": "LIMMA", "limma_g": "LIMMA+Gamma",
-                "hvf_a": "HVF (composite)", "hvf_c": "HVF (by condition)",
-                "deltahvf": "ΔHVF", "deltahvfmean": "ΔHVF+ΔMean",
-                "iqr_a": "IQR (composite)", "iqr_c": "IQR (by condition)",
-                "deltaiqr": "ΔIQR", "deltaiqrmean": "ΔIQR+ΔMean",
-                "copa": "COPA", "os": "OS", "ort": "ORT", "most": "MOST",
-                "lsoss": "LSOSS", "dids": "DIDS", "deco": "DECO",
+methods_name = {"ttest_p": "t-statistic", "ttest_g": "t-statistic+Gamma", "wilcoxon_p": "Wilcoxon",
+                "wilcoxon_g": "Wilcoxon+Gamma", "limma_p": "LIMMA", "limma_g": "LIMMA+Gamma",
+                "hvf_a": "HVF (composite)", "hvf_c": "HVF (by condition)", "deltahvf": "ΔHVF",
+                "deltahvfmean": "ΔHVF+ΔMean", "iqr_a": "IQR (composite)", "iqr_c": "IQR (by condition)",
+                "deltaiqr": "ΔIQR", "deltaiqrmean": "ΔIQR+ΔMean", "copa": "COPA", "os": "OS",
+                "ort": "ORT", "most": "MOST", "lsoss": "LSOSS", "dids": "DIDS", "deco": "DECO",
                 "phet_bh": "PHet (ΔHVF)", "phet_br": "PHet"}
 # Use static colors
 palette = mcolors.get_named_colors_mapping()
@@ -119,7 +116,7 @@ data_names = data_names.columns.to_list()
 files = [f for f in os.listdir(result_path) if f.endswith("_features_scores.csv")]
 
 # DECO
-feature_files = sorted([f for f in os.listdir(result_path) if f.endswith("_deco.csv")])
+feature_files = sorted([f for f in os.listdir(result_path) if f.endswith("_deco_features.csv")])
 deco_features = list()
 for f in feature_files:
     df = pd.read_csv(os.path.join(result_path, f), sep=',')
@@ -135,19 +132,19 @@ for idx, f in enumerate(files):
     scores.extend(df.iloc[:, 1].to_list())
     ds_names.extend(len(df.iloc[:, 0].to_list()) * [data_names[idx]])
 
-# Total features
+# Predicted features
 feature_files = [sorted([f for f in os.listdir(result_path)
                          if f.endswith(method.lower() + "_features.csv")])
                  for method, _ in methods_name.items()]
-total_features = list()
+pred_features = list()
 for lst_files in feature_files:
     temp = list()
     for f in lst_files:
         df = pd.read_csv(os.path.join(result_path, f), sep=',', header=None)
         temp.append(len(df.values.tolist()))
-    total_features.append(temp)
-total_features[7] = deco_features
-total_features = np.log10(total_features)
+    pred_features.append(temp)
+pred_features[7] = deco_features
+pred_features = np.log10(pred_features)
 
 # F1 scores 
 df = pd.DataFrame([methods, scores, ds_names]).T
@@ -157,16 +154,16 @@ df["Scores"] = df["Scores"].astype(np.float64)
 
 # Total features
 ds_names = data_names * len(methods_name)
-methods = [list(np.repeat(m, total_features.shape[1])) for _, m in methods_name.items()]
-methods = np.reshape(methods, (total_features.shape[0] * total_features.shape[1]))
-total_features = total_features.reshape((total_features.shape[0] * total_features.shape[1]))
-df_features = pd.DataFrame([methods, total_features, ds_names])
+methods = [list(np.repeat(m, pred_features.shape[1])) for _, m in methods_name.items()]
+methods = np.reshape(methods, (pred_features.shape[0] * pred_features.shape[1]))
+pred_features = pred_features.reshape((pred_features.shape[0] * pred_features.shape[1]))
+df_features = pd.DataFrame([methods, pred_features, ds_names])
 df_features = df_features.T
 df_features.columns = ["Methods", "Features", "Data"]
 
 # Plot F1 scores
 min_ds = df[df["Methods"] == "PHet"].sort_values('Scores').iloc[0].to_list()[-1]
-max_ds = df[df["Methods"] == "PHet"].sort_values('Scores').iloc[len(data_names) - 1].to_list()[-1]
+max_ds = df[df["Methods"] == "PHet"].sort_values('Scores').iloc[-1].to_list()[-1]
 plt.figure(figsize=(14, 8))
 ax = sns.boxplot(y='Scores', x='Methods', data=df, width=0.85,
                  palette=palette, showfliers=False, showmeans=True,
@@ -188,7 +185,7 @@ plt.tight_layout()
 
 # Plot the number of features
 min_ds = df_features[df_features["Methods"] == "PHet"].sort_values('Features').iloc[0].to_list()[-1]
-max_ds = df_features[df_features["Methods"] == "PHet"].sort_values('Features').iloc[len(data_names) - 1].to_list()[-1]
+max_ds = df_features[df_features["Methods"] == "PHet"].sort_values('Features').iloc[-1].to_list()[-1]
 plt.figure(figsize=(14, 8))
 ax = sns.boxplot(y='Features', x='Methods', data=df_features, width=0.85,
                  palette=palette, showfliers=False, showmeans=True,
@@ -201,7 +198,8 @@ sns.lineplot(data=df_features[df_features["Data"] == max_ds], x="Methods",
 sns.lineplot(data=df_features[df_features["Data"] == min_ds], x="Methods",
              y="Features", color="red", linewidth=3, linestyle='dotted')
 ax.set_xlabel("")
-ax.set_ylabel("Number of significant features  \n  found by each method", fontsize=36)
+ax.set_ylabel("Number of predicted features \n of each method",
+              fontsize=36)
 ax.set_xticklabels(list())
 ax.set_yticks([0, 1, 2, 3, 4, 5])
 ax.set_yticklabels(["1", "10", "100", "1000", "10000", "100000"])
@@ -228,7 +226,7 @@ df_ari.groupby(["Methods"])["ARI"].mean()
 
 # Plot ARI
 min_ds = df_ari[df_ari["Methods"] == "PHet"].sort_values('ARI').iloc[0].to_list()[-1]
-max_ds = df_ari[df_ari["Methods"] == "PHet"].sort_values('ARI').iloc[len(data_names) - 1].to_list()[-1]
+max_ds = df_ari[df_ari["Methods"] == "PHet"].sort_values('ARI').iloc[-1].to_list()[-1]
 plt.figure(figsize=(14, 8))
 ax = sns.boxplot(y='ARI', x='Methods', data=df_ari, width=0.85,
                  palette=palette, showfliers=False, showmeans=True,
@@ -241,7 +239,7 @@ sns.lineplot(data=df_ari[df_ari["Data"] == max_ds], x="Methods",
 sns.lineplot(data=df_ari[df_ari["Data"] == min_ds], x="Methods",
              y="ARI", color="red", linewidth=3, linestyle='dotted')
 ax.set_xlabel("")
-ax.set_ylabel("ARI of each method", fontsize=36)
+ax.set_ylabel("ARI scores of each method", fontsize=36)
 ax.set_xticklabels(list())
 ax.tick_params(axis='both', labelsize=30)
 plt.suptitle(suptitle, fontsize=36)
@@ -267,35 +265,66 @@ ds_files = ["allgse412", "bc_ccgse3726", "bladdergse89", "braintumor",
             "gastricgse2685", "glioblastoma", "leukemia_golub",
             "lunggse1987", "lung", "mll", "srbct", "baron1", "camp1",
             "darmanis", "li", "patel", "yan"]
-# Cluster quality
+# data_names = ["GSE412", "GSE3726", "GSE89", "Braintumor", "GSE2685", 
+#               "Glioblastoma", "Leukemia", "GSE1987", "Lung", "MLL", "SRBCT",
+#               "Baron", "Camp", "Darmanis", "Li", "Patel", "Yan"]
+# Various scores
 methods = list()
-scores = list()
+ari_scores = list()
+f1_scores = list()
+pred_features = list()
 feature_size = list()
 sample_size = list()
 ds_names = list()
+
 for result_path in [result_microarray_path, result_scrna_path]:
     data_names = pd.read_csv(os.path.join(result_path, "data_names.txt"), sep=',')
     data_names = data_names.columns.to_list()
     files = [f for f in os.listdir(result_path) if f.endswith("_cluster_quality.csv")]
     for idx, f in enumerate(files):
         df = pd.read_csv(os.path.join(result_path, f), sep=',')
-        scores.extend(df.loc[1:]["Scores"].to_numpy())
+        ari_scores.extend(df.loc[1:]["Scores"].to_numpy())
         methods.extend(df.iloc[1:, 0].to_list())
         ds_names.extend(len(df.iloc[1:, 0].to_list()) * [data_names[idx]])
+    files = [f for f in os.listdir(result_path) if f.endswith("_features_scores.csv")]
+    for idx, f in enumerate(files):
+        df = pd.read_csv(os.path.join(result_path, f), sep=',')
+        f1_scores.extend(df.loc[0:]["Scores"].to_numpy())
+    files = [[f for f in os.listdir(result_path) if f.endswith(method.lower() + "_features.csv")]
+             for method, _ in methods_name.items()]
+    files = np.array(files)
+    for f_idx in range(files.shape[1]):
+        for m_idx in range(files.shape[0]):
+            f = files[m_idx, f_idx]
+            if f.endswith("_deco_features.csv"):
+                df = pd.read_csv(os.path.join(result_path, f), sep=',')
+                pred_features.append(len(df["features"].to_list()))
+            else:
+                df = pd.read_csv(os.path.join(result_path, f), sep=',', header=None)
+                pred_features.append(len(df.values.tolist()))
+
 for f in ds_files:
     temp = pd.read_csv(os.path.join(DATASET_PATH,
                                     f + "_feature_names.csv"), sep=',')
     feature_size.extend(len(methods_name) * [temp.shape[0]])
     temp = pd.read_csv(os.path.join(DATASET_PATH, f + "_classes.csv"), sep=',')
     sample_size.extend(len(methods_name) * [temp.shape[0]])
-df = pd.DataFrame([methods, scores, ds_names,
-                   np.log(feature_size), np.log(sample_size)]).T
-df.columns = ["Methods", "ARI", "Data", "Feature", "Sample"]
+
+pred_features = np.log10(pred_features)
+feature_size = np.array(feature_size)
+sample_size = np.array(sample_size)
+df = pd.DataFrame([methods, ari_scores, f1_scores, pred_features,
+                   feature_size, sample_size, ds_names]).T
+df.columns = ["Methods", "ARI", "F1", "Predicted features",
+              "Feature size", "Sample size", "Data"]
 df["Methods"] = df["Methods"].astype(str)
 df["ARI"] = df["ARI"].astype(np.float64)
+df["F1"] = df["F1"].astype(np.float64)
+df["Predicted features"] = df["Predicted features"].astype(np.float64)
 
 # Set up a grid to plot survival probability against several variables
-g = sns.PairGrid(df, y_vars="ARI", x_vars=["Methods", "Feature", "Sample"],
+g = sns.PairGrid(df, y_vars="ARI",
+                 x_vars=["Methods", "Feature size", "Sample size"],
                  height=5, aspect=.5)
 # Draw a seaborn pointplot onto each Axes
 g.map(sns.scatterplot)
@@ -305,3 +334,73 @@ for ax in g.axes.flatten():
 g.set(ylim=(0, 1))
 g.fig.set_size_inches(16, 4)
 sns.despine(fig=g.fig, left=True)
+
+# Plot ARI
+min_ds = df[df["Methods"] == "PHet"].sort_values('ARI').iloc[0].to_list()[-1]
+max_ds = df[df["Methods"] == "PHet"].sort_values('ARI').iloc[-1].to_list()[-1]
+plt.figure(figsize=(14, 8))
+ax = sns.boxplot(y='ARI', x='Methods', data=df, width=0.85,
+                 palette=palette, showfliers=False)
+sns.swarmplot(y='ARI', x='Methods', data=df, color="black", s=10, linewidth=0,
+              alpha=.7)
+sns.pointplot(y="ARI", x="Methods", data=df, scale=1.3,
+              errwidth=5, markers="D", color="#343d46")
+sns.lineplot(data=df[df["Data"] == max_ds], x="Methods",
+             y="ARI", color="green", linewidth=3, linestyle='dashed')
+sns.lineplot(data=df[df["Data"] == min_ds], x="Methods",
+             y="ARI", color="red", linewidth=3, linestyle='dotted')
+ax.set_xlabel("")
+ax.set_ylabel("ARI scores of each method", fontsize=36)
+ax.set_xticklabels(list())
+ax.tick_params(axis='both', labelsize=30)
+plt.suptitle("17 microarray and single cell RNA-seq datasets", fontsize=36)
+sns.despine()
+plt.tight_layout()
+
+# Plot F1
+min_ds = df[df["Methods"] == "PHet"].sort_values('F1').iloc[0].to_list()[-1]
+max_ds = df[df["Methods"] == "PHet"].sort_values('F1').iloc[-1].to_list()[-1]
+plt.figure(figsize=(14, 8))
+ax = sns.boxplot(y='F1', x='Methods', data=df, width=0.85,
+                 palette=palette, showfliers=False)
+sns.swarmplot(y='F1', x='Methods', data=df, color="black", s=10, linewidth=0,
+              alpha=.7)
+sns.pointplot(y="F1", x="Methods", data=df, scale=1.3,
+              errwidth=5, markers="D", color="#343d46")
+sns.lineplot(data=df[df["Data"] == max_ds], x="Methods",
+             y="F1", color="green", linewidth=3, linestyle='dashed')
+sns.lineplot(data=df[df["Data"] == min_ds], x="Methods",
+             y="F1", color="red", linewidth=3, linestyle='dotted')
+ax.set_xlabel("")
+ax.set_ylabel("F1 scores of each method", fontsize=36)
+ax.set_xticklabels(list())
+ax.tick_params(axis='both', labelsize=30)
+plt.suptitle("17 microarray and single cell RNA-seq datasets", fontsize=36)
+sns.despine()
+plt.tight_layout()
+
+# Plot Predicted features
+min_ds = df[df["Methods"] == "PHet"].sort_values('Predicted features').iloc[0].to_list()[-1]
+max_ds = df[df["Methods"] == "PHet"].sort_values('Predicted features').iloc[-1].to_list()[-1]
+plt.figure(figsize=(14, 8))
+ax = sns.boxplot(y='Predicted features', x='Methods', data=df, width=0.85,
+                 palette=palette, showfliers=False)
+sns.swarmplot(y='Predicted features', x='Methods', data=df, color="black",
+              s=10, linewidth=0, alpha=.7)
+sns.pointplot(y="Predicted features", x="Methods", data=df, scale=2,
+              errwidth=5, markers="D", color="#343d46")
+sns.lineplot(data=df[df["Data"] == max_ds], x="Methods",
+             y="Predicted features", color="green", linewidth=3, linestyle='dashed')
+sns.lineplot(data=df[df["Data"] == min_ds], x="Methods",
+             y="Predicted features", color="red", linewidth=3,
+             linestyle='dotted')
+ax.set_xlabel("")
+ax.set_ylabel("Number of predicted features \n of each method",
+              fontsize=36)
+ax.set_xticklabels(list())
+ax.set_yticks([0, 1, 2, 3, 4, 5])
+ax.set_yticklabels(["1", "10", "100", "1000", "10000", "100000"])
+ax.tick_params(axis='both', labelsize=30)
+plt.suptitle("17 microarray and single cell RNA-seq datasets", fontsize=36)
+sns.despine()
+plt.tight_layout()

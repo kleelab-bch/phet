@@ -765,19 +765,19 @@ X = copy.deepcopy(adata.X)
 # QC calculations
 sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
 # Regress out effects of total counts per cell 
-sc.pp.regress_out(adata, ['total_counts'])
+# sc.pp.regress_out(adata, ['total_counts'])
 # Scale each gene to unit variance. Clip values exceeding standard deviation 10.
-sc.pp.scale(adata, max_value=10)
+# sc.pp.scale(adata, max_value=10)
 # Computing the neighborhood graph
 sc.pp.neighbors(adata, n_neighbors=30, n_pcs=50)
 # UMAP (Embedding the neighborhood graph)
 sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
            maxiter=2000)
 # Clustering the neighborhood graph
-sc.tl.leiden(adata, resolution=0.4, key_added="clusters")
+sc.tl.leiden(adata, resolution=0.5, key_added="clusters")
 # Rename clusters
 adata.X = X
-new_cluster_names = ['Tuft-1', 'Tuft-2', 'Tuft-3']
+new_cluster_names = ['Tuft-1', 'Tuft-2', 'Tuft-3', 'Tuft-4']
 adata.rename_categories('clusters', new_cluster_names)
 # Plot UMAP
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
@@ -821,10 +821,10 @@ with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
                      'axes.labelsize': '30', 'xtick.labelsize': '35',
                      'ytick.labelsize': '12'}):
     sc.pl.heatmap(adata, tuft_markers, groupby='clusters',
-                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
+                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=True,
                   swap_axes=False, figsize=(12, 6))
     sc.pl.heatmap(adata, markers_dict, groupby='clusters', layer='scaled', vmin=-2,
-                  vmax=2, cmap='RdBu_r', dendrogram=False, swap_axes=True,
+                  vmax=2, cmap='RdBu_r', dendrogram=True, swap_axes=True,
                   figsize=(12, 3))
 
 ##############################################################
