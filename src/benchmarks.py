@@ -29,7 +29,7 @@ np.random.seed(seed=12345)
 METHODS = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma", "LIMMA", "LIMMA+Gamma",
            "HVF (composite)", "HVF (by condition)", "ΔHVF", "ΔHVF+ΔMean", "IQR (composite)",
            "IQR (by condition)", "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS",
-           "DECO", "PHet"]
+           "DECO", "PHet (ΔHVF)", "PHet"]
 
 
 def train(num_jobs: int = 4):
@@ -39,22 +39,13 @@ def train(num_jobs: int = 4):
 
     # Models parameters
     direction = "both"
-    bin_pvalues = True
-    normalize = "zscore"
-    hvf_log_transform = False
-    phet_delta_type = "iqr"  # PHet
+    hvf_log_transform = True
+    hvf_normalize = None
+    if hvf_log_transform:
+        hvf_normalize = "log"
     methods_save_name = ["ttest_p", "ttest_g", "wilcoxon_p", "wilcoxon_g", "limma_p", "limma_g", "hvf_a",
                          "hvf_c", "deltahvf", "deltahvfmean", "iqr_a", "iqr_c", "deltaiqr", "deltaiqrmean",
-                         "copa", "os", "ort", "most", "lsoss", "dids", "deco"]
-    if phet_delta_type == "hvf":
-        temp = "h"
-    else:
-        temp = "r"
-    if bin_pvalues:
-        methods_save_name.append("PHet_b" + temp)
-    else:
-        methods_save_name.append("PHet_nb" + temp)
-
+                         "copa", "os", "ort", "most", "lsoss", "dids", "deco", "phet_bh", "phet_br"]
     # Clustering and UMAP parameters
     sort_by_pvalue = True
     export_spring = False
@@ -65,13 +56,13 @@ def train(num_jobs: int = 4):
     num_neighbors = 5
     max_clusters = 10
     feature_metric = "f1"
-    cluster_type = "spectral"
+    cluster_type = "kmeans"
 
     # Descriptions of the data
     file_name = "yan"
     suptitle_name = "Yan"
 
-    # Expression, classes, subtypes, donors, timepoints Files
+    # Expression, classes, subtypes, donors, timepoints files
     expression_file_name = file_name + "_matrix.mtx"
     features_file_name = file_name + "_feature_names.csv"
     classes_file_name = file_name + "_classes.csv"
@@ -244,28 +235,28 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[10]), end="\r")
-    estimator = HIQR(per_condition=False, normalize=normalize, iqr_range=(25, 75))
+    estimator = HIQR(per_condition=False, normalize="zscore", iqr_range=(25, 75))
     df = estimator.fit_predict(X=X, y=y)
     methods_dict.update({METHODS[10]: df})
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[11]), end="\r")
-    estimator = HIQR(per_condition=True, normalize=normalize, iqr_range=(25, 75))
+    estimator = HIQR(per_condition=True, normalize="zscore", iqr_range=(25, 75))
     df = estimator.fit_predict(X=X, y=y)
     methods_dict.update({METHODS[11]: df})
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[12]), end="\r")
-    estimator = DeltaIQRMean(calculate_deltamean=False, normalize=normalize, iqr_range=(25, 75))
+    estimator = DeltaIQRMean(calculate_deltamean=False, normalize="zscore", iqr_range=(25, 75))
     df = estimator.fit_predict(X=X, y=y)
     methods_dict.update({METHODS[12]: df})
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[13]), end="\r")
-    estimator = DeltaIQRMean(calculate_deltamean=True, normalize=normalize, iqr_range=(25, 75))
+    estimator = DeltaIQRMean(calculate_deltamean=True, normalize="zscore", iqr_range=(25, 75))
     df = estimator.fit_predict(X=X, y=y)
     methods_dict.update({METHODS[13]: df})
     current_progress += 1
@@ -321,13 +312,23 @@ def train(num_jobs: int = 4):
     current_progress += 1
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
-                                                            METHODS[21]))
-    estimator = PHeT(normalize=normalize, iqr_range=(25, 75), num_subsamples=1000, delta_type=phet_delta_type,
+                                                            METHODS[21]), end="\r")
+    estimator = PHeT(normalize=hvf_normalize, iqr_range=(25, 75), num_subsamples=1000, delta_type="hvf",
                      calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
-                     calculate_profile=True, bin_pvalues=bin_pvalues,
-                     feature_weight=[0.4, 0.3, 0.2, 0.1], weight_range=[0.2, 0.4, 0.8])
+                     calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                     weight_range=[0.2, 0.4, 0.8])
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({METHODS[21]: df})
+    current_progress += 1
+
+    print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
+                                                            METHODS[22]))
+    estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, delta_type="iqr",
+                     calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
+                     calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                     weight_range=[0.2, 0.4, 0.8])
+    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+    methods_dict.update({METHODS[22]: df})
 
     if sort_by_pvalue:
         print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))
@@ -381,9 +382,8 @@ def train(num_jobs: int = 4):
     score = plot_umap(X=X, y=y, subtypes=subtypes, features_name=features_name, num_features=num_features,
                       standardize=True, num_neighbors=num_neighbors, min_dist=0, perform_cluster=True,
                       cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
-                      apply_hungarian=False, heatmap_plot=False, num_jobs=num_jobs,
-                      suptitle=suptitle_name + "\nAll", file_name=file_name + "_all",
-                      save_path=RESULT_PATH)
+                      heatmap_plot=False, num_jobs=num_jobs, suptitle=suptitle_name + "\nAll",
+                      file_name=file_name + "_all", save_path=RESULT_PATH)
     list_scores.append(score)
 
     if plot_top_k_features:
@@ -409,12 +409,11 @@ def train(num_jobs: int = 4):
             temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
             temp_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
         num_features = len(temp)
-        score = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
-                          standardize=True, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,
-                          cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
-                          apply_hungarian=False, heatmap_plot=False, num_jobs=num_jobs,
-                          suptitle=suptitle_name + "\n" + method_name, file_name=file_name + "_" + save_name.lower(),
-                          save_path=RESULT_PATH)
+        scores = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
+                           standardize=True, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,
+                           cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
+                           heatmap_plot=False, num_jobs=num_jobs, suptitle=suptitle_name + "\n" + method_name,
+                           file_name=file_name + "_" + save_name.lower(), save_path=RESULT_PATH)
         df = pd.DataFrame(temp_feature, columns=["features"])
         df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_features.csv"),
                   sep=',', index=False, header=False)
@@ -423,13 +422,17 @@ def train(num_jobs: int = 4):
             df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_expression.csv"),
                       sep=",", index=False, header=False)
         del df
-        list_scores.append(score)
+        list_scores.append(scores)
 
-    df = pd.DataFrame(list_scores, columns=["Scores"], index=["All"] + METHODS)
+    columns = ["Complete Diameter Distance", "Average Diameter Distance", "Centroid Diameter Distance",
+               "Single Linkage Distance", "Maximum Linkage Distance", "Average Linkage Distance",
+               "Centroid Linkage Distance", "Ward's Distance", "Silhouette", "Adjusted Rand Index",
+               "Adjusted Mutual Info"]
+    df = pd.DataFrame(list_scores, columns=columns, index=["All"] + METHODS)
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_cluster_quality.csv"), sep=",")
 
-    print("## Plot bar plot using to demonstrate clustering accuracy...".format(top_k_features))
-    plot_barplot(X=list_scores, methods_name=["All"] + METHODS, metric="ari",
+    print("## Plot bar plot using ARI metric...".format(top_k_features))
+    plot_barplot(X=list_scores[9], methods_name=["All"] + METHODS, metric="ari",
                  suptitle=suptitle_name, file_name=file_name, save_path=RESULT_PATH)
 
 

@@ -7,6 +7,10 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
+from sklearn.metrics import pairwise_distances
+from sklearn.metrics import silhouette_score
+from sklearn.metrics.cluster import adjusted_mutual_info_score
+from sklearn.metrics.cluster import adjusted_rand_score
 
 from utility.file_path import RESULT_PATH, DATASET_PATH
 
@@ -157,9 +161,9 @@ ds_names = data_names * len(methods_name)
 methods = [list(np.repeat(m, pred_features.shape[1])) for _, m in methods_name.items()]
 methods = np.reshape(methods, (pred_features.shape[0] * pred_features.shape[1]))
 pred_features = pred_features.reshape((pred_features.shape[0] * pred_features.shape[1]))
-df_features = pd.DataFrame([methods, pred_features, ds_names])
-df_features = df_features.T
-df_features.columns = ["Methods", "Features", "Data"]
+selected_features = pd.DataFrame([methods, pred_features, ds_names])
+selected_features = selected_features.T
+selected_features.columns = ["Methods", "Features", "Data"]
 
 # Plot F1 scores
 min_ds = df[df["Methods"] == "PHet"].sort_values('Scores').iloc[0].to_list()[-1]
@@ -184,18 +188,18 @@ sns.despine()
 plt.tight_layout()
 
 # Plot the number of features
-min_ds = df_features[df_features["Methods"] == "PHet"].sort_values('Features').iloc[0].to_list()[-1]
-max_ds = df_features[df_features["Methods"] == "PHet"].sort_values('Features').iloc[-1].to_list()[-1]
+min_ds = selected_features[selected_features["Methods"] == "PHet"].sort_values('Features').iloc[0].to_list()[-1]
+max_ds = selected_features[selected_features["Methods"] == "PHet"].sort_values('Features').iloc[-1].to_list()[-1]
 plt.figure(figsize=(14, 8))
-ax = sns.boxplot(y='Features', x='Methods', data=df_features, width=0.85,
+ax = sns.boxplot(y='Features', x='Methods', data=selected_features, width=0.85,
                  palette=palette, showfliers=False, showmeans=True,
                  meanprops={"marker": "D", "markerfacecolor": "white",
                             "markeredgecolor": "black", "markersize": "15"})
-sns.swarmplot(y='Features', x='Methods', data=df_features, color="black", s=10,
+sns.swarmplot(y='Features', x='Methods', data=selected_features, color="black", s=10,
               linewidth=0, alpha=.7)
-sns.lineplot(data=df_features[df_features["Data"] == max_ds], x="Methods",
+sns.lineplot(data=selected_features[selected_features["Data"] == max_ds], x="Methods",
              y="Features", color="green", linewidth=3, linestyle='dashed')
-sns.lineplot(data=df_features[df_features["Data"] == min_ds], x="Methods",
+sns.lineplot(data=selected_features[selected_features["Data"] == min_ds], x="Methods",
              y="Features", color="red", linewidth=3, linestyle='dotted')
 ax.set_xlabel("")
 ax.set_ylabel("Number of predicted features \n of each method",
@@ -387,7 +391,7 @@ ax = sns.boxplot(y='Predicted features', x='Methods', data=df, width=0.85,
                  palette=palette, showfliers=False)
 sns.swarmplot(y='Predicted features', x='Methods', data=df, color="black",
               s=10, linewidth=0, alpha=.7)
-sns.pointplot(y="Predicted features", x="Methods", data=df, scale=2,
+sns.pointplot(y="Predicted features", x="Methods", data=df, scale=1.3,
               errwidth=5, markers="D", color="#343d46")
 sns.lineplot(data=df[df["Data"] == max_ds], x="Methods",
              y="Predicted features", color="green", linewidth=3, linestyle='dashed')
@@ -404,3 +408,275 @@ ax.tick_params(axis='both', labelsize=30)
 plt.suptitle("17 microarray and single cell RNA-seq datasets", fontsize=36)
 sns.despine()
 plt.tight_layout()
+
+
+##############################################################
+############# TEMP #############
+##############################################################
+
+######### Intracluster -- Measuring distance between points in a cluster. Lower values are better intraclustering quality
+
+def complete_diameter_distance(X, y, penalty: float = 0.05, metric: str = "euclidean",
+                               num_jobs: int = 2):
+    '''
+    The farthest distance between two samples in a cluster.
+    '''
+    clusters = np.unique(y)
+    score = 0
+    for cluster_idx in clusters:
+        examples_idx = np.where(y == cluster_idx)[0]
+        if len(examples_idx) <= 1:
+            score += penalty
+            continue
+        D = pairwise_distances(X=X[examples_idx], metric=metric, n_jobs=num_jobs)
+        D = D / D.sum(0)
+        score += D.max()
+    return score
+
+
+def average_diameter_distance(X, y, penalty: float = 0.05, metric: str = "euclidean",
+                              num_jobs: int = 2):
+    '''
+    The average distance between all samples in a cluster.
+    '''
+    clusters = np.unique(y)
+    score = 0
+    for cluster_idx in clusters:
+        examples_idx = np.where(y == cluster_idx)[0]
+        if len(examples_idx) <= 1:
+            score += penalty
+            continue
+        D = pairwise_distances(X=X[examples_idx], metric=metric, n_jobs=num_jobs)
+        D = D / D.sum(0)
+        D = np.triu(D).sum()
+        score += 1 / (len(examples_idx) * (len(examples_idx) - 1)) * D
+    return score
+
+
+def centroid_diameter_distance(X, y, penalty: float = 0.05, metric: str = "euclidean",
+                               num_jobs: int = 2):
+    '''
+    The double of average distance between samples and the center of a cluster.
+    '''
+    clusters = np.unique(y)
+    score = 0
+    for cluster_idx in clusters:
+        examples_idx = np.where(y == cluster_idx)[0]
+        if len(examples_idx) <= 1:
+            score += penalty
+            continue
+        cluster_centers = X[examples_idx].sum(0) / len(examples_idx)
+        cluster_centers = cluster_centers[None, :]
+        D = pairwise_distances(X=X[examples_idx], Y=cluster_centers, metric=metric,
+                               n_jobs=num_jobs)
+        D = D / D.sum()
+        score += 2 * (D.sum() / len(examples_idx))
+    return score
+
+
+########## Intercluster -- Measuring distance between clusters. Higher values are better.
+def single_linkage_distance(X, y, metric: str = "euclidean", num_jobs: int = 2):
+    '''
+    The closest distance between two samples in clusters.
+    '''
+    num_clusters = np.unique(y).shape[0]
+    score = 0
+    for i in range(num_clusters):
+        for j in range(i + 1, num_clusters):
+            examples_i = np.where(y == i)[0]
+            examples_j = np.where(y == j)[0]
+            if len(examples_i) <= 1 or len(examples_j) <= 1:
+                continue
+            D = pairwise_distances(X=X[examples_i], Y=X[examples_j], metric=metric,
+                                   n_jobs=num_jobs)
+            D = D / D.sum(0)
+            score += D.min()
+    return score
+
+
+def maximum_linkage_distance(X, y, metric: str = "euclidean", num_jobs: int = 2):
+    '''
+    The farthest distance between two samples in clusters.
+    '''
+    num_clusters = np.unique(y).shape[0]
+    score = 0
+    for i in range(num_clusters):
+        for j in range(i + 1, num_clusters):
+            examples_i = np.where(y == i)[0]
+            examples_j = np.where(y == j)[0]
+            if len(examples_i) <= 1 or len(examples_j) <= 1:
+                continue
+            D = pairwise_distances(X=X[examples_i], Y=X[examples_j], metric=metric,
+                                   n_jobs=num_jobs)
+            D = D / D.sum(0)
+            score += D.max()
+    return score
+
+
+def average_linkage_distance(X, y, metric: str = "euclidean", num_jobs: int = 2):
+    '''
+    The average distance between all samples in clusters.
+    '''
+    num_clusters = np.unique(y).shape[0]
+    score = 0
+    for i in range(num_clusters):
+        for j in range(i + 1, num_clusters):
+            examples_i = np.where(y == i)[0]
+            examples_j = np.where(y == j)[0]
+            if len(examples_i) <= 1 or len(examples_j) <= 1:
+                continue
+            D = pairwise_distances(X=X[examples_i], Y=X[examples_j], metric=metric,
+                                   n_jobs=num_jobs)
+            D = D / D.sum(0)
+            score += D.sum() / (len(examples_i) * len(examples_j))
+    return score
+
+
+def centroid_linkage_distance(X, y, metric: str = "euclidean", num_jobs: int = 2):
+    '''
+    The distance between centers of clusters.
+    '''
+    num_clusters = np.unique(y).shape[0]
+    score = 0
+    for i in range(num_clusters):
+        for j in range(i + 1, num_clusters):
+            examples_i = np.where(y == i)[0]
+            examples_j = np.where(y == j)[0]
+            if len(examples_i) <= 1 or len(examples_j) <= 1:
+                continue
+            center_i = X[examples_i].sum(0) / len(examples_i)
+            center_i = center_i[None, :]
+            center_j = X[examples_j].sum(0) / len(examples_j)
+            center_j = center_j[None, :]
+            D = pairwise_distances(X=center_i, Y=center_j, metric=metric,
+                                   n_jobs=num_jobs)
+            score += D.flatten()[0]
+    return score
+
+
+def wards_distance(X, y):
+    '''
+    The different deviation between a group of 2 considered clusters and a 
+    "reputed" cluster joining those 2 clusters.
+    '''
+    num_clusters = np.unique(y).shape[0]
+    score = 0
+    for i in range(num_clusters):
+        for j in range(i + 1, num_clusters):
+            examples_i = np.where(y == i)[0]
+            examples_j = np.where(y == j)[0]
+            if len(examples_i) <= 1 or len(examples_j) <= 1:
+                continue
+            center_i = X[examples_i].sum(0) / len(examples_i)
+            center_j = X[examples_j].sum(0) / len(examples_j)
+            temp = (2 * len(examples_i) * len(examples_j)) / (len(examples_i) + len(examples_j))
+            if len(examples_i) <= 1 or len(examples_j) <= 1:
+                score += np.sqrt(temp * np.sum((center_i - center_j) ** 2)) * penalty
+                continue
+            score += np.sqrt(temp * np.sum((center_i - center_j) ** 2))
+    return score
+
+
+result_path = os.path.join(RESULT_PATH, "temp")
+minimum_samples = 5
+metric = "euclidean"
+num_jobs = 2
+ds_files = ["allgse412", "bc_ccgse3726", "bladdergse89", "braintumor",
+            "gastricgse2685", "glioblastoma", "leukemia_golub",
+            "lunggse1987", "lung", "mll", "srbct", "baron1", "camp1",
+            "darmanis", "li", "patel", "yan"]
+for ds_name in ds_files:
+    # Expression, classes, subtypes, donors, timepoints Files
+    expression_file_name = ds_name + "_matrix.mtx"
+    features_file_name = ds_name + "_feature_names.csv"
+    classes_file_name = ds_name + "_classes.csv"
+    subtypes_file = ds_name + "_types.csv"
+    # Load subtypes file
+    subtypes = pd.read_csv(os.path.join(DATASET_PATH, subtypes_file), sep=',').dropna(axis=1)
+    subtypes = [str(item[0]).lower() for item in subtypes.values.tolist()]
+    num_clusters = len(np.unique(subtypes))
+    # Load features, expression, and class data
+    features_name = pd.read_csv(os.path.join(DATASET_PATH, features_file_name), sep=',')
+    features_name = features_name["features"].to_list()
+    y = pd.read_csv(os.path.join(DATASET_PATH, classes_file_name), sep=',')
+    y = y["classes"].to_numpy()
+    X = sc.read_mtx(os.path.join(DATASET_PATH, expression_file_name))
+    X = X.to_df().to_numpy()
+    np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+    # Filter data
+    num_examples, num_features = X.shape
+    example_sums = np.absolute(X).sum(1)
+    examples_ids = np.where(example_sums >= 5)[0]  # filter out cells below 5
+    X = X[examples_ids]
+    y = y[examples_ids]
+    subtypes = np.array(subtypes)[examples_ids].tolist()
+    num_examples, num_features = X.shape
+    del example_sums, examples_ids
+    temp = np.absolute(X)
+    temp = (temp * 1e6) / temp.sum(axis=1).reshape((num_examples, 1))
+    temp[temp > 1] = 1
+    temp[temp != 1] = 0
+    feature_sums = temp.sum(0)
+    if num_examples <= minimum_samples or minimum_samples > num_examples // 2:
+        minimum_samples = num_examples // 2
+    feature_ids = np.where(feature_sums >= minimum_samples)[0]
+    features_name = np.array(features_name)[feature_ids].tolist()
+    X = X[:, feature_ids]
+    feature_ids = dict([(feature_idx, idx)
+                        for idx, feature_idx in enumerate(feature_ids)])
+    num_examples, num_features = X.shape
+    del temp, feature_sums
+
+    labels_true = np.unique(subtypes)
+    labels_true = dict([(item, idx) for idx, item in enumerate(labels_true)])
+    labels_true = [labels_true[item] for item in subtypes]
+    labels_true = np.array(labels_true)
+
+    list_scores = list()
+    for method, _ in methods_name.items():
+        temp_feature = ds_name + "_" + method.lower() + "_features.csv"
+        temp_cluster = ds_name + "_" + method.lower() + "_clusters.csv"
+        labels_pred = pd.read_csv(os.path.join(result_path, temp_cluster), sep=',', header=0)
+        labels_pred = labels_pred["Cluster"].to_list()
+        labels_pred = np.array(labels_pred)
+        if method != "deco":
+            selected_features = pd.read_csv(os.path.join(result_path, temp_feature), sep=',', header=None)
+            selected_features = selected_features[0].to_list()
+        else:
+            selected_features = pd.read_csv(os.path.join(result_path, temp_feature), sep=',')
+            selected_features = selected_features["features"].to_list()
+            selected_features = [features_name[feature_ids[item]] for item in selected_features]
+
+        selected_features = [idx for idx, feature in enumerate(features_name)
+                             if feature in selected_features]
+
+        intracluster_complete = complete_diameter_distance(X=X[:, selected_features], y=labels_pred,
+                                                           metric=metric, num_jobs=num_jobs)
+        intracluster_average = average_diameter_distance(X=X[:, selected_features], y=labels_pred,
+                                                         metric=metric, num_jobs=num_jobs)
+        intracluster_centroid = centroid_diameter_distance(X=X[:, selected_features], y=labels_pred,
+                                                           metric=metric, num_jobs=num_jobs)
+        intercluster_single = single_linkage_distance(X=X[:, selected_features], y=labels_pred,
+                                                      metric=metric, num_jobs=num_jobs)
+        intercluster_maximum = maximum_linkage_distance(X=X[:, selected_features], y=labels_pred,
+                                                        metric=metric, num_jobs=num_jobs)
+        intercluster_average = average_linkage_distance(X=X[:, selected_features], y=labels_pred,
+                                                        metric=metric, num_jobs=num_jobs)
+        intercluster_centroid = centroid_linkage_distance(X=X[:, selected_features], y=labels_pred,
+                                                          metric=metric, num_jobs=num_jobs)
+        intercluster_wards = wards_distance(X=X[:, selected_features], y=labels_pred)
+        silhouette = silhouette_score(X=X[:, selected_features], labels=labels_pred, metric=metric)
+        ari = adjusted_rand_score(labels_true=labels_true, labels_pred=labels_pred)
+        ami = adjusted_mutual_info_score(labels_true=labels_true, labels_pred=labels_pred)
+
+        list_scores.append([intracluster_complete, intracluster_average, intracluster_centroid,
+                            intercluster_single, intercluster_maximum, intercluster_average,
+                            intercluster_centroid, intercluster_wards, silhouette, ari, ami])
+    df = pd.DataFrame(list_scores, index=list(methods_name.values()),
+                      columns=["Complete Diameter Distance", "Average Diameter Distance", 
+                               "Centroid Diameter Distance", "Single Linkage Distance", 
+                               "Maximum Linkage Distance", "Average Linkage Distance",
+                               "Centroid Linkage Distance", "Ward's Distance", "Silhouette", 
+                               "Adjusted Rand Index", "Adjusted Mutual Info"])
+    df.to_csv(path_or_buf=os.path.join(RESULT_PATH, ds_name + "_cluster_quality.csv"),
+              sep=",")

@@ -26,7 +26,7 @@ def train(num_jobs: int = 4):
     pvalue = 0.01
     sort_by_pvalue = True
     export_spring = False
-    topKfeatures = 100
+    top_k_features = 100
     plot_topKfeatures = False
     if not sort_by_pvalue:
         plot_topKfeatures = True
@@ -96,14 +96,14 @@ def train(num_jobs: int = 4):
     if top_features_true.shape[1] > 0:
         top_features_true = top_features_true.loc[temp]
         temp = top_features_true[top_features_true["adj.P.Val"] <= pvalue]
-        if temp.shape[0] < topKfeatures:
-            temp = top_features_true[:topKfeatures - 1]
+        if temp.shape[0] < top_k_features:
+            temp = top_features_true[:top_k_features - 1]
             if sort_by_pvalue and temp.shape[0] == 0:
                 plot_topKfeatures = True
-        top_features_true = [str(feature_idx) for feature_idx in temp.index.to_list()[:topKfeatures]]
+        top_features_true = [str(feature_idx) for feature_idx in temp.index.to_list()[:top_k_features]]
     else:
         top_features_true = temp
-        topKfeatures = len(top_features_true)
+        top_k_features = len(top_features_true)
     top_features_true = [1 if feature in top_features_true else 0 for idx, feature in enumerate(features_name)]
 
     print("## Perform experimental studies using {0} data...".format(suptitle_name))
@@ -175,7 +175,7 @@ def train(num_jobs: int = 4):
         methods_dict[method_name] = temp
 
     print("## Scoring results using up/down regulated features...")
-    selected_regulated_features = topKfeatures
+    selected_regulated_features = top_k_features
     temp = np.sum(top_features_true)
     if selected_regulated_features > temp:
         selected_regulated_features = temp
@@ -199,13 +199,13 @@ def train(num_jobs: int = 4):
 
     df = pd.DataFrame(list_scores, columns=["Scores"], index=METHODS)
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_features_scores.csv"), sep=",")
-    print("## Plot barplot using the top {0} features...".format(topKfeatures))
+    print("## Plot barplot using the top {0} features...".format(top_k_features))
     plot_barplot(X=list_scores, methods_name=METHODS, metric=feature_metric, suptitle=suptitle_name,
                  file_name=file_name, save_path=RESULT_PATH)
 
     list_scores = [0]
     if plot_topKfeatures:
-        print("## Plot UMAP using the top {0} features...".format(topKfeatures))
+        print("## Plot UMAP using the top {0} features...".format(top_k_features))
     else:
         print("## Plot UMAP using the top features for each method...")
     for method_idx, item in enumerate(methods_dict.items()):
@@ -220,19 +220,18 @@ def train(num_jobs: int = 4):
                                                                     method_name), end="\r")
         if plot_topKfeatures:
             temp = [idx for idx, feature in enumerate(features_name) if
-                    feature in df['features'].tolist()[:topKfeatures]]
+                    feature in df['features'].tolist()[:top_k_features]]
             temp_feature = [feature for idx, feature in enumerate(features_name) if
-                            feature in df['features'].tolist()[:topKfeatures]]
+                            feature in df['features'].tolist()[:top_k_features]]
         else:
             temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
             temp_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
         num_features = len(temp)
-        score = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
-                          standardize=True, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,
-                          cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
-                          apply_hungarian=False, heatmap_plot=False, num_jobs=num_jobs,
-                          suptitle=suptitle_name + "\n" + method_name, file_name=file_name + "_" + save_name.lower(),
-                          save_path=RESULT_PATH)
+        scores = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
+                           standardize=True, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,
+                           cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
+                           heatmap_plot=False, num_jobs=num_jobs, suptitle=suptitle_name + "\n" + method_name,
+                           file_name=file_name + "_" + save_name.lower(), save_path=RESULT_PATH)
         df = pd.DataFrame(temp_feature, columns=["features"])
         df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_features.csv"),
                   sep=',', index=False, header=False)
@@ -241,13 +240,17 @@ def train(num_jobs: int = 4):
             df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_expression.csv"),
                       sep=",", index=False, header=False)
         del df
-        list_scores.append(score)
+        list_scores.append(scores)
 
-    df = pd.DataFrame(list_scores, columns=["Scores"], index=["All"] + METHODS)
+    columns = ["Complete Diameter Distance", "Average Diameter Distance", "Centroid Diameter Distance",
+               "Single Linkage Distance", "Maximum Linkage Distance", "Average Linkage Distance",
+               "Centroid Linkage Distance", "Ward's Distance", "Silhouette", "Adjusted Rand Index",
+               "Adjusted Mutual Info"]
+    df = pd.DataFrame(list_scores, columns=columns, index=["All"] + METHODS)
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_cluster_quality.csv"), sep=",")
 
-    print("## Plot bar plot using to demonstrate clustering accuracy...".format(topKfeatures))
-    plot_barplot(X=list_scores, methods_name=["All"] + METHODS, metric="ari",
+    print("## Plot bar plot using ARI metric...".format(top_k_features))
+    plot_barplot(X=list_scores[9], methods_name=["All"] + METHODS, metric="ari",
                  suptitle=suptitle_name, file_name=file_name, save_path=RESULT_PATH)
 
 

@@ -19,11 +19,11 @@ SEED_VALUE = 0.001
 
 class PHeT:
     def __init__(self, normalize: Optional[str] = "zscore", iqr_range: Optional[tuple] = (25, 75),
-                 num_subsamples: int = 1000,
-                 subsampling_size: int = None, partition_by_anova: bool = False, delta_type: str = "iqr",
-                 calculate_deltadisp: bool = True, calculate_deltamean: bool = False, calculate_fisher: bool = True,
-                 calculate_profile: bool = True, binary_clustering: bool = True, bin_pvalues: bool = False,
-                 feature_weight: list = None, weight_range: list = None, num_jobs: int = 2):
+                 num_subsamples: int = 1000, subsampling_size: int = None, partition_by_anova: bool = False,
+                 delta_type: str = "iqr", calculate_deltadisp: bool = True, calculate_deltamean: bool = False,
+                 calculate_fisher: bool = True, calculate_profile: bool = True, binary_clustering: bool = True,
+                 bin_pvalues: bool = False, feature_weight: list = None, weight_range: list = None,
+                 num_jobs: int = 2):
         self.normalize = normalize  # robust, zscore, or log
         self.iqr_range = iqr_range
         self.num_subsamples = num_subsamples

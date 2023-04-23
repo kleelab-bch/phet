@@ -193,12 +193,11 @@ def train(num_jobs: int = 4):
             temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
             temp_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
         num_features = len(temp)
-        score = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
-                          standardize=True, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,
-                          cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
-                          apply_hungarian=False, heatmap_plot=False, num_jobs=num_jobs,
-                          suptitle=suptitle_name + "\n" + method_name, file_name=file_name + "_" + save_name.lower(),
-                          save_path=RESULT_PATH)
+        scores = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
+                           standardize=True, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,
+                           cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
+                           heatmap_plot=False, num_jobs=num_jobs, suptitle=suptitle_name + "\n" + method_name,
+                           file_name=file_name + "_" + save_name.lower(), save_path=RESULT_PATH)
         df = pd.DataFrame(temp_feature, columns=["features"])
         df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_features.csv"),
                   sep=',', index=False, header=False)
@@ -207,9 +206,13 @@ def train(num_jobs: int = 4):
             df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_expression.csv"),
                       sep=",", index=False, header=False)
         del df
-        list_scores.append(score)
+        list_scores.append(scores)
 
-    df = pd.DataFrame(list_scores, columns=["Scores"], index=["All"] + METHODS)
+    columns = ["Complete Diameter Distance", "Average Diameter Distance", "Centroid Diameter Distance",
+               "Single Linkage Distance", "Maximum Linkage Distance", "Average Linkage Distance",
+               "Centroid Linkage Distance", "Ward's Distance", "Silhouette", "Adjusted Rand Index",
+               "Adjusted Mutual Info"]
+    df = pd.DataFrame(list_scores, columns=columns, index=["All"] + METHODS)
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_cluster_quality.csv"), sep=",")
 
 

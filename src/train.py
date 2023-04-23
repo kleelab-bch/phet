@@ -279,24 +279,19 @@ def train(args):
     list_scores = list()
     score = 0
     print("\t >> Visualize UMAP using all features ({0})...".format(num_features))
-    score = plot_umap(X=X, y=y, subtypes=subtypes, features_name=features_name,
-                      num_features=num_features, standardize=args.standardize,
-                      num_neighbors=args.num_neighbors, min_dist=args.min_dist,
-                      perform_cluster=args.perform_cluster, cluster_type=args.cluster_type,
-                      num_clusters=num_clusters, max_clusters=args.max_clusters,
-                      apply_hungarian=args.apply_hungarian, heatmap_plot=args.heatmap_plot,
-                      num_jobs=args.num_jobs, suptitle=args.suptitle_name + "\nAll",
-                      file_name=args.file_name + "_all", save_path=args.rspath)
+    score = plot_umap(X=X, y=y, subtypes=subtypes, features_name=features_name, num_features=num_features,
+                      standardize=args.standardize, num_neighbors=args.num_neighbors, min_dist=args.min_dist,
+                      perform_cluster=args.perform_cluster, cluster_type=args.cluster_type, num_clusters=num_clusters,
+                      max_clusters=args.max_clusters, heatmap_plot=args.heatmap_plot, num_jobs=args.num_jobs,
+                      suptitle=args.suptitle_name + "\nAll", file_name=args.file_name + "_all", save_path=args.rspath)
     list_scores.append(score)
     if top_features_true != -1:
         print("\t >> Visualize UMAP using marker features ({0})...".format(sum(top_features_true)))
         temp = np.where(np.array(top_features_true) == 1)[0]
-        score = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=features_name,
-                          num_features=temp.shape[0], standardize=args.standardize,
-                          num_neighbors=args.num_neighbors, min_dist=args.min_dist,
+        score = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=features_name, num_features=temp.shape[0],
+                          standardize=args.standardize, num_neighbors=args.num_neighbors, min_dist=args.min_dist,
                           perform_cluster=args.perform_cluster, cluster_type=args.cluster_type,
-                          num_clusters=num_clusters, max_clusters=args.max_clusters,
-                          apply_hungarian=args.apply_hungarian, heatmap_plot=args.heatmap_plot,
+                          num_clusters=num_clusters, max_clusters=args.max_clusters, heatmap_plot=args.heatmap_plot,
                           num_jobs=args.num_jobs, suptitle=args.suptitle_name + "\nMarkers",
                           file_name=args.file_name + "_markers", save_path=args.rspath)
         list_scores.append(score)
@@ -324,15 +319,12 @@ def train(args):
             temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
             temp_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
         num_features = len(temp)
-        score = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature,
-                          num_features=num_features, standardize=args.standardize,
-                          num_neighbors=args.num_neighbors, min_dist=args.min_dist,
+        score = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
+                          standardize=args.standardize, num_neighbors=args.num_neighbors, min_dist=args.min_dist,
                           perform_cluster=args.perform_cluster, cluster_type=args.cluster_type,
-                          num_clusters=num_clusters, max_clusters=args.max_clusters,
-                          apply_hungarian=args.apply_hungarian, heatmap_plot=args.heatmap_plot,
+                          num_clusters=num_clusters, max_clusters=args.max_clusters, heatmap_plot=args.heatmap_plot,
                           num_jobs=args.num_jobs, suptitle=args.suptitle_name + "\n" + method_name,
-                          file_name=args.file_name + "_" + save_name.lower(),
-                          save_path=args.rspath)
+                          file_name=args.file_name + "_" + save_name.lower(), save_path=args.rspath)
         df = pd.DataFrame(temp_feature, columns=["features"])
         df.to_csv(os.path.join(args.rspath, args.file_name + "_" + save_name.lower() + "_features.csv"),
                   sep=',', index=False, header=False)

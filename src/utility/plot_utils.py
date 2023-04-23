@@ -6,13 +6,11 @@ import numpy as np
 import pandas as pd
 import pyCompare
 import seaborn as sns
-from scipy.optimize import linear_sum_assignment as linear_assignment
 from scipy.stats import zscore
-from sklearn.metrics import confusion_matrix
 from sklearn.metrics import silhouette_score
-from sklearn.metrics.cluster import adjusted_rand_score
 from sklearn.preprocessing import MinMaxScaler
-from utility.utils import dimensionality_reduction, clustering
+
+from src.utility.utils import dimensionality_reduction, clustering, cluster_metrics
 
 np.seterr(divide='ignore', invalid='ignore')
 warnings.filterwarnings('ignore')
@@ -107,8 +105,8 @@ def plot_heatmap(df, file_name: str = "temp", save_path: str = "."):
 
 def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardize: bool = True, num_neighbors: int = 15,
               min_dist: float = 0, perform_cluster: bool = False, cluster_type: str = "spectral", num_clusters: int = 0,
-              max_clusters: int = 10, apply_hungarian: bool = False, heatmap_plot: bool = True, num_jobs: int = 2,
-              suptitle: str = "temp", file_name: str = "temp", save_path: str = "."):
+              max_clusters: int = 10, heatmap_plot: bool = True, num_jobs: int = 2, suptitle: str = "temp",
+              file_name: str = "temp", save_path: str = "."):
     score = 0
     # Standardize if needed
     if standardize:
@@ -128,49 +126,41 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
                      save_path=save_path)
 
     if perform_cluster:
-        y_true = np.unique(subtypes)
-        y_true = dict([(item, idx) for idx, item in enumerate(y_true)])
-        y_true = [y_true[item] for item in subtypes]
+        labels_true = np.unique(subtypes)
+        labels_true = dict([(item, idx) for idx, item in enumerate(labels_true)])
+        labels_true = [labels_true[item] for item in subtypes]
         scores_list = []
         if num_clusters == 0:
             for i in range(2, max_clusters):
-                cluster_labels = clustering(X=X, cluster_type=cluster_type, num_clusters=i, num_jobs=num_jobs,
-                                            predict=True)
-                score = silhouette_score(X, cluster_labels)
+                labels_pred = clustering(X=X_reducer, cluster_type=cluster_type, num_clusters=i,
+                                         num_jobs=num_jobs, predict=True)
+                score = silhouette_score(X, labels_pred)
                 scores_list.append(score)
             # use highest score for clusters
             temp = max(scores_list)
             num_clusters = scores_list.index(temp) + 2
-            cluster_labels = clustering(X=X, cluster_type=cluster_type, num_clusters=num_clusters,
-                                        num_jobs=num_jobs, predict=True)
+            labels_pred = clustering(X=X_reducer, cluster_type=cluster_type, num_clusters=num_clusters,
+                                     num_jobs=num_jobs, predict=True)
         else:
-            cluster_labels = clustering(X=X, cluster_type=cluster_type, num_clusters=num_clusters,
-                                        num_jobs=num_jobs, predict=True)
-        df = pd.DataFrame(cluster_labels, columns=["Cluster"])
+            labels_pred = clustering(X=X_reducer, cluster_type=cluster_type, num_clusters=num_clusters,
+                                     num_jobs=num_jobs, predict=True)
+        df = pd.DataFrame(labels_pred, columns=["Cluster"])
         df.to_csv(os.path.join(save_path, file_name + "_clusters.csv"), sep=',')
 
         # Plot scatter 
-        plot_scatter(X=X_reducer, y=cluster_labels, num_features=num_features, legend_title="Cluster",
+        plot_scatter(X=X_reducer, y=labels_pred, num_features=num_features, legend_title="Cluster",
                      suptitle=suptitle, file_name=file_name + "_clusters_umap.png", save_path=save_path)
 
         if subtypes is not None:
-            if apply_hungarian:
-                # Match cluster labels to true labels
-                cm = confusion_matrix(y_true=y_true, y_pred=cluster_labels)
-                # Permutation maximizing the sum of the diagonal elements using the Hungarian algorithm
-                indexes = linear_assignment(make_cost_m(cm))
-                js = [e[1] for e in sorted(indexes, key=lambda x: x[0])]
-                cm = cm[:, js]
-                score = np.trace(cm) / np.sum(cm)
+            labels_true = np.array(labels_true)
+            labels_pred = np.array(labels_pred)
+            list_scores = cluster_metrics(X=X, labels_true=labels_true, labels_pred=labels_pred, num_jobs=num_jobs)
+            temp = np.unique(labels_pred).shape[0]
+            if temp > np.unique(labels_true).shape[0]:
+                temp = np.unique(labels_true).shape[0] / temp
             else:
-                score = adjusted_rand_score(labels_true=y_true, labels_pred=cluster_labels)
-                # score = adjusted_mutual_info_score(labels_true=y_true, labels_pred=cluster_labels)
-                temp = np.unique(cluster_labels).shape[0]
-                if temp > np.unique(y_true).shape[0]:
-                    temp = np.unique(y_true).shape[0] / temp
-                else:
-                    temp /= np.unique(y_true).shape[0]
-                score = score * temp
+                temp /= np.unique(labels_true).shape[0]
+            list_scores = [score * temp for score in list_scores]
 
     if heatmap_plot and perform_cluster:
         # print heatmap if true
@@ -178,13 +168,13 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
         scaler.fit(X)
         df = pd.DataFrame(scaler.transform(X))
         df.columns = features_name
-        df['cluster'] = cluster_labels
+        df['cluster'] = labels_pred
         df = df.groupby('cluster').mean()
         if df.shape[1] > 2:
             plot_heatmap(df, file_name=file_name + "_heatmap.png", save_path=save_path)
 
     if perform_cluster and subtypes is not None:
-        return score
+        return list_scores
 
 
 def plot_boxplot(X, y, features_name, num_features: int, standardize: bool = False, swarmplot: bool = False):

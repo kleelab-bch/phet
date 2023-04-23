@@ -11,7 +11,11 @@ from sklearn.cluster import SpectralCoclustering
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.metrics import jaccard_score, f1_score, roc_auc_score
+from sklearn.metrics import pairwise_distances
 from sklearn.metrics import precision_score, accuracy_score
+from sklearn.metrics import silhouette_score
+from sklearn.metrics.cluster import adjusted_mutual_info_score
+from sklearn.metrics.cluster import adjusted_rand_score
 from sklearn.mixture import GaussianMixture
 
 np.seterr(divide='ignore', invalid='ignore')
@@ -197,3 +201,198 @@ def outliers_analysis(X, y, outliers: list, true_changed_features: list, pred_ch
                 if outlier_idx in temp:
                     total_outliers += 1
     return total_outliers
+
+
+##############################################################
+########### Intracluster and Intercluster metrics ############
+##############################################################
+# Intracluster -- Measuring distance between points in a cluster. 
+# Lower values represetn densely packed clusters.
+def complete_diameter_distance(X, y, metric: str = "euclidean",
+                               num_jobs: int = 2):
+    '''
+    The farthest distance between two samples in a cluster.
+    '''
+    clusters = np.unique(y)
+    score = 0
+    for cluster_idx in clusters:
+        examples_idx = np.where(y == cluster_idx)[0]
+        if len(examples_idx) <= 1:
+            continue
+        D = pairwise_distances(X=X[examples_idx], metric=metric, n_jobs=num_jobs)
+        D = D / D.sum(0)
+        score += D.max()
+    return score
+
+
+def average_diameter_distance(X, y, metric: str = "euclidean",
+                              num_jobs: int = 2):
+    '''
+    The average distance between all samples in a cluster.
+    '''
+    clusters = np.unique(y)
+    score = 0
+    for cluster_idx in clusters:
+        examples_idx = np.where(y == cluster_idx)[0]
+        if len(examples_idx) <= 1:
+            continue
+        D = pairwise_distances(X=X[examples_idx], metric=metric, n_jobs=num_jobs)
+        D = D / D.sum(0)
+        D = np.triu(D).sum()
+        score += 1 / (len(examples_idx) * (len(examples_idx) - 1)) * D
+    return score
+
+
+def centroid_diameter_distance(X, y, metric: str = "euclidean",
+                               num_jobs: int = 2):
+    '''
+    The double of average distance between samples and the center of a cluster.
+    '''
+    clusters = np.unique(y)
+    score = 0
+    for cluster_idx in clusters:
+        examples_idx = np.where(y == cluster_idx)[0]
+        if len(examples_idx) <= 1:
+            continue
+        cluster_centers = X[examples_idx].sum(0) / len(examples_idx)
+        cluster_centers = cluster_centers[None, :]
+        D = pairwise_distances(X=X[examples_idx], Y=cluster_centers, metric=metric,
+                               n_jobs=num_jobs)
+        D = D / D.sum()
+        score += 2 * (D.sum() / len(examples_idx))
+    return score
+
+
+# Intercluster: measuring distance between clusters. Higher
+# values entail clusters are located farther apart.
+def single_linkage_distance(X, y, metric: str = "euclidean", num_jobs: int = 2):
+    '''
+    The closest distance between two samples in clusters.
+    '''
+    num_clusters = np.unique(y).shape[0]
+    score = 0
+    for i in range(num_clusters):
+        for j in range(i + 1, num_clusters):
+            examples_i = np.where(y == i)[0]
+            examples_j = np.where(y == j)[0]
+            if len(examples_i) <= 1 or len(examples_j) <= 1:
+                continue
+            D = pairwise_distances(X=X[examples_i], Y=X[examples_j], metric=metric,
+                                   n_jobs=num_jobs)
+            D = D / D.sum(0)
+            score += D.min()
+    return score
+
+
+def maximum_linkage_distance(X, y, metric: str = "euclidean", num_jobs: int = 2):
+    '''
+    The farthest distance between two samples in clusters.
+    '''
+    num_clusters = np.unique(y).shape[0]
+    score = 0
+    for i in range(num_clusters):
+        for j in range(i + 1, num_clusters):
+            examples_i = np.where(y == i)[0]
+            examples_j = np.where(y == j)[0]
+            if len(examples_i) <= 1 or len(examples_j) <= 1:
+                continue
+            D = pairwise_distances(X=X[examples_i], Y=X[examples_j], metric=metric,
+                                   n_jobs=num_jobs)
+            D = D / D.sum(0)
+            score += D.max()
+    return score
+
+
+def average_linkage_distance(X, y, metric: str = "euclidean", num_jobs: int = 2):
+    '''
+    The average distance between all samples in clusters.
+    '''
+    num_clusters = np.unique(y).shape[0]
+    score = 0
+    for i in range(num_clusters):
+        for j in range(i + 1, num_clusters):
+            examples_i = np.where(y == i)[0]
+            examples_j = np.where(y == j)[0]
+            if len(examples_i) <= 1 or len(examples_j) <= 1:
+                continue
+            D = pairwise_distances(X=X[examples_i], Y=X[examples_j], metric=metric,
+                                   n_jobs=num_jobs)
+            D = D / D.sum(0)
+            score += D.sum() / (len(examples_i) * len(examples_j))
+    return score
+
+
+def centroid_linkage_distance(X, y, metric: str = "euclidean", num_jobs: int = 2):
+    '''
+    Average distance between centers of clusters.
+    '''
+    num_clusters = np.unique(y).shape[0]
+    score = list()
+    for i in range(num_clusters):
+        for j in range(i + 1, num_clusters):
+            examples_i = np.where(y == i)[0]
+            examples_j = np.where(y == j)[0]
+            if len(examples_i) <= 1 or len(examples_j) <= 1:
+                continue
+            center_i = X[examples_i].sum(0) / len(examples_i)
+            center_i = center_i[None, :]
+            center_j = X[examples_j].sum(0) / len(examples_j)
+            center_j = center_j[None, :]
+            D = pairwise_distances(X=center_i, Y=center_j, metric=metric,
+                                   n_jobs=num_jobs)
+            score.append(D.flatten()[0])
+    score = np.array(score) / np.sum(score)
+    score = np.average(score)
+    return score
+
+
+def wards_distance(X, y):
+    '''
+    Average different deviation between a group of 2 considered clusters and a
+    "reputed" cluster joining those 2 clusters.
+    '''
+    num_clusters = np.unique(y).shape[0]
+    score = list()
+    for i in range(num_clusters):
+        for j in range(i + 1, num_clusters):
+            examples_i = np.where(y == i)[0]
+            examples_j = np.where(y == j)[0]
+            if len(examples_i) <= 1 or len(examples_j) <= 1:
+                continue
+            center_i = X[examples_i].sum(0) / len(examples_i)
+            center_j = X[examples_j].sum(0) / len(examples_j)
+            temp = (2 * len(examples_i) * len(examples_j)) / (len(examples_i) + len(examples_j))
+            if len(examples_i) <= 1 or len(examples_j) <= 1:
+                score += np.sqrt(temp * np.sum((center_i - center_j) ** 2))
+                continue
+            score.append(np.sqrt(temp * np.sum((center_i - center_j) ** 2)))
+    score = np.array(score) / np.sum(score)
+    score = np.average(score)
+    return score
+
+
+def cluster_metrics(X, labels_true, labels_pred, metric: str = "euclidean", num_jobs: int = 2):
+    intra_complete = complete_diameter_distance(X=X, y=labels_pred, metric=metric,
+                                                num_jobs=num_jobs)
+    intra_average = average_diameter_distance(X=X, y=labels_pred, metric=metric,
+                                              num_jobs=num_jobs)
+    intra_centroid = centroid_diameter_distance(X=X, y=labels_pred, metric=metric,
+                                                num_jobs=num_jobs)
+
+    inter_single = single_linkage_distance(X=X, y=labels_pred, metric=metric,
+                                           num_jobs=num_jobs)
+    inter_maximum = maximum_linkage_distance(X=X, y=labels_pred, metric=metric,
+                                             num_jobs=num_jobs)
+    inter_average = average_linkage_distance(X=X, y=labels_pred, metric=metric,
+                                             num_jobs=num_jobs)
+    inter_centroid = centroid_linkage_distance(X=X, y=labels_pred, metric=metric,
+                                               num_jobs=num_jobs)
+    wards = wards_distance(X=X, y=labels_pred)
+    silhouette = silhouette_score(X=X, labels=labels_pred, metric=metric)
+    ari = adjusted_rand_score(labels_true=labels_true, labels_pred=labels_pred)
+    ami = adjusted_mutual_info_score(labels_true=labels_true, labels_pred=labels_pred)
+
+    list_scores = [intra_complete, intra_average, intra_centroid, inter_single,
+                   inter_maximum, inter_average, inter_centroid, wards, silhouette,
+                   ari, ami]
+    return list_scores
