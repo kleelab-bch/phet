@@ -39,10 +39,10 @@ def train(num_jobs: int = 4):
 
     # Models parameters
     direction = "both"
-    hvf_log_transform = True
-    hvf_normalize = None
-    if hvf_log_transform:
-        hvf_normalize = "log"
+    log_transform = False
+    phet_hvf_normalize = None
+    if log_transform:
+        phet_hvf_normalize = "log"
     methods_save_name = ["ttest_p", "ttest_g", "wilcoxon_p", "wilcoxon_g", "limma_p", "limma_g", "hvf_a",
                          "hvf_c", "deltahvf", "deltahvfmean", "iqr_a", "iqr_c", "deltaiqr", "deltaiqrmean",
                          "copa", "os", "ort", "most", "lsoss", "dids", "deco", "phet_bh", "phet_br"]
@@ -56,11 +56,11 @@ def train(num_jobs: int = 4):
     num_neighbors = 5
     max_clusters = 10
     feature_metric = "f1"
-    cluster_type = "kmeans"
+    cluster_type = "spectral"
 
     # Descriptions of the data
-    file_name = "yan"
-    suptitle_name = "Yan"
+    file_name = "baron1"
+    suptitle_name = "Baron"
 
     # Expression, classes, subtypes, donors, timepoints files
     expression_file_name = file_name + "_matrix.mtx"
@@ -191,7 +191,7 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[6]), end="\r")
-    estimator = SeuratHVF(per_condition=False, log_transform=hvf_log_transform,
+    estimator = SeuratHVF(per_condition=False, log_transform=log_transform,
                           num_top_features=num_features, min_disp=0.5,
                           min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)
@@ -202,7 +202,7 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[7]), end="\r")
-    estimator = SeuratHVF(per_condition=True, log_transform=hvf_log_transform,
+    estimator = SeuratHVF(per_condition=True, log_transform=log_transform,
                           num_top_features=num_features, min_disp=0.5,
                           min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)
@@ -213,7 +213,7 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[8]), end="\r")
-    estimator = DeltaHVFMean(calculate_deltamean=False, log_transform=hvf_log_transform,
+    estimator = DeltaHVFMean(calculate_deltamean=False, log_transform=log_transform,
                              num_top_features=num_features, min_disp=0.5,
                              min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)
@@ -224,7 +224,7 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[9]), end="\r")
-    estimator = DeltaHVFMean(calculate_deltamean=True, log_transform=hvf_log_transform,
+    estimator = DeltaHVFMean(calculate_deltamean=True, log_transform=log_transform,
                              num_top_features=num_features, min_disp=0.5,
                              min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)
@@ -313,7 +313,7 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[21]), end="\r")
-    estimator = PHeT(normalize=hvf_normalize, iqr_range=(25, 75), num_subsamples=1000, delta_type="hvf",
+    estimator = PHeT(normalize=phet_hvf_normalize, iqr_range=(25, 75), num_subsamples=1000, delta_type="hvf",
                      calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
                      calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
                      weight_range=[0.2, 0.4, 0.8])
@@ -357,10 +357,10 @@ def train(num_jobs: int = 4):
     list_scores = list()
     for method_idx, item in enumerate(methods_dict.items()):
         if method_idx + 1 == len(METHODS):
-            print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format(((method_idx + 1) / len(METHODS)) * 100,
+            print("\t >> Progress: {0:.4f}%; Method: {1:30}".format(((method_idx + 1) / len(METHODS)) * 100,
                                                                       METHODS[method_idx]))
         else:
-            print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((method_idx / len(METHODS)) * 100,
+            print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((method_idx / len(METHODS)) * 100,
                                                                       METHODS[method_idx]), end="\r")
         method_name, df = item
         temp = [idx for idx, feature in enumerate(features_name)
@@ -432,7 +432,7 @@ def train(num_jobs: int = 4):
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_cluster_quality.csv"), sep=",")
 
     print("## Plot bar plot using ARI metric...".format(top_k_features))
-    plot_barplot(X=list_scores[9], methods_name=["All"] + METHODS, metric="ari",
+    plot_barplot(X=np.array(list_scores)[:, 9], methods_name=["All"] + METHODS, metric="ari",
                  suptitle=suptitle_name, file_name=file_name, save_path=RESULT_PATH)
 
 

@@ -220,7 +220,7 @@ def complete_diameter_distance(X, y, metric: str = "euclidean",
         if len(examples_idx) <= 1:
             continue
         D = pairwise_distances(X=X[examples_idx], metric=metric, n_jobs=num_jobs)
-        D = D / D.sum(0)
+        D = D / np.linalg.norm(D, axis=0)
         score += D.max()
     return score
 
@@ -237,7 +237,7 @@ def average_diameter_distance(X, y, metric: str = "euclidean",
         if len(examples_idx) <= 1:
             continue
         D = pairwise_distances(X=X[examples_idx], metric=metric, n_jobs=num_jobs)
-        D = D / D.sum(0)
+        D = D / np.linalg.norm(D, axis=0)
         D = np.triu(D).sum()
         score += 1 / (len(examples_idx) * (len(examples_idx) - 1)) * D
     return score
@@ -258,7 +258,7 @@ def centroid_diameter_distance(X, y, metric: str = "euclidean",
         cluster_centers = cluster_centers[None, :]
         D = pairwise_distances(X=X[examples_idx], Y=cluster_centers, metric=metric,
                                n_jobs=num_jobs)
-        D = D / D.sum()
+        D = D / np.linalg.norm(D, axis=0)
         score += 2 * (D.sum() / len(examples_idx))
     return score
 
@@ -279,7 +279,7 @@ def single_linkage_distance(X, y, metric: str = "euclidean", num_jobs: int = 2):
                 continue
             D = pairwise_distances(X=X[examples_i], Y=X[examples_j], metric=metric,
                                    n_jobs=num_jobs)
-            D = D / D.sum(0)
+            D = D / np.linalg.norm(D, axis=0)
             score += D.min()
     return score
 
@@ -298,7 +298,7 @@ def maximum_linkage_distance(X, y, metric: str = "euclidean", num_jobs: int = 2)
                 continue
             D = pairwise_distances(X=X[examples_i], Y=X[examples_j], metric=metric,
                                    n_jobs=num_jobs)
-            D = D / D.sum(0)
+            D = D / np.linalg.norm(D, axis=0)
             score += D.max()
     return score
 
@@ -317,14 +317,14 @@ def average_linkage_distance(X, y, metric: str = "euclidean", num_jobs: int = 2)
                 continue
             D = pairwise_distances(X=X[examples_i], Y=X[examples_j], metric=metric,
                                    n_jobs=num_jobs)
-            D = D / D.sum(0)
+            D = D / np.linalg.norm(D, axis=0)
             score += D.sum() / (len(examples_i) * len(examples_j))
     return score
 
 
 def centroid_linkage_distance(X, y, metric: str = "euclidean", num_jobs: int = 2):
     '''
-    Average distance between centers of clusters.
+    The distance between centers of clusters.
     '''
     num_clusters = np.unique(y).shape[0]
     score = list()
@@ -341,14 +341,15 @@ def centroid_linkage_distance(X, y, metric: str = "euclidean", num_jobs: int = 2
             D = pairwise_distances(X=center_i, Y=center_j, metric=metric,
                                    n_jobs=num_jobs)
             score.append(D.flatten()[0])
-    score = np.array(score) / np.sum(score)
+    score = np.array(score)
+    score = score / np.linalg.norm(score)
     score = np.average(score)
     return score
 
 
 def wards_distance(X, y):
     '''
-    Average different deviation between a group of 2 considered clusters and a
+    The different deviation between a group of 2 considered clusters and a
     "reputed" cluster joining those 2 clusters.
     '''
     num_clusters = np.unique(y).shape[0]
@@ -363,10 +364,10 @@ def wards_distance(X, y):
             center_j = X[examples_j].sum(0) / len(examples_j)
             temp = (2 * len(examples_i) * len(examples_j)) / (len(examples_i) + len(examples_j))
             if len(examples_i) <= 1 or len(examples_j) <= 1:
-                score += np.sqrt(temp * np.sum((center_i - center_j) ** 2))
                 continue
             score.append(np.sqrt(temp * np.sum((center_i - center_j) ** 2)))
-    score = np.array(score) / np.sum(score)
+    score = np.array(score)
+    score = score / np.linalg.norm(score)
     score = np.average(score)
     return score
 

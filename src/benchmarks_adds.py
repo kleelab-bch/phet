@@ -268,10 +268,10 @@ def train(num_jobs: int = 4):
     list_scores = list()
     for method_idx, item in enumerate(methods_dict.items()):
         if method_idx + 1 == len(METHODS):
-            print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format(((method_idx + 1) / len(METHODS)) * 100,
+            print("\t >> Progress: {0:.4f}%; Method: {1:30}".format(((method_idx + 1) / len(METHODS)) * 100,
                                                                       METHODS[method_idx]))
         else:
-            print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((method_idx / len(METHODS)) * 100,
+            print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((method_idx / len(METHODS)) * 100,
                                                                       METHODS[method_idx]), end="\r")
         method_name, df = item
         temp = [idx for idx, feature in enumerate(features_name)
@@ -335,7 +335,7 @@ def train(num_jobs: int = 4):
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_cluster_quality.csv"), sep=",")
 
     print("## Plot bar plot using ARI metric...".format(top_k_features))
-    plot_barplot(X=list_scores[9], methods_name=["All"] + METHODS, metric="ari",
+    plot_barplot(X=np.array(list_scores)[:, 9], methods_name=["All"] + METHODS, metric="ari",
                  suptitle=suptitle_name, file_name=file_name, save_path=RESULT_PATH)
 
 

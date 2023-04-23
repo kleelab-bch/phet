@@ -108,7 +108,7 @@ ax.legend(title="Methods", title_fontsize=30, fontsize=26, ncol=5,
 ##############################################################
 ######################### Benchmarks #########################
 ##############################################################
-result_path = os.path.join(RESULT_PATH, "scRNA")
+result_path = os.path.join(RESULT_PATH, "microarray")
 suptitle = "6 single cell RNA-seq datasets"
 # suptitle = "11 microarray gene expression datasets"
 
@@ -219,7 +219,7 @@ scores = list()
 ds_names = list()
 for idx, f in enumerate(files):
     df = pd.read_csv(os.path.join(result_path, f), sep=',')
-    scores.extend(df.loc[1:]["Scores"].to_numpy())
+    scores.extend(df.loc[1:]["Adjusted Rand Index"].to_numpy())
     methods.extend(df.iloc[1:, 0].to_list())
     ds_names.extend(len(df.iloc[1:, 0].to_list()) * [data_names[idx]])
 df_ari = pd.DataFrame([methods, scores, ds_names]).T
