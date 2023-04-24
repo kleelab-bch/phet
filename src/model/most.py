@@ -81,10 +81,12 @@ class MOST:
                     N[feature_idx, sample_idx - 2] /= scale[feature_idx]
             del control_X, n_control, scale, loc
             np.nan_to_num(N, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
-            
+
         if self.direction == "both" or self.direction == "down":
             results = np.max(np.c_[M, N], axis=1)
         else:
             results = np.max(M, axis=1)
-        results = np.reshape(results, (temp.shape[0], 1))
+        results[results < 0] = 0
+        results += 0.05
+        results = np.reshape(results, (results.shape[0], 1))
         return results

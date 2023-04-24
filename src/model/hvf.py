@@ -50,6 +50,8 @@ class SeuratHVF:
             features_idx = adata.var["highly_variable"]
             results[features_idx] = np.absolute(adata.var[features_idx]["dispersions_norm"])
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+        results[results < 0] = 0
+        results += 0.05
         results = np.reshape(results, (results.shape[0], 1))
         return results
 
@@ -90,5 +92,7 @@ class HIQR:
             for feature_idx in range(num_features):
                 results[feature_idx] = iqr(X[:, feature_idx], rng=self.iqr_range, scale=1.0)
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+        results[results < 0] = 0
+        results += 0.05
         results = np.reshape(results, (results.shape[0], 1))
         return results

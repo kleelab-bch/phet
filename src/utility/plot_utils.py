@@ -153,7 +153,7 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
         if subtypes is not None:
             labels_true = np.array(labels_true)
             labels_pred = np.array(labels_pred)
-            list_scores = cluster_metrics(X=X, labels_true=labels_true, labels_pred=labels_pred,
+            list_scores = cluster_metrics(X=X_reducer, labels_true=labels_true, labels_pred=labels_pred,
                                           num_jobs=num_jobs)
             temp = np.unique(labels_pred).shape[0]
             if temp > np.unique(labels_true).shape[0]:
