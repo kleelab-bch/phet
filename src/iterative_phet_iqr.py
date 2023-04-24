@@ -27,11 +27,12 @@ def train(num_jobs: int = 4):
     # Models parameters
     methods_save_name = ["PHet_br"]
     cluster_type = "kmeans"
-    ari_threshold = 0.8
+    ari_threshold = 0.85
+    num_epochs = 50
 
     # descriptions of the data
-    file_name = "yan"
-    suptitle_name = "Yan"
+    file_name = "patel"
+    suptitle_name = "Patel"
     control_name = "0"
     case_name = "1"
 
@@ -126,16 +127,21 @@ def train(num_jobs: int = 4):
     list_scores = []
     ari_score = 0.0
     f1_score = 0.0
-    current_progress = 1
-    while ari_score < ari_threshold:
-        print("\t >> Count progress: {0}; ARI: {1}; F1: {2}".format(current_progress,
-                                                                    ari_score, f1_score), end="\r")
+    optimum_ari = 0.0
+    optimum_f1 = 0.0
+    epoch = 1
+    while ari_score < ari_threshold and epoch <= num_epochs:
+        print("\t >> Epoch: {0}; ARI: {1:.4f} ({2:.4f}); F1: {3:.4f} ({4:.4f})".format(epoch,
+                                                                                       ari_score,
+                                                                                       optimum_ari,
+                                                                                       f1_score,
+                                                                                       optimum_f1), end="\r")
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, delta_type="iqr",
                          calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
                          calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
                          weight_range=[0.2, 0.4, 0.8])
         df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-        current_progress += 1
+        epoch += 1
         method_name = METHODS[0]
         save_name = methods_save_name[0]
         temp = significant_features(X=df, features_name=features_name, pvalue=pvalue,
@@ -147,6 +153,8 @@ def train(num_jobs: int = 4):
         top_features_pred[temp] = 1
         f1_score = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
                                      metric=feature_metric)
+        if f1_score > optimum_f1:
+            optimum_f1 = f1_score
         temp = np.copy(y)
         temp = temp.astype(str)
         temp[np.where(y == 0)[0]] = control_name
@@ -163,6 +171,8 @@ def train(num_jobs: int = 4):
                                 suptitle=suptitle_name + "\n" + method_name,
                                 file_name=file_name + "_" + save_name.lower(), save_path=RESULT_PATH)
         ari_score = list_scores[9]
+        if ari_score > optimum_ari:
+            optimum_ari = ari_score
         df = pd.DataFrame(temp_feature, columns=["features"])
         df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_features.csv"),
                   sep=',', index=False, header=False)
@@ -173,7 +183,7 @@ def train(num_jobs: int = 4):
                "Single Linkage Distance", "Maximum Linkage Distance", "Average Linkage Distance",
                "Centroid Linkage Distance", "Ward's Distance", "Silhouette", "Adjusted Rand Index",
                "Adjusted Mutual Info"]
-    df = pd.DataFrame(list_scores, columns=columns, index=["All"] + METHODS)
+    df = pd.DataFrame(np.array(list_scores)[None, :], columns=columns, index=METHODS)
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_cluster_quality.csv"), sep=",")
 
 

@@ -167,7 +167,7 @@ def train(args):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             METHODS[2]), end="\r")
-    estimator = OutlierSumStatistic(q=args.q, iqr_range=args.iqr_range, two_sided_test=args.two_sided_test)
+    estimator = OutlierSumStatistic(q=args.q, iqr_range=args.iqr_range, two_sided_test=args.direction)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({METHODS[2]: df})
     current_progress += 1
@@ -181,7 +181,7 @@ def train(args):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:20}".format((current_progress / total_progress) * 100,
                                                             METHODS[4]), end="\r")
-    estimator = MOST(k=args.k)
+    estimator = MOST()
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({METHODS[4]: df})
     current_progress += 1

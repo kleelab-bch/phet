@@ -131,17 +131,17 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
         scores_list = []
         if num_clusters == 0:
             for i in range(2, max_clusters):
-                labels_pred = clustering(X=X_reducer, cluster_type=cluster_type, num_clusters=i,
+                labels_pred = clustering(X=X, cluster_type=cluster_type, num_clusters=i,
                                          num_jobs=num_jobs, predict=True)
                 score = silhouette_score(X, labels_pred)
                 scores_list.append(score)
             # use highest score for clusters
             temp = max(scores_list)
             num_clusters = scores_list.index(temp) + 2
-            labels_pred = clustering(X=X_reducer, cluster_type=cluster_type, num_clusters=num_clusters,
+            labels_pred = clustering(X=X, cluster_type=cluster_type, num_clusters=num_clusters,
                                      num_jobs=num_jobs, predict=True)
         else:
-            labels_pred = clustering(X=X_reducer, cluster_type=cluster_type, num_clusters=num_clusters,
+            labels_pred = clustering(X=X, cluster_type=cluster_type, num_clusters=num_clusters,
                                      num_jobs=num_jobs, predict=True)
         df = pd.DataFrame(labels_pred, columns=["Cluster"])
         df.to_csv(os.path.join(save_path, file_name + "_clusters.csv"), sep=',')
@@ -153,7 +153,7 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
         if subtypes is not None:
             labels_true = np.array(labels_true)
             labels_pred = np.array(labels_pred)
-            list_scores = cluster_metrics(X=X_reducer, labels_true=labels_true, labels_pred=labels_pred, 
+            list_scores = cluster_metrics(X=X, labels_true=labels_true, labels_pred=labels_pred,
                                           num_jobs=num_jobs)
             temp = np.unique(labels_pred).shape[0]
             if temp > np.unique(labels_true).shape[0]:

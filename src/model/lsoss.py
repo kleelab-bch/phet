@@ -12,7 +12,7 @@ import numpy as np
 
 class LSOSS:
     def __init__(self, direction: str = "both"):
-        self.direction = direction  # up, down, both
+        self.direction = direction
 
     def fit_predict(self, X, y, control_class: int = 0, case_class: int = 1):
         # Sanity checking
@@ -70,7 +70,7 @@ class LSOSS:
             # expression in case samples is computed
             results[feature_idx] = k * ((mean1 - mean_control[feature_idx]) / SE)
 
-            if self.direction == "both":
+            if self.direction == "both" or self.direction == "down":
                 results[feature_idx] += (m - k) * ((mean2 - mean_control[feature_idx]) / SE)
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
         results = np.reshape(results, (results.shape[0], 1))

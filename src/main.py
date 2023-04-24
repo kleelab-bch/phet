@@ -67,7 +67,7 @@ def __internal_args(parse_args):
     args.direction = parse_args.direction
     args.permutation_test = parse_args.permutation_test
     # for OutlierSumStatistic
-    args.two_sided_test = parse_args.two_sided_test
+    args.two_sided_test = parse_args.direction
     # for MOST
     args.k = parse_args.k
     # for DIDS

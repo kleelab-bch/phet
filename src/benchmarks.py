@@ -39,7 +39,7 @@ def train(num_jobs: int = 4):
 
     # Models parameters
     direction = "both"
-    log_transform = False
+    log_transform = True
     phet_hvf_normalize = None
     if log_transform:
         phet_hvf_normalize = "log"
@@ -56,11 +56,11 @@ def train(num_jobs: int = 4):
     num_neighbors = 5
     max_clusters = 10
     feature_metric = "f1"
-    cluster_type = "spectral"
+    cluster_type = "kmeans"
 
     # Descriptions of the data
-    file_name = "baron1"
-    suptitle_name = "Baron"
+    file_name = "allgse412"
+    suptitle_name = "GSE412"
 
     # Expression, classes, subtypes, donors, timepoints files
     expression_file_name = file_name + "_matrix.mtx"
@@ -284,7 +284,7 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[17]), end="\r")
-    estimator = MOST()
+    estimator = MOST(direction=direction)
     df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({METHODS[17]: df})
     current_progress += 1
@@ -358,10 +358,10 @@ def train(num_jobs: int = 4):
     for method_idx, item in enumerate(methods_dict.items()):
         if method_idx + 1 == len(METHODS):
             print("\t >> Progress: {0:.4f}%; Method: {1:30}".format(((method_idx + 1) / len(METHODS)) * 100,
-                                                                      METHODS[method_idx]))
+                                                                    METHODS[method_idx]))
         else:
             print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((method_idx / len(METHODS)) * 100,
-                                                                      METHODS[method_idx]), end="\r")
+                                                                    METHODS[method_idx]), end="\r")
         method_name, df = item
         temp = [idx for idx, feature in enumerate(features_name)
                 if feature in df['features'][:selected_regulated_features].tolist()]

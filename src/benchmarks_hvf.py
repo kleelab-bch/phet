@@ -184,10 +184,10 @@ def train(num_jobs: int = 4):
     for method_idx, item in enumerate(methods_dict.items()):
         if method_idx + 1 == len(METHODS):
             print("\t >> Progress: {0:.4f}%; Method: {1:30}".format(((method_idx + 1) / len(METHODS)) * 100,
-                                                                      METHODS[method_idx]))
+                                                                    METHODS[method_idx]))
         else:
             print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((method_idx / len(METHODS)) * 100,
-                                                                      METHODS[method_idx]), end="\r")
+                                                                    METHODS[method_idx]), end="\r")
         method_name, df = item
         temp = [idx for idx, feature in enumerate(features_name)
                 if feature in df['features'][:selected_regulated_features].tolist()]

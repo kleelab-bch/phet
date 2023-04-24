@@ -108,7 +108,7 @@ ax.legend(title="Methods", title_fontsize=30, fontsize=26, ncol=5,
 ##############################################################
 ######################### Benchmarks #########################
 ##############################################################
-result_path = os.path.join(RESULT_PATH, "microarray")
+result_path = os.path.join(RESULT_PATH, "scRNA")
 suptitle = "6 single cell RNA-seq datasets"
 # suptitle = "11 microarray gene expression datasets"
 
@@ -123,8 +123,8 @@ files = [f for f in os.listdir(result_path) if f.endswith("_features_scores.csv"
 feature_files = sorted([f for f in os.listdir(result_path) if f.endswith("_deco_features.csv")])
 deco_features = list()
 for f in feature_files:
-    df = pd.read_csv(os.path.join(result_path, f), sep=',')
-    deco_features.append(len(df["features"].to_list()))
+    df = pd.read_csv(os.path.join(result_path, f), sep=',', header=None)
+    deco_features.append(len(df[0].values.tolist()))
 
 # Collect features scores
 methods = list()
@@ -673,10 +673,10 @@ for ds_name in ds_files:
                             intercluster_single, intercluster_maximum, intercluster_average,
                             intercluster_centroid, intercluster_wards, silhouette, ari, ami])
     df = pd.DataFrame(list_scores, index=list(methods_name.values()),
-                      columns=["Complete Diameter Distance", "Average Diameter Distance", 
-                               "Centroid Diameter Distance", "Single Linkage Distance", 
+                      columns=["Complete Diameter Distance", "Average Diameter Distance",
+                               "Centroid Diameter Distance", "Single Linkage Distance",
                                "Maximum Linkage Distance", "Average Linkage Distance",
-                               "Centroid Linkage Distance", "Ward's Distance", "Silhouette", 
+                               "Centroid Linkage Distance", "Ward's Distance", "Silhouette",
                                "Adjusted Rand Index", "Adjusted Mutual Info"])
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, ds_name + "_cluster_quality.csv"),
               sep=",")
