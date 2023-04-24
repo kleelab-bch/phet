@@ -59,7 +59,7 @@ def train(num_jobs: int = 4):
     cluster_type = "kmeans"
 
     # Descriptions of the data
-    file_name = "allgse412"
+    file_name = "lunggse1987"
     suptitle_name = "GSE412"
 
     # Expression, classes, subtypes, donors, timepoints files

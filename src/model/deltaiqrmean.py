@@ -60,11 +60,17 @@ class DeltaIQRMean:
                     examples_j = np.where(y == j)[0]
                     iqr1 = iqr(X[examples_i, feature_idx], rng=self.iqr_range, scale=1.0)
                     iqr2 = iqr(X[examples_j, feature_idx], rng=self.iqr_range, scale=1.0)
+                    temp_iqr = iqr1 - iqr2
+                    if np.isnan(temp_iqr):
+                        temp_iqr = 0
                     mean1 = np.mean(X[examples_i, feature_idx])
                     mean2 = np.mean(X[examples_j, feature_idx])
+                    temp_mean = mean1 - mean2
+                    if np.isnan(temp_mean):
+                        temp_mean = 0
                     statistic = stats.ttest_ind(X[examples_i, feature_idx], X[examples_j, feature_idx])[0]
-                    iqrs.append(iqr1 - iqr2)
-                    means.append(mean1 - mean2)
+                    iqrs.append(temp_iqr)
+                    means.append(temp_mean)
                     ttests.append(statistic)
 
             # check if negative to separate classes for later
