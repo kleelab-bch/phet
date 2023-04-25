@@ -102,10 +102,11 @@ def plot_heatmap(df, file_name: str = "temp", save_path: str = "."):
     plt.close(fig="all")
 
 
-def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardize: bool = True, num_neighbors: int = 15,
-              min_dist: float = 0, perform_cluster: bool = False, cluster_type: str = "spectral", num_clusters: int = 0,
-              max_clusters: int = 10, heatmap_plot: bool = True, num_jobs: int = 2, suptitle: str = "temp",
-              file_name: str = "temp", save_path: str = "."):
+def plot_umap(X, y, subtypes, features_name: list, num_features: int, labels_pred: list = [], 
+              standardize: bool = True, num_neighbors: int = 15, min_dist: float = 0, 
+              perform_cluster: bool = False, cluster_type: str = "spectral", num_clusters: int = 0,
+              max_clusters: int = 10, heatmap_plot: bool = True, num_jobs: int = 2, 
+              suptitle: str = "temp", file_name: str = "temp", save_path: str = "."):
     score = 0
     # Standardize if needed
     if standardize:
@@ -141,8 +142,9 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
             labels_pred = clustering(X=X, cluster_type=cluster_type, num_clusters=num_clusters,
                                      num_jobs=num_jobs, predict=True)
         else:
-            labels_pred = clustering(X=X, cluster_type=cluster_type, num_clusters=num_clusters,
-                                     num_jobs=num_jobs, predict=True)
+            if len(labels_pred) == 0:
+                labels_pred = clustering(X=X, cluster_type=cluster_type, num_clusters=num_clusters,
+                                         num_jobs=num_jobs, predict=True)
         df = pd.DataFrame(labels_pred, columns=["Cluster"])
         df.to_csv(os.path.join(save_path, file_name + "_clusters.csv"), sep=',')
 

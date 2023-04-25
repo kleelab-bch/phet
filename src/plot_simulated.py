@@ -121,7 +121,7 @@ ax.legend(title="Methods", title_fontsize=30, fontsize=26, ncol=5,
 ####################################################################################
 ###             Microarray and scRNA Benchmark Evaluations and Plots             ###
 ####################################################################################
-folder_name = "microarray"
+folder_name = "scRNA"
 result_path = os.path.join(RESULT_PATH, folder_name)
 if folder_name == "microarray":
     suptitle = "11 microarray gene expression datasets"
