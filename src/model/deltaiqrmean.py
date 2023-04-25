@@ -91,8 +91,6 @@ class DeltaIQRMean:
         results['score'] = np.array(diff_iqrs) / np.sum(diff_iqrs)
         if self.calculate_deltamean:
             results['score'] += np.array(diff_means) / np.sum(diff_means)
-        results['score'][results['score'] < 0] = 0
-        results['score'] += 0.05
         results['class_diff'] = classes
         results = results.to_numpy()
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)

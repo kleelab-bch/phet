@@ -59,15 +59,15 @@ def train(num_jobs: int = 4):
     cluster_type = "kmeans"
 
     # Descriptions of the data
-    file_name = "lunggse1987"
+    data_name = "allgse412"
     suptitle_name = "GSE412"
 
     # Expression, classes, subtypes, donors, timepoints files
-    expression_file_name = file_name + "_matrix.mtx"
-    features_file_name = file_name + "_feature_names.csv"
-    classes_file_name = file_name + "_classes.csv"
-    subtypes_file = file_name + "_types.csv"
-    differential_features_file = file_name + "_limma_features.csv"
+    expression_file_name = data_name + "_matrix.mtx"
+    features_file_name = data_name + "_feature_names.csv"
+    classes_file_name = data_name + "_classes.csv"
+    subtypes_file = data_name + "_types.csv"
+    differential_features_file = data_name + "_limma_features.csv"
 
     # Load subtypes file
     subtypes = pd.read_csv(os.path.join(DATASET_PATH, subtypes_file), sep=',').dropna(axis=1)
@@ -109,7 +109,7 @@ def train(num_jobs: int = 4):
     # Save subtypes for SPRING
     if export_spring:
         df = pd.DataFrame(subtypes, columns=["subtypes"]).T
-        df.to_csv(os.path.join(RESULT_PATH, file_name + "_subtypes.csv"), sep=',', header=False)
+        df.to_csv(os.path.join(RESULT_PATH, data_name + "_subtypes.csv"), sep=',', header=False)
         del df
 
     # Load up/down regulated features
@@ -172,7 +172,7 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[4]), end="\r")
-    df = pd.read_csv(os.path.join(DATASET_PATH, file_name + "_limma_features.csv"), sep=',')
+    df = pd.read_csv(os.path.join(DATASET_PATH, data_name + "_limma_features.csv"), sep=',')
     df = df[["ID", "adj.P.Val", "B"]]
     df = df[df["adj.P.Val"] <= pvalue]
     df = df[["ID", "B"]]
@@ -182,7 +182,7 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[5]), end="\r")
-    df = pd.read_csv(os.path.join(DATASET_PATH, file_name + "_limma_features.csv"), sep=',')
+    df = pd.read_csv(os.path.join(DATASET_PATH, data_name + "_limma_features.csv"), sep=',')
     df = df[["ID", "B"]]
     temp = [features_name.index(item) for item in df["ID"].to_list() if item in features_name]
     df = np.absolute(df.iloc[temp]["B"].to_numpy()[:, None])
@@ -305,7 +305,7 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[20]), end="\r")
-    df = pd.read_csv(os.path.join(DATASET_PATH, file_name + "_deco_features.csv"), sep=',')
+    df = pd.read_csv(os.path.join(DATASET_PATH, data_name + "_deco_features.csv"), sep=',')
     df = [(features_name[feature_ids[int(item[1][0])]], item[1][1]) for item in df.iterrows()]
     df = pd.DataFrame(df, columns=["features", "score"])
     methods_dict.update({METHODS[20]: df})
@@ -372,10 +372,10 @@ def train(num_jobs: int = 4):
         list_scores.append(score)
 
     df = pd.DataFrame(list_scores, columns=["Scores"], index=METHODS)
-    df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_features_scores.csv"), sep=",")
+    df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_features_scores.csv"), sep=",")
     print("## Plot bar plot using the top {0} features...".format(top_k_features))
     plot_barplot(X=list_scores, methods_name=METHODS, metric=feature_metric, suptitle=suptitle_name,
-                 file_name=file_name, save_path=RESULT_PATH)
+                 file_name=data_name, save_path=RESULT_PATH)
 
     list_scores = list()
     print("## Plot UMAP using all features ({0})...".format(num_features))
@@ -383,7 +383,7 @@ def train(num_jobs: int = 4):
                       standardize=True, num_neighbors=num_neighbors, min_dist=0, perform_cluster=True,
                       cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
                       heatmap_plot=False, num_jobs=num_jobs, suptitle=suptitle_name + "\nAll",
-                      file_name=file_name + "_all", save_path=RESULT_PATH)
+                      file_name=data_name + "_all", save_path=RESULT_PATH)
     list_scores.append(score)
 
     if plot_top_k_features:
@@ -413,13 +413,13 @@ def train(num_jobs: int = 4):
                            standardize=True, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,
                            cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
                            heatmap_plot=False, num_jobs=num_jobs, suptitle=suptitle_name + "\n" + method_name,
-                           file_name=file_name + "_" + save_name.lower(), save_path=RESULT_PATH)
+                           file_name=data_name + "_" + save_name.lower(), save_path=RESULT_PATH)
         df = pd.DataFrame(temp_feature, columns=["features"])
-        df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_features.csv"),
+        df.to_csv(os.path.join(RESULT_PATH, data_name + "_" + save_name.lower() + "_features.csv"),
                   sep=',', index=False, header=False)
         if export_spring:
             df = pd.DataFrame(X[:, temp])
-            df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_expression.csv"),
+            df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_" + save_name.lower() + "_expression.csv"),
                       sep=",", index=False, header=False)
         del df
         list_scores.append(scores)
@@ -429,11 +429,11 @@ def train(num_jobs: int = 4):
                "Centroid Linkage Distance", "Ward's Distance", "Silhouette", "Adjusted Rand Index",
                "Adjusted Mutual Info"]
     df = pd.DataFrame(list_scores, columns=columns, index=["All"] + METHODS)
-    df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_cluster_quality.csv"), sep=",")
+    df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_cluster_quality.csv"), sep=",")
 
     print("## Plot bar plot using ARI metric...".format(top_k_features))
     plot_barplot(X=np.array(list_scores)[:, 9], methods_name=["All"] + METHODS, metric="ari",
-                 suptitle=suptitle_name, file_name=file_name, save_path=RESULT_PATH)
+                 suptitle=suptitle_name, file_name=data_name, save_path=RESULT_PATH)
 
 
 if __name__ == "__main__":

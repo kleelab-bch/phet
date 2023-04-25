@@ -46,20 +46,20 @@ def train(num_jobs: int = 4):
         methods_save_name.append("PHet_nb" + temp)
 
     # descriptions of the data
-    file_name = "baron1"
+    data_name = "baron1"
     suptitle_name = "Baron"
     control_name = "0"
     case_name = "1"
 
     # Exprssion, classes, subtypes, donors, timepoints files
-    expression_file_name = file_name + "_matrix.mtx"
-    features_file_name = file_name + "_feature_names.csv"
-    markers_file = file_name + "_markers.csv"
-    classes_file_name = file_name + "_classes.csv"
-    subtypes_file = file_name + "_types.csv"
-    differential_features_file = file_name + "_limma_features.csv"
-    donors_file = file_name + "_donors.csv"
-    timepoints_file = file_name + "_timepoints.csv"
+    expression_file_name = data_name + "_matrix.mtx"
+    features_file_name = data_name + "_feature_names.csv"
+    markers_file = data_name + "_markers.csv"
+    classes_file_name = data_name + "_classes.csv"
+    subtypes_file = data_name + "_types.csv"
+    differential_features_file = data_name + "_limma_features.csv"
+    donors_file = data_name + "_donors.csv"
+    timepoints_file = data_name + "_timepoints.csv"
 
     # Load subtypes file
     subtypes = pd.read_csv(os.path.join(DATASET_PATH, subtypes_file), sep=',').dropna(axis=1)
@@ -118,7 +118,7 @@ def train(num_jobs: int = 4):
         if len(timepoints) != 0:
             groups.append(["timepoints"] + timepoints)
         df = pd.DataFrame(groups)
-        df.to_csv(os.path.join(RESULT_PATH, file_name + "_groups.csv"), sep=',',
+        df.to_csv(os.path.join(RESULT_PATH, data_name + "_groups.csv"), sep=',',
                   index=False, header=False)
         del df
 
@@ -146,7 +146,7 @@ def train(num_jobs: int = 4):
             top_k_features = len(top_features_true)
         top_features_true = [1 if feature in top_features_true else 0 for idx, feature in enumerate(features_name)]
 
-    print("## Perform experimental studies using {0} data...".format(file_name))
+    print("## Perform experimental studies using {0} data...".format(data_name))
     print("\t >> Sample size: {0}; Feature size: {1}; Subtype size: {2}".format(X.shape[0], X.shape[1],
                                                                                 len(np.unique(subtypes))))
     current_progress = 1
@@ -205,10 +205,10 @@ def train(num_jobs: int = 4):
             list_scores.append(score)
 
         df = pd.DataFrame(list_scores, columns=["Scores"], index=METHODS)
-        df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_features_scores.csv"), sep=",")
+        df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_features_scores.csv"), sep=",")
         print("## Plot barplot using the top {0} features...".format(top_k_features))
         plot_barplot(X=list_scores, methods_name=METHODS, metric="f1", suptitle=suptitle_name,
-                     file_name=file_name, save_path=RESULT_PATH)
+                     file_name=data_name, save_path=RESULT_PATH)
 
     temp = np.copy(y)
     temp = temp.astype(str)
@@ -222,7 +222,7 @@ def train(num_jobs: int = 4):
                       standardize=True, num_neighbors=num_neighbors, min_dist=0, perform_cluster=True,
                       cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
                       heatmap_plot=False, num_jobs=num_jobs, suptitle=suptitle_name + "\nAll",
-                      file_name=file_name + "_all", save_path=RESULT_PATH)
+                      file_name=data_name + "_all", save_path=RESULT_PATH)
     list_scores.append(score)
     if top_features_true != -1:
         print("## Plot UMAP using marker features ({0})...".format(sum(top_features_true)))
@@ -231,7 +231,7 @@ def train(num_jobs: int = 4):
                           standardize=True, num_neighbors=num_neighbors, min_dist=0, perform_cluster=True,
                           cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
                           heatmap_plot=False, num_jobs=num_jobs, suptitle=suptitle_name + "\nMarkers",
-                          file_name=file_name + "_markers", save_path=RESULT_PATH)
+                          file_name=data_name + "_markers", save_path=RESULT_PATH)
         list_scores.append(score)
 
     if plot_topKfeatures:
@@ -261,13 +261,13 @@ def train(num_jobs: int = 4):
                            standardize=True, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,
                            cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
                            heatmap_plot=False, num_jobs=num_jobs, suptitle=suptitle_name + "\n" + method_name,
-                           file_name=file_name + "_" + save_name.lower(), save_path=RESULT_PATH)
+                           file_name=data_name + "_" + save_name.lower(), save_path=RESULT_PATH)
         df = pd.DataFrame(temp_feature, columns=["features"])
-        df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_features.csv"),
+        df.to_csv(os.path.join(RESULT_PATH, data_name + "_" + save_name.lower() + "_features.csv"),
                   sep=',', index=False, header=False)
         if export_spring:
             df = pd.DataFrame(X[:, temp])
-            df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_expression.csv"),
+            df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_" + save_name.lower() + "_expression.csv"),
                       sep=",", index=False, header=False)
         del df
         list_scores.append(scores)
@@ -276,14 +276,14 @@ def train(num_jobs: int = 4):
         index += ["Markers"]
     columns = ["Complete Diameter Distance", "Average Diameter Distance", "Centroid Diameter Distance",
                "Single Linkage Distance", "Maximum Linkage Distance", "Average Linkage Distance",
-               "Centroid Linkage Distance", "Ward's Distance", "Silhouette", "Adjusted Rand Index",
-               "Adjusted Mutual Info"]
+               "Centroid Linkage Distance", "Ward's Distance", "Silhouette", "Homogeneity", 
+               "Completeness", "V-measure", "Adjusted Rand Index", "Adjusted Mutual Info"]
     df = pd.DataFrame(list_scores, columns=columns, index=index + METHODS)
-    df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_cluster_quality.csv"), sep=",")
+    df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_cluster_quality.csv"), sep=",")
 
     print("## Plot bar plot using ARI metric...".format(top_k_features))
-    plot_barplot(X=np.array(list_scores)[:, 9], methods_name=index + METHODS, metric="ari",
-                 suptitle=suptitle_name, file_name=file_name, save_path=RESULT_PATH)
+    plot_barplot(X=np.array(list_scores)[:, 12], methods_name=index + METHODS, metric="ari",
+                 suptitle=suptitle_name, file_name=data_name, save_path=RESULT_PATH)
 
 
 if __name__ == "__main__":

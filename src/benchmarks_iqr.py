@@ -32,18 +32,19 @@ def train(num_jobs: int = 4):
     num_neighbors = 5
     max_clusters = 10
     feature_metric = "f1"
-    cluster_type = "kmeans"
     methods_save_name = ["deltaiqr", "deltaiqrmean"]
+    cluster_type = "kmeans"
+
     # Descriptions of the data
-    file_name = "darmanis"
+    data_name = "darmanis"
     suptitle_name = "Darmanis"
 
     # Exprssion, classes, subtypes, donors, timepoints Files
-    expression_file_name = file_name + "_matrix.mtx"
-    features_file_name = file_name + "_feature_names.csv"
-    classes_file_name = file_name + "_classes.csv"
-    subtypes_file = file_name + "_types.csv"
-    differential_features_file = file_name + "_limma_features.csv"
+    expression_file_name = data_name + "_matrix.mtx"
+    features_file_name = data_name + "_feature_names.csv"
+    classes_file_name = data_name + "_classes.csv"
+    subtypes_file = data_name + "_types.csv"
+    differential_features_file = data_name + "_limma_features.csv"
 
     # Load subtypes file
     subtypes = pd.read_csv(os.path.join(DATASET_PATH, subtypes_file), sep=',').dropna(axis=1)
@@ -84,7 +85,7 @@ def train(num_jobs: int = 4):
     # Save subtypes for SPRING
     if export_spring:
         df = pd.DataFrame(subtypes, columns=["subtypes"]).T
-        df.to_csv(os.path.join(RESULT_PATH, file_name + "_subtypes.csv"), sep=',', header=False)
+        df.to_csv(os.path.join(RESULT_PATH, data_name + "_subtypes.csv"), sep=',', header=False)
         del df
 
     # Load up/down regulated features
@@ -167,7 +168,7 @@ def train(num_jobs: int = 4):
         list_scores.append(score)
 
     df = pd.DataFrame(list_scores, columns=["Scores"], index=METHODS)
-    df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_features_scores.csv"), sep=",")
+    df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_features_scores.csv"), sep=",")
 
     list_scores = [0]
     if plot_topKfeatures:
@@ -197,23 +198,23 @@ def train(num_jobs: int = 4):
                            standardize=True, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,
                            cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
                            heatmap_plot=False, num_jobs=num_jobs, suptitle=suptitle_name + "\n" + method_name,
-                           file_name=file_name + "_" + save_name.lower(), save_path=RESULT_PATH)
+                           file_name=data_name + "_" + save_name.lower(), save_path=RESULT_PATH)
         df = pd.DataFrame(temp_feature, columns=["features"])
-        df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_features.csv"),
+        df.to_csv(os.path.join(RESULT_PATH, data_name + "_" + save_name.lower() + "_features.csv"),
                   sep=',', index=False, header=False)
         if export_spring:
             df = pd.DataFrame(X[:, temp])
-            df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_expression.csv"),
+            df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_" + save_name.lower() + "_expression.csv"),
                       sep=",", index=False, header=False)
         del df
         list_scores.append(scores)
 
     columns = ["Complete Diameter Distance", "Average Diameter Distance", "Centroid Diameter Distance",
                "Single Linkage Distance", "Maximum Linkage Distance", "Average Linkage Distance",
-               "Centroid Linkage Distance", "Ward's Distance", "Silhouette", "Adjusted Rand Index",
-               "Adjusted Mutual Info"]
+               "Centroid Linkage Distance", "Ward's Distance", "Silhouette", "Homogeneity", 
+               "Completeness", "V-measure", "Adjusted Rand Index", "Adjusted Mutual Info"]
     df = pd.DataFrame(list_scores, columns=columns, index=["All"] + METHODS)
-    df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_cluster_quality.csv"), sep=",")
+    df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_cluster_quality.csv"), sep=",")
 
 
 if __name__ == "__main__":

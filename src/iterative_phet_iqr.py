@@ -27,24 +27,24 @@ def train(num_jobs: int = 4):
     # Models parameters
     methods_save_name = ["PHet_br"]
     cluster_type = "kmeans"
-    ari_threshold = 0.85
+    ari_threshold = 0.86
     num_epochs = 50
 
     # descriptions of the data
-    file_name = "patel"
-    suptitle_name = "Patel"
+    data_name = "srbct"
+    suptitle_name = "SRBCT"
     control_name = "0"
     case_name = "1"
 
     # Exprssion, classes, subtypes, donors, timepoints files
-    expression_file_name = file_name + "_matrix.mtx"
-    features_file_name = file_name + "_feature_names.csv"
-    markers_file = file_name + "_markers.csv"
-    classes_file_name = file_name + "_classes.csv"
-    subtypes_file = file_name + "_types.csv"
-    differential_features_file = file_name + "_limma_features.csv"
-    donors_file = file_name + "_donors.csv"
-    timepoints_file = file_name + "_timepoints.csv"
+    expression_file_name = data_name + "_matrix.mtx"
+    features_file_name = data_name + "_feature_names.csv"
+    markers_file = data_name + "_markers.csv"
+    classes_file_name = data_name + "_classes.csv"
+    subtypes_file = data_name + "_types.csv"
+    differential_features_file = data_name + "_limma_features.csv"
+    donors_file = data_name + "_donors.csv"
+    timepoints_file = data_name + "_timepoints.csv"
 
     # Load subtypes file
     subtypes = pd.read_csv(os.path.join(DATASET_PATH, subtypes_file), sep=',').dropna(axis=1)
@@ -116,7 +116,7 @@ def train(num_jobs: int = 4):
             topKfeatures = len(top_features_true)
         top_features_true = [1 if feature in top_features_true else 0 for idx, feature in enumerate(features_name)]
 
-    print("## Perform experimental studies using {0} data...".format(file_name))
+    print("## Perform experimental studies using {0} data...".format(data_name))
     print("\t >> Sample size: {0}; Feature size: {1}; Subtype size: {2}".format(X.shape[0], X.shape[1],
                                                                                 len(np.unique(subtypes))))
     selected_regulated_features = topKfeatures
@@ -129,13 +129,8 @@ def train(num_jobs: int = 4):
     f1_score = 0.0
     optimum_ari = 0.0
     optimum_f1 = 0.0
-    epoch = 1
-    while ari_score < ari_threshold and epoch <= num_epochs:
-        print("\t >> Epoch: {0}; ARI: {1:.4f} ({2:.4f}); F1: {3:.4f} ({4:.4f})".format(epoch,
-                                                                                       ari_score,
-                                                                                       optimum_ari,
-                                                                                       f1_score,
-                                                                                       optimum_f1), end="\r")
+    epoch = 0
+    while ari_score < ari_threshold and epoch < num_epochs:
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, delta_type="iqr",
                          calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
                          calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
@@ -169,22 +164,27 @@ def train(num_jobs: int = 4):
                                 perform_cluster=True, cluster_type=cluster_type, num_clusters=num_clusters,
                                 max_clusters=max_clusters, heatmap_plot=False, num_jobs=num_jobs,
                                 suptitle=suptitle_name + "\n" + method_name,
-                                file_name=file_name + "_" + save_name.lower(), save_path=RESULT_PATH)
+                                file_name=data_name + "_" + save_name.lower(), save_path=RESULT_PATH)
         ari_score = list_scores[9]
         if ari_score > optimum_ari:
             optimum_ari = ari_score
         df = pd.DataFrame(temp_feature, columns=["features"])
-        df.to_csv(os.path.join(RESULT_PATH, file_name + "_" + save_name.lower() + "_features.csv"),
+        df.to_csv(os.path.join(RESULT_PATH, data_name + "_" + save_name.lower() + "_features.csv"),
                   sep=',', index=False, header=False)
+        print("\t >> Epoch: {0}; ARI: {1:.4f} ({2:.4f}); F1: {3:.4f} ({4:.4f})".format(epoch,
+                                                                                       ari_score,
+                                                                                       optimum_ari,
+                                                                                       f1_score,
+                                                                                       optimum_f1), end="\r")
     df = pd.DataFrame([f1_score], columns=["Scores"], index=METHODS)
-    df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_features_scores.csv"), sep=",")
+    df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_features_scores_phet.csv"), sep=",")
 
     columns = ["Complete Diameter Distance", "Average Diameter Distance", "Centroid Diameter Distance",
                "Single Linkage Distance", "Maximum Linkage Distance", "Average Linkage Distance",
-               "Centroid Linkage Distance", "Ward's Distance", "Silhouette", "Adjusted Rand Index",
-               "Adjusted Mutual Info"]
+               "Centroid Linkage Distance", "Ward's Distance", "Silhouette", "Homogeneity", 
+               "Completeness", "V-measure", "Adjusted Rand Index", "Adjusted Mutual Info"]
     df = pd.DataFrame(np.array(list_scores)[None, :], columns=columns, index=METHODS)
-    df.to_csv(path_or_buf=os.path.join(RESULT_PATH, file_name + "_cluster_quality.csv"), sep=",")
+    df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_cluster_quality_phet.csv"), sep=",")
 
 
 if __name__ == "__main__":

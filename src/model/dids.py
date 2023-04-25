@@ -62,7 +62,5 @@ class DIDS:
             temp_X2 = 1 + np.tanh(temp_X2)
         results = np.sum(temp_X2, axis=0)
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
-        results[results < 0] = 0
-        results += 0.05
         results = np.reshape(results, (results.shape[0], 1))
         return results

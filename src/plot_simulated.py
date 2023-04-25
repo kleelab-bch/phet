@@ -108,7 +108,7 @@ ax.legend(title="Methods", title_fontsize=30, fontsize=26, ncol=5,
 ##############################################################
 ######################### Benchmarks #########################
 ##############################################################
-result_path = os.path.join(RESULT_PATH, "scRNA")
+result_path = os.path.join(RESULT_PATH, "microarray")
 suptitle = "6 single cell RNA-seq datasets"
 # suptitle = "11 microarray gene expression datasets"
 

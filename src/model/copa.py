@@ -32,7 +32,5 @@ class COPA:
         # Calculate statistics
         results = (np.percentile(a=case_X, q=self.q, axis=0) - med) / mad
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
-        results[results < 0] = 0
-        results += 0.05
         results = np.reshape(results, (results.shape[0], 1))
         return results
