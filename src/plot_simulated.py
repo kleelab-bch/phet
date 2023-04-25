@@ -7,11 +7,7 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
-from sklearn.metrics import pairwise_distances
-from sklearn.metrics import silhouette_score
-from sklearn.metrics.cluster import adjusted_mutual_info_score
-from sklearn.metrics.cluster import adjusted_rand_score
-
+from utility.utils import clustering_performance
 from utility.file_path import RESULT_PATH, DATASET_PATH
 
 sc.settings.verbosity = 0  # verbosity: errors (0), warnings (1), info (2), hints (3)
@@ -27,13 +23,6 @@ methods_name = {"ttest_p": "t-statistic", "ttest_g": "t-statistic+Gamma", "wilco
                 "ort": "ORT", "most": "MOST", "lsoss": "LSOSS", "dids": "DIDS", "deco": "DECO",
                 "phet_bh": "PHet (ΔHVF)", "phet_br": "PHet"}
 # Use static colors
-palette = mcolors.get_named_colors_mapping()
-palette = [(item[0], item[1]) for idx, item in enumerate(palette.items())
-           if idx % 7 == 0]
-palette = dict(palette)
-palette = dict([(list(methods_name.values())[idx], item[1])
-                for idx, item in enumerate(palette.items())
-                if idx + 1 <= len(methods_name)])
 palette = sns.color_palette("tab20")
 palette.append("#fcfc81")
 palette.append("#b5563c")
@@ -41,9 +30,9 @@ palette.append("#C724B1")
 palette = dict([(item[1], mcolors.to_hex(palette[idx]))
                 for idx, item in enumerate(methods_name.items())])
 
-##############################################################
-######################## Simulated ###########################
-##############################################################
+####################################################################################
+###                      Simulated Evaluations and Plots                         ###
+####################################################################################
 # F1 scores
 df = pd.read_csv(os.path.join(RESULT_PATH, "simulated",
                               "simulated_normal_methods_outliers_scores.csv"),
@@ -58,16 +47,28 @@ df_mixed = df[[data_name[idx] for idx, item in enumerate(temp) if item == 1]]
 ax = df_minority.T.plot.bar(rot=0, legend=False, align='center', width=0.85,
                             figsize=(8, 6), color=palette)
 ax.set_xlabel("Number of outliers (case samples)", fontsize=24)
-ax.set_ylabel("F1 scores of each method", fontsize=24)
+ax.set_ylabel("F1 score ", fontsize=24)
 ax.set_xticklabels(["1/20", "3/20", "5/20", "7/20", "9/20"])
 ax.tick_params(axis='both', labelsize=24)
+file_name = "simulated_minority_case_f1.png"
+file_path = os.path.join(RESULT_PATH, file_name)
+plt.savefig(file_path)
+plt.clf()
+plt.cla()
+plt.close(fig="all")
 
 ax = df_mixed.T.plot.bar(rot=0, legend=False, align='center', width=0.85,
                          figsize=(8, 6), color=palette)
 ax.set_xlabel("Number of outliers (case and control samples)", fontsize=22)
-ax.set_ylabel("F1 scores of each method", fontsize=24)
+ax.set_ylabel("F1 score", fontsize=24)
 ax.set_xticklabels(["2/40", "6/40", "10/40", "14/40", "18/40"])
 ax.tick_params(axis='both', labelsize=24)
+file_name = "simulated_mixed_case_control_f1.png"
+file_path = os.path.join(RESULT_PATH, file_name)
+plt.savefig(file_path)
+plt.clf()
+plt.cla()
+plt.close(fig="all")
 
 # Features
 df = pd.read_csv(os.path.join(RESULT_PATH, "simulated",
@@ -84,20 +85,32 @@ df_mixed = df[[data_name[idx] for idx, item in enumerate(temp) if item == 1]]
 ax = df_minority.T.plot.bar(rot=0, legend=False, align='center', width=0.85,
                             figsize=(8, 6), color=palette)
 ax.set_xlabel("Number of outliers (case samples)", fontsize=24)
-ax.set_ylabel("Number of significant features \n found by each method", fontsize=24)
+ax.set_ylabel("Number of predicted features", fontsize=24)
 ax.set_yticks([0, 1, 2, 3])
 ax.set_yticklabels(["1", "10", "100", "1000"])
 ax.set_xticklabels(["1/20", "3/20", "5/20", "7/20", "9/20"])
 ax.tick_params(axis='both', labelsize=24)
+file_name = "simulated_minority_case_features.png"
+file_path = os.path.join(RESULT_PATH, file_name)
+plt.savefig(file_path)
+plt.clf()
+plt.cla()
+plt.close(fig="all")
 
 ax = df_mixed.T.plot.bar(rot=0, legend=False, align='center', width=0.85,
                          figsize=(8, 6), color=palette)
 ax.set_xlabel("Number of outliers (case and control samples)", fontsize=22)
-ax.set_ylabel("Number of significant features \n found by each method", fontsize=24)
+ax.set_ylabel("Number of predicted features", fontsize=24)
 ax.set_yticks([0, 1, 2, 3])
 ax.set_yticklabels(["1", "10", "100", "1000"])
 ax.set_xticklabels(["2/40", "6/40", "10/40", "14/40", "18/40"])
 ax.tick_params(axis='both', labelsize=24)
+file_name = "simulated_minority_case_control_features.png"
+file_path = os.path.join(RESULT_PATH, file_name)
+plt.savefig(file_path)
+plt.clf()
+plt.cla()
+plt.close(fig="all")
 
 # Legend
 ax = df_mixed.T.plot.bar(rot=0, figsize=(20, 10), color=palette)
@@ -105,13 +118,15 @@ ax.legend(title="Methods", title_fontsize=30, fontsize=26, ncol=5,
           loc="lower right", bbox_to_anchor=(1.0, 1.0),
           facecolor="None")
 
-##############################################################
-######################### Benchmarks #########################
-##############################################################
-result_path = os.path.join(RESULT_PATH, "microarray")
-suptitle = "6 single cell RNA-seq datasets"
-# suptitle = "11 microarray gene expression datasets"
-
+####################################################################################
+###             Microarray and scRNA Benchmark Evaluations and Plots             ###
+####################################################################################
+folder_name = "microarray"
+result_path = os.path.join(RESULT_PATH, folder_name)
+if folder_name == "microarray":
+    suptitle = "11 microarray gene expression datasets"
+else:
+    suptitle = "6 single cell RNA-seq datasets"
 # Data names
 data_names = pd.read_csv(os.path.join(result_path, "data_names.txt"), sep=',')
 data_names = data_names.columns.to_list()
@@ -180,12 +195,18 @@ sns.lineplot(data=df[df["Data"] == max_ds], x="Methods", y="Scores",
 sns.lineplot(data=df[df["Data"] == min_ds], x="Methods", y="Scores",
              color="red", linewidth=3, linestyle='dotted')
 ax.set_xlabel("")
-ax.set_ylabel("F1 scores of each method", fontsize=36)
+ax.set_ylabel("F1 score", fontsize=36)
 ax.set_xticklabels(list())
 ax.tick_params(axis='both', labelsize=30)
 plt.suptitle(suptitle, fontsize=36)
 sns.despine()
 plt.tight_layout()
+file_name = folder_name.lower() + "_f1.png"
+file_path = os.path.join(RESULT_PATH, file_name)
+plt.savefig(file_path)
+plt.clf()
+plt.cla()
+plt.close(fig="all")
 
 # Plot the number of features
 min_ds = selected_features[selected_features["Methods"] == "PHet"].sort_values('Features').iloc[0].to_list()[-1]
@@ -202,7 +223,7 @@ sns.lineplot(data=selected_features[selected_features["Data"] == max_ds], x="Met
 sns.lineplot(data=selected_features[selected_features["Data"] == min_ds], x="Methods",
              y="Features", color="red", linewidth=3, linestyle='dotted')
 ax.set_xlabel("")
-ax.set_ylabel("Number of predicted features \n of each method",
+ax.set_ylabel("Number of predicted features",
               fontsize=36)
 ax.set_xticklabels(list())
 ax.set_yticks([0, 1, 2, 3, 4, 5])
@@ -211,57 +232,84 @@ ax.tick_params(axis='both', labelsize=30)
 plt.suptitle(suptitle, fontsize=36)
 sns.despine()
 plt.tight_layout()
+file_name = folder_name.lower() + "_features.png"
+file_path = os.path.join(RESULT_PATH, file_name)
+plt.savefig(file_path)
+plt.clf()
+plt.cla()
+plt.close(fig="all")
 
 # Cluster quality
 files = [f for f in os.listdir(result_path) if f.endswith("_cluster_quality.csv")]
-methods = list()
-scores = list()
-ds_names = list()
-for idx, f in enumerate(files):
-    df = pd.read_csv(os.path.join(result_path, f), sep=',')
-    scores.extend(df.loc[1:]["Adjusted Rand Index"].to_numpy())
-    methods.extend(df.iloc[1:, 0].to_list())
-    ds_names.extend(len(df.iloc[1:, 0].to_list()) * [data_names[idx]])
-df_ari = pd.DataFrame([methods, scores, ds_names]).T
-df_ari.columns = ["Methods", "ARI", "Data"]
-df_ari["Methods"] = df_ari["Methods"].astype(str)
-df_ari["ARI"] = df_ari["ARI"].astype(np.float64)
-df_ari.groupby(["Methods"])["ARI"].mean()
+metrics = ['Complete Diameter Distance', 'Average Diameter Distance', 'Centroid Diameter Distance',
+           'Single Linkage Distance', 'Maximum Linkage Distance', 'Average Linkage Distance',
+           'Centroid Linkage Distance', 'Ward\'s Distance', 'Silhouette', 'Homogeneity',
+           'Completeness', 'V-measure', 'Adjusted Rand Index', 'Adjusted Mutual Info']
+metrics_name = ['complete_diameter_distance', 'average_diameter_distance', 'centroid_diameter_distance',
+                'single_linkage_distance', 'maximum_linkage_distance', 'average_linkage_distance',
+                'centroid_linkage_distance', 'wards_distance', 'silhouette', 'homogeneity',
+                'completeness', 'v_measure', 'adjusted_rand_index', 'adjusted_mutual_info']
+for column_idx, column in enumerate(metrics):
+    methods = list()
+    scores = list()
+    ds_names = list()
+    for idx, f in enumerate(files):
+        df = pd.read_csv(os.path.join(result_path, f), sep=',', index_col=0)
+        scores.extend(df[column].to_numpy()[1:])
+        methods.extend(df.index.to_list()[1:])
+        ds_names.extend(len(df.index.to_list()[1:]) * [data_names[idx]])
+    df_cluster = pd.DataFrame([methods, scores, ds_names]).T
+    df_cluster.columns = ["Methods", column, "Data"]
+    df_cluster["Methods"] = df_cluster["Methods"].astype(str)
 
-# Plot ARI
-min_ds = df_ari[df_ari["Methods"] == "PHet"].sort_values('ARI').iloc[0].to_list()[-1]
-max_ds = df_ari[df_ari["Methods"] == "PHet"].sort_values('ARI').iloc[-1].to_list()[-1]
-plt.figure(figsize=(14, 8))
-ax = sns.boxplot(y='ARI', x='Methods', data=df_ari, width=0.85,
-                 palette=palette, showfliers=False, showmeans=True,
-                 meanprops={"marker": "D", "markerfacecolor": "white",
-                            "markeredgecolor": "black", "markersize": "15"})
-sns.swarmplot(y='ARI', x='Methods', data=df_ari, color="black", s=10, linewidth=0,
-              alpha=.7)
-sns.lineplot(data=df_ari[df_ari["Data"] == max_ds], x="Methods",
-             y="ARI", color="green", linewidth=3, linestyle='dashed')
-sns.lineplot(data=df_ari[df_ari["Data"] == min_ds], x="Methods",
-             y="ARI", color="red", linewidth=3, linestyle='dotted')
-ax.set_xlabel("")
-ax.set_ylabel("ARI scores of each method", fontsize=36)
-ax.set_xticklabels(list())
-ax.tick_params(axis='both', labelsize=30)
-plt.suptitle(suptitle, fontsize=36)
-sns.despine()
-plt.tight_layout()
+    min_ds = df_cluster[df_cluster["Methods"] == "PHet"].sort_values(column).iloc[0].to_list()[-1]
+    max_ds = df_cluster[df_cluster["Methods"] == "PHet"].sort_values(column).iloc[-1].to_list()[-1]
+    plt.figure(figsize=(14, 8))
+    ax = sns.boxplot(y=column, x='Methods', data=df_cluster, width=0.85,
+                     palette=palette, showfliers=False, showmeans=True,
+                     meanprops={"marker": "D", "markerfacecolor": "white",
+                                "markeredgecolor": "black", "markersize": "15"})
+    sns.swarmplot(y=column, x='Methods', data=df_cluster, color="black", s=10, linewidth=0,
+                  alpha=.7)
+    sns.lineplot(data=df_cluster[df_cluster["Data"] == max_ds], x="Methods",
+                 y=column, color="green", linewidth=3, linestyle='dashed')
+    sns.lineplot(data=df_cluster[df_cluster["Data"] == min_ds], x="Methods",
+                 y=column, color="red", linewidth=3, linestyle='dotted')
+    ax.set_xlabel("")
+    ax.set_ylabel(column.capitalize(), fontsize=36)
+    ax.set_xticklabels(list())
+    ax.tick_params(axis='both', labelsize=30)
+    plt.suptitle(suptitle, fontsize=36)
+    sns.despine()
+    # plt.tight_layout()
+    file_name = folder_name.lower() + "_" + str(metrics_name[column_idx]).lower() + ".png"
+    file_path = os.path.join(RESULT_PATH, file_name)
+    plt.savefig(file_path)
+    plt.clf()
+    plt.cla()
+    plt.close(fig="all")
 
 # Legend
-plt.figure(figsize=(14, 8))
+plt.figure(figsize=(20, 6))
 # Create legend handles manually
 handles = [mpl.Patch(color=palette[x], label=x) for x in palette.keys()]
 # Create legend
 plt.legend(handles=handles, title="Methods", title_fontsize=30, fontsize=26, ncol=5,
            loc="lower right", bbox_to_anchor=(1.0, 1.0),
-           facecolor="None")
+           facecolor="None", frameon=False)
+sns.despine()
+plt.tight_layout()
+file_name = folder_name.lower() + "_legends.png"
+file_path = os.path.join(RESULT_PATH, file_name)
+plt.savefig(file_path)
+plt.clf()
+plt.cla()
+plt.close(fig="all")
 
-##############################################################
-############# ARI vs Sample Size vs Feature Size #############
-##############################################################
+####################################################################################
+###                Total Avergae Scores of Each Method and Plots                 ###
+####################################################################################
+
 sns.set_theme(style="ticks")
 result_scrna_path = os.path.join(RESULT_PATH, "scRNA")
 result_microarray_path = os.path.join(RESULT_PATH, "microarray")
@@ -325,19 +373,6 @@ df["Methods"] = df["Methods"].astype(str)
 df["ARI"] = df["ARI"].astype(np.float64)
 df["F1"] = df["F1"].astype(np.float64)
 df["Predicted features"] = df["Predicted features"].astype(np.float64)
-
-# Set up a grid to plot survival probability against several variables
-g = sns.PairGrid(df, y_vars="ARI",
-                 x_vars=["Methods", "Feature size", "Sample size"],
-                 height=5, aspect=.5)
-# Draw a seaborn pointplot onto each Axes
-g.map(sns.scatterplot)
-g.map(sns.pointplot, scale=1.3, errwidth=4, color="xkcd:plum")
-for ax in g.axes.flatten():
-    ax.tick_params(rotation=90)
-g.set(ylim=(0, 1))
-g.fig.set_size_inches(16, 4)
-sns.despine(fig=g.fig, left=True)
 
 # Plot ARI
 min_ds = df[df["Methods"] == "PHet"].sort_values('ARI').iloc[0].to_list()[-1]
@@ -408,174 +443,6 @@ ax.tick_params(axis='both', labelsize=30)
 plt.suptitle("17 microarray and single cell RNA-seq datasets", fontsize=36)
 sns.despine()
 plt.tight_layout()
-
-
-##############################################################
-############# TEMP #############
-##############################################################
-
-######### Intracluster -- Measuring distance between points in a cluster. Lower values are better intraclustering quality
-
-def complete_diameter_distance(X, y, penalty: float = 0.05, metric: str = "euclidean",
-                               num_jobs: int = 2):
-    '''
-    The farthest distance between two samples in a cluster.
-    '''
-    clusters = np.unique(y)
-    score = 0
-    for cluster_idx in clusters:
-        examples_idx = np.where(y == cluster_idx)[0]
-        if len(examples_idx) <= 1:
-            score += penalty
-            continue
-        D = pairwise_distances(X=X[examples_idx], metric=metric, n_jobs=num_jobs)
-        D = D / D.sum(0)
-        score += D.max()
-    return score
-
-
-def average_diameter_distance(X, y, penalty: float = 0.05, metric: str = "euclidean",
-                              num_jobs: int = 2):
-    '''
-    The average distance between all samples in a cluster.
-    '''
-    clusters = np.unique(y)
-    score = 0
-    for cluster_idx in clusters:
-        examples_idx = np.where(y == cluster_idx)[0]
-        if len(examples_idx) <= 1:
-            score += penalty
-            continue
-        D = pairwise_distances(X=X[examples_idx], metric=metric, n_jobs=num_jobs)
-        D = D / D.sum(0)
-        D = np.triu(D).sum()
-        score += 1 / (len(examples_idx) * (len(examples_idx) - 1)) * D
-    return score
-
-
-def centroid_diameter_distance(X, y, penalty: float = 0.05, metric: str = "euclidean",
-                               num_jobs: int = 2):
-    '''
-    The double of average distance between samples and the center of a cluster.
-    '''
-    clusters = np.unique(y)
-    score = 0
-    for cluster_idx in clusters:
-        examples_idx = np.where(y == cluster_idx)[0]
-        if len(examples_idx) <= 1:
-            score += penalty
-            continue
-        cluster_centers = X[examples_idx].sum(0) / len(examples_idx)
-        cluster_centers = cluster_centers[None, :]
-        D = pairwise_distances(X=X[examples_idx], Y=cluster_centers, metric=metric,
-                               n_jobs=num_jobs)
-        D = D / D.sum()
-        score += 2 * (D.sum() / len(examples_idx))
-    return score
-
-
-########## Intercluster -- Measuring distance between clusters. Higher values are better.
-def single_linkage_distance(X, y, metric: str = "euclidean", num_jobs: int = 2):
-    '''
-    The closest distance between two samples in clusters.
-    '''
-    num_clusters = np.unique(y).shape[0]
-    score = 0
-    for i in range(num_clusters):
-        for j in range(i + 1, num_clusters):
-            examples_i = np.where(y == i)[0]
-            examples_j = np.where(y == j)[0]
-            if len(examples_i) <= 1 or len(examples_j) <= 1:
-                continue
-            D = pairwise_distances(X=X[examples_i], Y=X[examples_j], metric=metric,
-                                   n_jobs=num_jobs)
-            D = D / D.sum(0)
-            score += D.min()
-    return score
-
-
-def maximum_linkage_distance(X, y, metric: str = "euclidean", num_jobs: int = 2):
-    '''
-    The farthest distance between two samples in clusters.
-    '''
-    num_clusters = np.unique(y).shape[0]
-    score = 0
-    for i in range(num_clusters):
-        for j in range(i + 1, num_clusters):
-            examples_i = np.where(y == i)[0]
-            examples_j = np.where(y == j)[0]
-            if len(examples_i) <= 1 or len(examples_j) <= 1:
-                continue
-            D = pairwise_distances(X=X[examples_i], Y=X[examples_j], metric=metric,
-                                   n_jobs=num_jobs)
-            D = D / D.sum(0)
-            score += D.max()
-    return score
-
-
-def average_linkage_distance(X, y, metric: str = "euclidean", num_jobs: int = 2):
-    '''
-    The average distance between all samples in clusters.
-    '''
-    num_clusters = np.unique(y).shape[0]
-    score = 0
-    for i in range(num_clusters):
-        for j in range(i + 1, num_clusters):
-            examples_i = np.where(y == i)[0]
-            examples_j = np.where(y == j)[0]
-            if len(examples_i) <= 1 or len(examples_j) <= 1:
-                continue
-            D = pairwise_distances(X=X[examples_i], Y=X[examples_j], metric=metric,
-                                   n_jobs=num_jobs)
-            D = D / D.sum(0)
-            score += D.sum() / (len(examples_i) * len(examples_j))
-    return score
-
-
-def centroid_linkage_distance(X, y, metric: str = "euclidean", num_jobs: int = 2):
-    '''
-    The distance between centers of clusters.
-    '''
-    num_clusters = np.unique(y).shape[0]
-    score = 0
-    for i in range(num_clusters):
-        for j in range(i + 1, num_clusters):
-            examples_i = np.where(y == i)[0]
-            examples_j = np.where(y == j)[0]
-            if len(examples_i) <= 1 or len(examples_j) <= 1:
-                continue
-            center_i = X[examples_i].sum(0) / len(examples_i)
-            center_i = center_i[None, :]
-            center_j = X[examples_j].sum(0) / len(examples_j)
-            center_j = center_j[None, :]
-            D = pairwise_distances(X=center_i, Y=center_j, metric=metric,
-                                   n_jobs=num_jobs)
-            score += D.flatten()[0]
-    return score
-
-
-def wards_distance(X, y):
-    '''
-    The different deviation between a group of 2 considered clusters and a 
-    "reputed" cluster joining those 2 clusters.
-    '''
-    num_clusters = np.unique(y).shape[0]
-    score = 0
-    for i in range(num_clusters):
-        for j in range(i + 1, num_clusters):
-            examples_i = np.where(y == i)[0]
-            examples_j = np.where(y == j)[0]
-            if len(examples_i) <= 1 or len(examples_j) <= 1:
-                continue
-            center_i = X[examples_i].sum(0) / len(examples_i)
-            center_j = X[examples_j].sum(0) / len(examples_j)
-            temp = (2 * len(examples_i) * len(examples_j)) / (len(examples_i) + len(examples_j))
-            if len(examples_i) <= 1 or len(examples_j) <= 1:
-                score += np.sqrt(temp * np.sum((center_i - center_j) ** 2)) * penalty
-                continue
-            score += np.sqrt(temp * np.sum((center_i - center_j) ** 2))
-    return score
-
 
 result_path = os.path.join(RESULT_PATH, "temp")
 minimum_samples = 5
@@ -649,34 +516,14 @@ for ds_name in ds_files:
 
         selected_features = [idx for idx, feature in enumerate(features_name)
                              if feature in selected_features]
-
-        intracluster_complete = complete_diameter_distance(X=X[:, selected_features], y=labels_pred,
-                                                           metric=metric, num_jobs=num_jobs)
-        intracluster_average = average_diameter_distance(X=X[:, selected_features], y=labels_pred,
-                                                         metric=metric, num_jobs=num_jobs)
-        intracluster_centroid = centroid_diameter_distance(X=X[:, selected_features], y=labels_pred,
-                                                           metric=metric, num_jobs=num_jobs)
-        intercluster_single = single_linkage_distance(X=X[:, selected_features], y=labels_pred,
-                                                      metric=metric, num_jobs=num_jobs)
-        intercluster_maximum = maximum_linkage_distance(X=X[:, selected_features], y=labels_pred,
-                                                        metric=metric, num_jobs=num_jobs)
-        intercluster_average = average_linkage_distance(X=X[:, selected_features], y=labels_pred,
-                                                        metric=metric, num_jobs=num_jobs)
-        intercluster_centroid = centroid_linkage_distance(X=X[:, selected_features], y=labels_pred,
-                                                          metric=metric, num_jobs=num_jobs)
-        intercluster_wards = wards_distance(X=X[:, selected_features], y=labels_pred)
-        silhouette = silhouette_score(X=X[:, selected_features], labels=labels_pred, metric=metric)
-        ari = adjusted_rand_score(labels_true=labels_true, labels_pred=labels_pred)
-        ami = adjusted_mutual_info_score(labels_true=labels_true, labels_pred=labels_pred)
-
-        list_scores.append([intracluster_complete, intracluster_average, intracluster_centroid,
-                            intercluster_single, intercluster_maximum, intercluster_average,
-                            intercluster_centroid, intercluster_wards, silhouette, ari, ami])
+        list_scores = clustering_performance(X=X, labels_true=labels_true, labels_pred=labels_pred,
+                                             num_jobs=2)
     df = pd.DataFrame(list_scores, index=list(methods_name.values()),
-                      columns=["Complete Diameter Distance", "Average Diameter Distance",
-                               "Centroid Diameter Distance", "Single Linkage Distance",
+                      columns=["Complete Diameter Distance", "Average Diameter Distance", 
+                               "Centroid Diameter Distance", "Single Linkage Distance", 
                                "Maximum Linkage Distance", "Average Linkage Distance",
-                               "Centroid Linkage Distance", "Ward's Distance", "Silhouette",
-                               "Adjusted Rand Index", "Adjusted Mutual Info"])
+                               "Centroid Linkage Distance", "Ward's Distance", "Silhouette", 
+                               "Homogeneity", "Completeness", "V-measure", "Adjusted Rand Index", 
+                               "Adjusted Mutual Info"])
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, ds_name + "_cluster_quality.csv"),
               sep=",")

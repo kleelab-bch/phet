@@ -375,7 +375,7 @@ def wards_distance(X, y):
     return score
 
 
-def cluster_metrics(X, labels_true, labels_pred, metric: str = "euclidean", num_jobs: int = 2):
+def clustering_performance(X, labels_true, labels_pred, metric: str = "euclidean", num_jobs: int = 2):
     intra_complete = complete_diameter_distance(X=X, y=labels_pred, metric=metric,
                                                 num_jobs=num_jobs)
     intra_average = average_diameter_distance(X=X, y=labels_pred, metric=metric,

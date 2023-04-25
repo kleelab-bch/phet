@@ -43,24 +43,10 @@ class MOST:
             scale = np.std(case_X[:sample_idx], axis=0)
             scale[scale == 0] = 1
             for feature_idx in range(num_features):
-                # temp_idx = np.argsort(case_X[:sample_idx, feature_idx])[::-1]
                 M[feature_idx, sample_idx - 2] = np.sum(case_X[:sample_idx, feature_idx] - control_med[feature_idx])
                 M[feature_idx, sample_idx - 2] /= med[feature_idx]
                 M[feature_idx, sample_idx - 2] -= loc[feature_idx]
                 M[feature_idx, sample_idx - 2] /= scale[feature_idx]
-            # for feature_idx in range(num_features):
-            #     loc, scale = norm.fit(case_X[:sample_idx, feature_idx])
-            #     if scale == 0:
-            #         scale = 1
-            #     X_temp = norm.cdf(case_X[:sample_idx, feature_idx], loc=loc, scale=scale)
-            #     loc, scale = norm.fit(X_temp)
-            #     if scale == 0:
-            #         scale = 1
-            #     temp_idx = np.argsort(X_temp * -1)
-            #     M[feature_idx, sample_idx - 2] = np.sum(case_X[temp_idx, feature_idx] - control_med[feature_idx])
-            #     M[feature_idx, sample_idx - 2] /= med[feature_idx]
-            #     M[feature_idx, sample_idx - 2] -= loc
-            #     M[feature_idx, sample_idx - 2] /= scale
         del m_case, loc, scale
         np.nan_to_num(M, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
@@ -74,7 +60,6 @@ class MOST:
                 scale = np.std(control_X[:sample_idx], axis=0)
                 scale[scale == 0] = 1
                 for feature_idx in range(num_features):
-                    # temp_idx = np.argsort(case_X[:sample_idx, feature_idx])[::-1]
                     N[feature_idx, sample_idx - 2] = np.sum(control_X[:sample_idx, feature_idx] - case_med[feature_idx])
                     N[feature_idx, sample_idx - 2] /= med[feature_idx]
                     N[feature_idx, sample_idx - 2] -= loc[feature_idx]

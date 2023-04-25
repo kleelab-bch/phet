@@ -6,10 +6,12 @@ import scanpy as sc
 import seaborn as sns
 
 from model.phet import PHeT
+from sklearn.metrics import adjusted_rand_score
 from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.plot_utils import plot_umap
 from utility.utils import comparative_score
 from utility.utils import significant_features
+from utility.utils import clustering
 
 sns.set_theme(style="white")
 METHODS = ["PHet"]
@@ -27,7 +29,7 @@ def train(num_jobs: int = 4):
     # Models parameters
     methods_save_name = ["PHet_br"]
     cluster_type = "kmeans"
-    ari_threshold = 0.86
+    ari_threshold = 0.9
     num_epochs = 50
 
     # descriptions of the data
@@ -124,13 +126,11 @@ def train(num_jobs: int = 4):
     if selected_regulated_features > temp:
         selected_regulated_features = temp
 
-    list_scores = []
-    ari_score = 0.0
-    f1_score = 0.0
-    optimum_ari = 0.0
-    optimum_f1 = 0.0
     epoch = 0
-    while ari_score < ari_threshold and epoch < num_epochs:
+    ari_score = 0.0
+    optimum_ari = 0.0
+    optimum_feature = []
+    while epoch < num_epochs and ari_score < ari_threshold:
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, delta_type="iqr",
                          calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
                          calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
@@ -142,43 +142,43 @@ def train(num_jobs: int = 4):
         temp = significant_features(X=df, features_name=features_name, pvalue=pvalue,
                                     X_map=None, map_genes=False, ttest=False)
         df = temp
-        temp = [idx for idx, feature in enumerate(features_name)
-                if feature in df['features'][:selected_regulated_features].tolist()]
-        top_features_pred = np.zeros((len(top_features_true)))
-        top_features_pred[temp] = 1
-        f1_score = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
-                                     metric=feature_metric)
-        if f1_score > optimum_f1:
-            optimum_f1 = f1_score
         temp = np.copy(y)
         temp = temp.astype(str)
         temp[np.where(y == 0)[0]] = control_name
         temp[np.where(y == 1)[0]] = case_name
         temp_y = temp
         temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
-        temp_feature = [feature for idx, feature in enumerate(features_name)
-                        if feature in df['features'].tolist()]
         num_features = len(temp)
-        list_scores = plot_umap(X=X[:, temp], y=temp_y, subtypes=subtypes, features_name=temp_feature,
+        labels_pred = clustering(X=X[:, temp], cluster_type=cluster_type, num_clusters=num_clusters,
+                                 num_jobs=num_jobs, predict=True)
+        labels_true = np.array(labels_true)
+        labels_pred = np.array(labels_pred)
+        ari_score = adjusted_rand_score(labels_true=labels_true, labels_pred=labels_pred)
+        if ari_score > optimum_ari:
+            optimum_ari = ari_score
+            optimum_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
+        print("\t >> Epoch: {0}; ARI: {1:.4f} ({2:.4f})".format(epoch, ari_score, optimum_ari), end="\r")
+
+    # Store the optimum feature set
+    df = pd.DataFrame(optimum_feature, columns=["features"])
+    df.to_csv(os.path.join(RESULT_PATH, data_name + "_" + save_name.lower() + "_features.csv"),
+                  sep=',', index=False, header=False)
+    # Store the optimum feature F1 score
+    temp = [idx for idx, feature in enumerate(features_name) if feature in optimum_feature[:selected_regulated_features].tolist()]
+    top_features_pred = np.zeros((len(top_features_true)))
+    top_features_pred[temp] = 1
+    f1_score = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
+                                 metric=feature_metric)
+    df = pd.DataFrame([f1_score], columns=["Scores"], index=METHODS)
+    df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_features_scores_phet.csv"), sep=",")
+
+    # Store the optimum feature set clustering quality and plots
+    list_scores = plot_umap(X=X[:, temp], y=temp_y, subtypes=subtypes, features_name=optimum_feature,
                                 num_features=num_features, standardize=True, num_neighbors=num_neighbors, min_dist=0.0,
                                 perform_cluster=True, cluster_type=cluster_type, num_clusters=num_clusters,
                                 max_clusters=max_clusters, heatmap_plot=False, num_jobs=num_jobs,
                                 suptitle=suptitle_name + "\n" + method_name,
                                 file_name=data_name + "_" + save_name.lower(), save_path=RESULT_PATH)
-        ari_score = list_scores[9]
-        if ari_score > optimum_ari:
-            optimum_ari = ari_score
-        df = pd.DataFrame(temp_feature, columns=["features"])
-        df.to_csv(os.path.join(RESULT_PATH, data_name + "_" + save_name.lower() + "_features.csv"),
-                  sep=',', index=False, header=False)
-        print("\t >> Epoch: {0}; ARI: {1:.4f} ({2:.4f}); F1: {3:.4f} ({4:.4f})".format(epoch,
-                                                                                       ari_score,
-                                                                                       optimum_ari,
-                                                                                       f1_score,
-                                                                                       optimum_f1), end="\r")
-    df = pd.DataFrame([f1_score], columns=["Scores"], index=METHODS)
-    df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_features_scores_phet.csv"), sep=",")
-
     columns = ["Complete Diameter Distance", "Average Diameter Distance", "Centroid Diameter Distance",
                "Single Linkage Distance", "Maximum Linkage Distance", "Average Linkage Distance",
                "Centroid Linkage Distance", "Ward's Distance", "Silhouette", "Homogeneity", 

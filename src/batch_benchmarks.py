@@ -39,7 +39,7 @@ def train(num_jobs: int = 4):
 
     # Models parameters
     direction = "both"
-    log_transform = True
+    log_transform = False
     phet_hvf_normalize = None
     if log_transform:
         phet_hvf_normalize = "log"
@@ -58,20 +58,21 @@ def train(num_jobs: int = 4):
     feature_metric = "f1"
 
     # Descriptions of the data
-    datasets = ["bc_ccgse3726", "bladdergse89", "braintumor", "glioblastoma", "leukemia_golub", "lung"]
-    suptitle_names = ["GSE3726", "GSE89", "Braintumor", "Glioblastoma", "Leukemia", "Lung"]
+    # datasets = ["bc_ccgse3726", "bladdergse89", "braintumor", "glioblastoma", "leukemia_golub", "lung"]
+    # suptitle_names = ["GSE3726", "GSE89", "Braintumor", "Glioblastoma", "Leukemia", "Lung"]
     # datasets = ["baron1"]
     # suptitle_names = ["Baron"]
-    cluster_type = "spectral"
+    # cluster_type = "spectral"
 
     # datasets = ["allgse412", "gastricgse2685", "lunggse1987", "mll", "srbct"]
     # suptitle_names = ["GSE412", "GSE2685", "GSE1987", "MLL", "SRBCT"]
-    # datasets = ["camp1", "darmanis", "li", "patel", "yan"]
-    # suptitle_names = ["Camp","Darmanis","Li","Patel","Yan"]
-    # cluster_type = "kmeans"
-    for data_idx, data_name in enumerate(datasets):
-        suptitle_name = suptitle_names[data_idx]
+    datasets = ["camp1", "darmanis", "li", "patel", "yan"]
+    suptitle_names = ["Camp","Darmanis","Li","Patel","Yan"]
+    cluster_type = "kmeans"
 
+    for data_idx, data_name in enumerate(datasets):
+        
+        suptitle_name = suptitle_names[data_idx]
         # Expression, classes, subtypes, donors, timepoints files
         expression_file_name = data_name + "_matrix.mtx"
         features_file_name = data_name + "_feature_names.csv"
@@ -139,7 +140,7 @@ def train(num_jobs: int = 4):
             top_k_features = len(top_features_true)
         top_features_true = [1 if feature in top_features_true else 0 for idx, feature in enumerate(features_name)]
 
-        print("{0}/{1}) Perform experimental studies using {2} data...".format(data_idx + 1, len(data_idx), suptitle_name))
+        print("{0}/{1}) Perform experimental studies using {2} data...".format(data_idx + 1, len(datasets), suptitle_name))
         print("\t >> Sample size: {0}; Feature size: {1}; Subtype size: {2}".format(X.shape[0], X.shape[1],
                                                                                     len(np.unique(subtypes))))
         current_progress = 1
@@ -341,9 +342,9 @@ def train(num_jobs: int = 4):
         methods_dict.update({METHODS[22]: df})
 
         if sort_by_pvalue:
-            print("## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))
+            print("   ## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))
         else:
-            print("## Sort features by the score statistic...".format())
+            print("   ## Sort features by the score statistic...".format())
         for method_idx, item in enumerate(methods_dict.items()):
             method_name, df = item
             method_name = METHODS[method_idx]
@@ -358,7 +359,7 @@ def train(num_jobs: int = 4):
                                     map_genes=False, ttest=False)
             methods_dict[method_name] = temp
 
-        print("## Scoring results using up/down regulated features...")
+        print("   ## Scoring results using up/down regulated features...")
         selected_regulated_features = top_k_features
         temp = np.sum(top_features_true)
         if selected_regulated_features > temp:
@@ -383,12 +384,12 @@ def train(num_jobs: int = 4):
 
         df = pd.DataFrame(list_scores, columns=["Scores"], index=METHODS)
         df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_features_scores.csv"), sep=",")
-        print("## Plot bar plot using the top {0} features...".format(top_k_features))
+        print("   ## Plot bar plot using the top {0} features...".format(top_k_features))
         plot_barplot(X=list_scores, methods_name=METHODS, metric=feature_metric, suptitle=suptitle_name,
                     file_name=data_name, save_path=RESULT_PATH)
 
         list_scores = list()
-        print("## Plot UMAP using all features ({0})...".format(num_features))
+        print("   ## Plot UMAP using all features ({0})...".format(num_features))
         score = plot_umap(X=X, y=y, subtypes=subtypes, features_name=features_name, num_features=num_features,
                         standardize=True, num_neighbors=num_neighbors, min_dist=0, perform_cluster=True,
                         cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
@@ -397,9 +398,9 @@ def train(num_jobs: int = 4):
         list_scores.append(score)
 
         if plot_top_k_features:
-            print("## Plot UMAP using the top {0} features...".format(top_k_features))
+            print("   ## Plot UMAP using the top {0} features...".format(top_k_features))
         else:
-            print("## Plot UMAP using the top features for each method...")
+            print("   ## Plot UMAP using the top features for each method...")
         for method_idx, item in enumerate(methods_dict.items()):
             method_name, df = item
             method_name = METHODS[method_idx]
@@ -441,7 +442,7 @@ def train(num_jobs: int = 4):
         df = pd.DataFrame(list_scores, columns=columns, index=["All"] + METHODS)
         df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_cluster_quality.csv"), sep=",")
 
-        print("## Plot bar plot using ARI metric...\n".format(top_k_features))
+        print("   ## Plot bar plot using ARI metric...\n".format(top_k_features))
         plot_barplot(X=np.array(list_scores)[:, 12], methods_name=["All"] + METHODS, metric="ari",
                     suptitle=suptitle_name, file_name=data_name, save_path=RESULT_PATH)
 

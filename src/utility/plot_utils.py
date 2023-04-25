@@ -9,7 +9,7 @@ import seaborn as sns
 from scipy.stats import zscore
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import MinMaxScaler
-from utility.utils import dimensionality_reduction, clustering, cluster_metrics
+from utility.utils import dimensionality_reduction, clustering, clustering_performance
 
 np.seterr(divide='ignore', invalid='ignore')
 warnings.filterwarnings('ignore')
@@ -153,8 +153,8 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, standardiz
         if subtypes is not None:
             labels_true = np.array(labels_true)
             labels_pred = np.array(labels_pred)
-            list_scores = cluster_metrics(X=X, labels_true=labels_true, labels_pred=labels_pred,
-                                          num_jobs=num_jobs)
+            list_scores = clustering_performance(X=X, labels_true=labels_true, labels_pred=labels_pred,
+                                                 num_jobs=num_jobs)
             temp = np.unique(labels_pred).shape[0]
             if temp > np.unique(labels_true).shape[0]:
                 temp = np.unique(labels_true).shape[0] / temp

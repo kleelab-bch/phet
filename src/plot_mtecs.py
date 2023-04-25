@@ -121,7 +121,7 @@ df = pd.read_csv(os.path.join(RESULT_PATH, "plasschaert_mouse",
                               "plasschaert_mouse_phet_b_expression.csv"),
                  sep=',', header=None)
 df = df.iloc[samples_idx, enriched_idx]
-df.columns = features
+df.metrics_name = features
 
 # plot heatmap
 cg = sns.clustermap(df, figsize=(24, 16), method="average", metric="correlation",
@@ -226,7 +226,7 @@ df = pd.read_csv(os.path.join(RESULT_PATH, "plasschaert_mouse",
                               "plasschaert_mouse_phet_b_expression.csv"),
                  sep=',', header=None)
 df = df.iloc[samples_idx, enriched_idx]
-df.columns = heat_features
+df.metrics_name = heat_features
 # plot heatmap
 cg = sns.clustermap(df, figsize=(24, 16), method="average", metric="correlation",
                     z_score=0, row_cluster=False, col_cluster=True, row_colors=row_colors,
