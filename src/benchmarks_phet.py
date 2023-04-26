@@ -276,7 +276,7 @@ def train(num_jobs: int = 4):
         index += ["Markers"]
     columns = ["Complete Diameter Distance", "Average Diameter Distance", "Centroid Diameter Distance",
                "Single Linkage Distance", "Maximum Linkage Distance", "Average Linkage Distance",
-               "Centroid Linkage Distance", "Ward's Distance", "Silhouette", "Homogeneity", 
+               "Centroid Linkage Distance", "Ward's Distance", "Silhouette", "Homogeneity",
                "Completeness", "V-measure", "Adjusted Rand Index", "Adjusted Mutual Info"]
     df = pd.DataFrame(list_scores, columns=columns, index=index + METHODS)
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_cluster_quality.csv"), sep=",")

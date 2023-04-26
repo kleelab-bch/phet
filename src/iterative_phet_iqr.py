@@ -4,16 +4,17 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
+from sklearn.metrics import adjusted_rand_score
 
 from model.phet import PHeT
-from sklearn.metrics import adjusted_rand_score
 from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.plot_utils import plot_umap
+from utility.utils import clustering
 from utility.utils import comparative_score
 from utility.utils import significant_features
-from utility.utils import clustering
 
 sns.set_theme(style="white")
+
 
 def train(num_jobs: int = 4):
     # Arguments
@@ -133,8 +134,8 @@ def train(num_jobs: int = 4):
         labels_pred = clustering(X=X[:, temp], cluster_type=cluster_type, num_clusters=num_clusters,
                                  num_jobs=num_jobs, predict=True)
         curr_ari = adjusted_rand_score(labels_true=labels_true, labels_pred=labels_pred)
-        
-        temp = [idx for idx, feature in enumerate(features_name) 
+
+        temp = [idx for idx, feature in enumerate(features_name)
                 if feature in df['features'].tolist()[:selected_regulated_features]]
         top_features_pred = np.zeros((len(top_features_true)))
         top_features_pred[temp] = 1
@@ -159,15 +160,17 @@ def train(num_jobs: int = 4):
         else:
             print("\t >> Epoch: {0} (of {1}); ARI: {2:.4f} ({3:.4f}); F1: {4:.4f} ({5:.4f})".format(epoch, num_epochs,
                                                                                                     curr_ari, opt_ari,
-                                                                                                    curr_f1, opt_f1), end="\r")
+                                                                                                    curr_f1, opt_f1),
+                  end="\r")
 
     print("\n## Optimum ARI: {0:.4f}; Optimum F1: {1:.4f}".format(opt_ari, opt_f1))
-    
+
     # Store the optimum feature F1 score
-    temp = [idx for idx, feature in enumerate(features_name) if feature in optimum_feature[:selected_regulated_features]]
+    temp = [idx for idx, feature in enumerate(features_name) if
+            feature in optimum_feature[:selected_regulated_features]]
     top_features_pred = np.zeros((len(top_features_true)))
     top_features_pred[temp] = 1
-    f1_score = comparative_score(pred_features=top_features_pred, true_features=top_features_true, 
+    f1_score = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
                                  metric="f1")
     df = pd.DataFrame([f1_score], columns=["Scores"], index=[method_name])
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_features_scores_phet.csv"), sep=",")
@@ -186,7 +189,7 @@ def train(num_jobs: int = 4):
                             file_name=data_name + "_" + save_name.lower(), save_path=RESULT_PATH)
     columns = ["Complete Diameter Distance", "Average Diameter Distance", "Centroid Diameter Distance",
                "Single Linkage Distance", "Maximum Linkage Distance", "Average Linkage Distance",
-               "Centroid Linkage Distance", "Ward's Distance", "Silhouette", "Homogeneity", 
+               "Centroid Linkage Distance", "Ward's Distance", "Silhouette", "Homogeneity",
                "Completeness", "V-measure", "Adjusted Rand Index", "Adjusted Mutual Info"]
     df = pd.DataFrame(np.array(list_scores)[None, :], columns=columns, index=[method_name])
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_cluster_quality_phet.csv"), sep=",")
@@ -194,8 +197,9 @@ def train(num_jobs: int = 4):
     # Store the optimum feature set
     df = pd.DataFrame(optimum_feature, columns=["features"])
     df.to_csv(os.path.join(RESULT_PATH, data_name + "_" + save_name.lower() + "_features.csv"),
-                  sep=',', index=False, header=False)
-    
+              sep=',', index=False, header=False)
+
+
 if __name__ == "__main__":
     # for windows
     if os.name == 'nt':

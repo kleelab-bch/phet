@@ -14,11 +14,9 @@ from sklearn.metrics import jaccard_score, f1_score, roc_auc_score
 from sklearn.metrics import pairwise_distances
 from sklearn.metrics import precision_score, accuracy_score
 from sklearn.metrics import silhouette_score
-from sklearn.metrics.cluster import homogeneity_completeness_v_measure
-from sklearn.metrics.cluster import adjusted_rand_score
-from sklearn.metrics.cluster import adjusted_rand_score
 from sklearn.metrics.cluster import adjusted_mutual_info_score
 from sklearn.metrics.cluster import adjusted_rand_score
+from sklearn.metrics.cluster import homogeneity_completeness_v_measure
 from sklearn.mixture import GaussianMixture
 
 np.seterr(divide='ignore', invalid='ignore')
@@ -393,7 +391,7 @@ def clustering_performance(X, labels_true, labels_pred, metric: str = "euclidean
                                                num_jobs=num_jobs)
     wards = wards_distance(X=X, y=labels_pred)
     silhouette = silhouette_score(X=X, labels=labels_pred, metric=metric)
-    homogeneity, completeness, v_measure = homogeneity_completeness_v_measure(labels_true=labels_true, 
+    homogeneity, completeness, v_measure = homogeneity_completeness_v_measure(labels_true=labels_true,
                                                                               labels_pred=labels_pred)
     ari = adjusted_rand_score(labels_true=labels_true, labels_pred=labels_pred)
     ami = adjusted_mutual_info_score(labels_true=labels_true, labels_pred=labels_pred)

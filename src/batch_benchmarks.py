@@ -67,11 +67,11 @@ def train(num_jobs: int = 4):
     # datasets = ["allgse412", "gastricgse2685", "lunggse1987", "mll", "srbct"]
     # suptitle_names = ["GSE412", "GSE2685", "GSE1987", "MLL", "SRBCT"]
     datasets = ["camp1", "darmanis", "li", "patel", "yan"]
-    suptitle_names = ["Camp","Darmanis","Li","Patel","Yan"]
+    suptitle_names = ["Camp", "Darmanis", "Li", "Patel", "Yan"]
     cluster_type = "kmeans"
 
     for data_idx, data_name in enumerate(datasets):
-        
+
         suptitle_name = suptitle_names[data_idx]
         # Expression, classes, subtypes, donors, timepoints files
         expression_file_name = data_name + "_matrix.mtx"
@@ -140,7 +140,8 @@ def train(num_jobs: int = 4):
             top_k_features = len(top_features_true)
         top_features_true = [1 if feature in top_features_true else 0 for idx, feature in enumerate(features_name)]
 
-        print("{0}/{1}) Perform experimental studies using {2} data...".format(data_idx + 1, len(datasets), suptitle_name))
+        print("{0}/{1}) Perform experimental studies using {2} data...".format(data_idx + 1, len(datasets),
+                                                                               suptitle_name))
         print("\t >> Sample size: {0}; Feature size: {1}; Subtype size: {2}".format(X.shape[0], X.shape[1],
                                                                                     len(np.unique(subtypes))))
         current_progress = 1
@@ -152,7 +153,7 @@ def train(num_jobs: int = 4):
         estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=False)
         df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False,
-                        ttest=False, ascending=True)
+                           ttest=False, ascending=True)
         df = df[df["score"] <= pvalue]
         methods_dict.update({METHODS[0]: df})
         current_progress += 1
@@ -169,7 +170,7 @@ def train(num_jobs: int = 4):
         estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=False)
         df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False,
-                        ttest=False, ascending=True)
+                           ttest=False, ascending=True)
         df = df[df["score"] <= pvalue]
         methods_dict.update({METHODS[2]: df})
         current_progress += 1
@@ -203,8 +204,8 @@ def train(num_jobs: int = 4):
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[6]), end="\r")
         estimator = SeuratHVF(per_condition=False, log_transform=log_transform,
-                            num_top_features=num_features, min_disp=0.5,
-                            min_mean=0.0125, max_mean=3)
+                              num_top_features=num_features, min_disp=0.5,
+                              min_mean=0.0125, max_mean=3)
         temp_X = deepcopy(X)
         df = estimator.fit_predict(X=temp_X, y=y)
         del temp_X
@@ -214,8 +215,8 @@ def train(num_jobs: int = 4):
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[7]), end="\r")
         estimator = SeuratHVF(per_condition=True, log_transform=log_transform,
-                            num_top_features=num_features, min_disp=0.5,
-                            min_mean=0.0125, max_mean=3)
+                              num_top_features=num_features, min_disp=0.5,
+                              min_mean=0.0125, max_mean=3)
         temp_X = deepcopy(X)
         df = estimator.fit_predict(X=temp_X, y=y)
         del temp_X
@@ -225,8 +226,8 @@ def train(num_jobs: int = 4):
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[8]), end="\r")
         estimator = DeltaHVFMean(calculate_deltamean=False, log_transform=log_transform,
-                                num_top_features=num_features, min_disp=0.5,
-                                min_mean=0.0125, max_mean=3)
+                                 num_top_features=num_features, min_disp=0.5,
+                                 min_mean=0.0125, max_mean=3)
         temp_X = deepcopy(X)
         df = estimator.fit_predict(X=temp_X, y=y)
         del temp_X
@@ -236,8 +237,8 @@ def train(num_jobs: int = 4):
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[9]), end="\r")
         estimator = DeltaHVFMean(calculate_deltamean=True, log_transform=log_transform,
-                                num_top_features=num_features, min_disp=0.5,
-                                min_mean=0.0125, max_mean=3)
+                                 num_top_features=num_features, min_disp=0.5,
+                                 min_mean=0.0125, max_mean=3)
         temp_X = deepcopy(X)
         df = estimator.fit_predict(X=temp_X, y=y)
         del temp_X
@@ -325,9 +326,9 @@ def train(num_jobs: int = 4):
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[21]), end="\r")
         estimator = PHeT(normalize=phet_hvf_normalize, iqr_range=(25, 75), num_subsamples=1000, delta_type="hvf",
-                        calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
-                        calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                        weight_range=[0.2, 0.4, 0.8])
+                         calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
+                         calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                         weight_range=[0.2, 0.4, 0.8])
         df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         methods_dict.update({METHODS[21]: df})
         current_progress += 1
@@ -335,9 +336,9 @@ def train(num_jobs: int = 4):
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[22]))
         estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, delta_type="iqr",
-                        calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
-                        calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
-                        weight_range=[0.2, 0.4, 0.8])
+                         calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
+                         calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
+                         weight_range=[0.2, 0.4, 0.8])
         df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         methods_dict.update({METHODS[22]: df})
 
@@ -356,7 +357,7 @@ def train(num_jobs: int = 4):
                                             X_map=None, map_genes=False, ttest=False)
             else:
                 temp = sort_features(X=df, features_name=features_name, X_map=None,
-                                    map_genes=False, ttest=False)
+                                     map_genes=False, ttest=False)
             methods_dict[method_name] = temp
 
         print("   ## Scoring results using up/down regulated features...")
@@ -379,22 +380,22 @@ def train(num_jobs: int = 4):
             top_features_pred = np.zeros((len(top_features_true)))
             top_features_pred[temp] = 1
             score = comparative_score(pred_features=top_features_pred, true_features=top_features_true,
-                                    metric=feature_metric)
+                                      metric=feature_metric)
             list_scores.append(score)
 
         df = pd.DataFrame(list_scores, columns=["Scores"], index=METHODS)
         df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_features_scores.csv"), sep=",")
         print("   ## Plot bar plot using the top {0} features...".format(top_k_features))
         plot_barplot(X=list_scores, methods_name=METHODS, metric=feature_metric, suptitle=suptitle_name,
-                    file_name=data_name, save_path=RESULT_PATH)
+                     file_name=data_name, save_path=RESULT_PATH)
 
         list_scores = list()
         print("   ## Plot UMAP using all features ({0})...".format(num_features))
         score = plot_umap(X=X, y=y, subtypes=subtypes, features_name=features_name, num_features=num_features,
-                        standardize=True, num_neighbors=num_neighbors, min_dist=0, perform_cluster=True,
-                        cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
-                        heatmap_plot=False, num_jobs=num_jobs, suptitle=suptitle_name + "\nAll",
-                        file_name=data_name + "_all", save_path=RESULT_PATH)
+                          standardize=True, num_neighbors=num_neighbors, min_dist=0, perform_cluster=True,
+                          cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
+                          heatmap_plot=False, num_jobs=num_jobs, suptitle=suptitle_name + "\nAll",
+                          file_name=data_name + "_all", save_path=RESULT_PATH)
         list_scores.append(score)
 
         if plot_top_k_features:
@@ -418,20 +419,23 @@ def train(num_jobs: int = 4):
                                 feature in df['features'].tolist()[:top_k_features]]
             else:
                 temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
-                temp_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
+                temp_feature = [feature for idx, feature in enumerate(features_name) if
+                                feature in df['features'].tolist()]
             num_features = len(temp)
-            scores = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
-                            standardize=True, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,
-                            cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
-                            heatmap_plot=False, num_jobs=num_jobs, suptitle=suptitle_name + "\n" + method_name,
-                            file_name=data_name + "_" + save_name.lower(), save_path=RESULT_PATH)
+            scores = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature,
+                               num_features=num_features,
+                               standardize=True, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,
+                               cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
+                               heatmap_plot=False, num_jobs=num_jobs, suptitle=suptitle_name + "\n" + method_name,
+                               file_name=data_name + "_" + save_name.lower(), save_path=RESULT_PATH)
             df = pd.DataFrame(temp_feature, columns=["features"])
             df.to_csv(os.path.join(RESULT_PATH, data_name + "_" + save_name.lower() + "_features.csv"),
-                    sep=',', index=False, header=False)
+                      sep=',', index=False, header=False)
             if export_spring:
                 df = pd.DataFrame(X[:, temp])
-                df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_" + save_name.lower() + "_expression.csv"),
-                        sep=",", index=False, header=False)
+                df.to_csv(
+                    path_or_buf=os.path.join(RESULT_PATH, data_name + "_" + save_name.lower() + "_expression.csv"),
+                    sep=",", index=False, header=False)
             del df
             list_scores.append(scores)
 
@@ -444,7 +448,7 @@ def train(num_jobs: int = 4):
 
         print("   ## Plot bar plot using ARI metric...\n".format(top_k_features))
         plot_barplot(X=np.array(list_scores)[:, 12], methods_name=["All"] + METHODS, metric="ari",
-                    suptitle=suptitle_name, file_name=data_name, save_path=RESULT_PATH)
+                     suptitle=suptitle_name, file_name=data_name, save_path=RESULT_PATH)
 
 
 if __name__ == "__main__":

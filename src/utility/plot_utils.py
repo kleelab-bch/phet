@@ -102,10 +102,10 @@ def plot_heatmap(df, file_name: str = "temp", save_path: str = "."):
     plt.close(fig="all")
 
 
-def plot_umap(X, y, subtypes, features_name: list, num_features: int, labels_pred: list = [], 
-              standardize: bool = True, num_neighbors: int = 15, min_dist: float = 0, 
+def plot_umap(X, y, subtypes, features_name: list, num_features: int, labels_pred: list = [],
+              standardize: bool = True, num_neighbors: int = 15, min_dist: float = 0,
               perform_cluster: bool = False, cluster_type: str = "spectral", num_clusters: int = 0,
-              max_clusters: int = 10, heatmap_plot: bool = True, num_jobs: int = 2, 
+              max_clusters: int = 10, heatmap_plot: bool = True, num_jobs: int = 2,
               suptitle: str = "temp", file_name: str = "temp", save_path: str = "."):
     score = 0
     # Standardize if needed

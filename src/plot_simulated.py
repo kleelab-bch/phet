@@ -7,8 +7,9 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
-from utility.utils import clustering_performance
+
 from utility.file_path import RESULT_PATH, DATASET_PATH
+from utility.utils import clustering_performance
 
 sc.settings.verbosity = 0  # verbosity: errors (0), warnings (1), info (2), hints (3)
 sc.settings.set_figure_params(dpi=80, facecolor='white')
@@ -519,11 +520,11 @@ for ds_name in ds_files:
         list_scores = clustering_performance(X=X, labels_true=labels_true, labels_pred=labels_pred,
                                              num_jobs=2)
     df = pd.DataFrame(list_scores, index=list(methods_name.values()),
-                      columns=["Complete Diameter Distance", "Average Diameter Distance", 
-                               "Centroid Diameter Distance", "Single Linkage Distance", 
+                      columns=["Complete Diameter Distance", "Average Diameter Distance",
+                               "Centroid Diameter Distance", "Single Linkage Distance",
                                "Maximum Linkage Distance", "Average Linkage Distance",
-                               "Centroid Linkage Distance", "Ward's Distance", "Silhouette", 
-                               "Homogeneity", "Completeness", "V-measure", "Adjusted Rand Index", 
+                               "Centroid Linkage Distance", "Ward's Distance", "Silhouette",
+                               "Homogeneity", "Completeness", "V-measure", "Adjusted Rand Index",
                                "Adjusted Mutual Info"])
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, ds_name + "_cluster_quality.csv"),
               sep=",")
