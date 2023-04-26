@@ -428,180 +428,6 @@ ax.legend(title=None, fontsize=26, ncol=1, bbox_to_anchor=(1.005, 1),
 plt.tight_layout()
 
 ##############################################################
-################ Plasschaert Basal (Markers) #################
-##############################################################
-full_features = pd.read_csv(os.path.join(DATASET_PATH,
-                                         "plasschaert_mouse_feature_names.csv"), sep=',')
-full_features = full_features["features"].to_list()
-full_features = [f.upper() for f in full_features]
-# load basal subsets markers
-df = pd.read_csv(os.path.join(DATASET_PATH, "basal_subsets_markers.csv"),
-                 sep=',', header=0)
-df = df[["gene", "cluster", "Signature"]]
-df = df[df["Signature"] == "yes"]
-basal_subsets_markers = {}
-for cluster in set(df["cluster"]):
-    if cluster == "Basal1":
-        name_cluster = "Canonical basal"
-    elif cluster == "Basal2":
-        name_cluster = "Proliferating basal"
-    elif cluster == "Basal3":
-        name_cluster = "Serpins expressing basal"
-    elif cluster == "Basal4":
-        name_cluster = "JUN/FOS"
-    else:
-        name_cluster = "Beta-catenin"
-    temp = df[df["cluster"] == cluster]["gene"].values.tolist()
-    temp = [f for f in temp if f in full_features]
-    basal_subsets_markers[name_cluster] = temp
-# load all markers
-df = pd.read_csv(os.path.join(DATASET_PATH,
-                              "plasschaert_mouse_all_markers.csv"),
-                 sep=',', header=0)
-df.columns = ["Genes", "Cells"]
-markers_dict = {}
-for cell in np.unique(df["Cells"]):
-    temp = df["Cells"] == cell
-    if cell in ['PNEC', 'Ionocytes', 'Brush', 'Ciliated', 'Cycling Basal']:
-        continue
-    if cell in ['Basal', 'Basal & Cycling basal pooled']:
-        cell = 'Basal'
-    temp = sorted([f.upper() for f in df[temp]["Genes"].values.tolist()
-                   if not f.lower().startswith("rp")])
-    temp = list(set(temp))
-    if cell.capitalize() in markers_dict.keys():
-        markers_dict[cell.capitalize()] = temp + markers_dict[cell]
-    else:
-        markers_dict[cell.capitalize()] = temp
-del df
-markers = np.unique([i for k, item in markers_dict.items()
-                     for i in item])
-# load trajectory data
-samples_idx = pd.read_csv(os.path.join(RESULT_PATH, "plasschaert_mouse",
-                                       "plasschaert_mouse_basal.txt"),
-                          sep=',', index_col=0, header=None)
-samples_idx = np.squeeze(samples_idx.values.tolist())
-# load donors data
-donors = pd.read_csv(os.path.join(RESULT_PATH, "plasschaert_mouse",
-                                  "plasschaert_mouse_groups.csv"),
-                     sep=',', index_col=0, header=None)
-donors = donors.T["timepoints"]
-donors = ["Injured" if item != "uninjured" else "Uninjured"
-          for item in donors.values.tolist()]
-donors = pd.Series(donors, dtype="category")
-donors = donors[samples_idx]
-# Load data
-adata = sc.read_mtx(os.path.join(DATASET_PATH, "plasschaert_mouse_matrix.mtx"))
-adata = adata[samples_idx][:, [idx for idx, f in enumerate(full_features)
-                               if f in markers]]
-adata.var_names = [f for idx, f in enumerate(full_features) if f in markers]
-donors.index = adata.obs.index
-adata.obs["donors"] = donors
-X = deepcopy(adata.X)
-# QC calculations
-sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
-# Regress out effects of total counts per cell 
-sc.pp.regress_out(adata, ['total_counts'])
-# Scale each gene to unit variance. Clip values exceeding standard deviation 10.
-sc.pp.scale(adata, max_value=10)
-# Computing the neighborhood graph
-sc.pp.neighbors(adata, n_neighbors=30, n_pcs=50)
-# UMAP (Embedding the neighborhood graph)
-sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
-           maxiter=2000)
-# Clustering the neighborhood graph
-sc.tl.leiden(adata, resolution=0.5, key_added="clusters")
-adata.obs["clusters"] = ["2" if item in ["3", "4"] else item for item in adata.obs['clusters']]
-adata.obs["clusters"] = pd.Series(adata.obs["clusters"], name="clusters", dtype="category")
-# Rename clusters
-adata.X = X
-sc.pp.scale(adata, max_value=10)
-new_cluster_names = ['Basal-1', 'Basal-2', 'Basal-3']
-adata.rename_categories('clusters', new_cluster_names)
-# Find differentially expressed features
-sc.tl.rank_genes_groups(adata, 'clusters', method='wilcoxon',
-                        corr_method='benjamini-hochberg', tie_correct=True)
-# Filter markers
-temp_dict = {}
-for key, items in markers_dict.items():
-    temp = []
-    for item in items:
-        if item.upper() in adata.var_names:
-            temp.append(item.upper())
-    if len(temp) > 0:
-        temp_dict[key] = temp
-markers_dict = temp_dict
-markers = [f for k, item in markers_dict.items() for f in item]
-basal_markers = ["KRT5", "KRT14", "KRT15", "KRT19", "TRP63", "PDPN", "NGFR",
-                 "ITGA6", "ITGB4", "LAMB3", "BCAM", "DST", "DCN", "COL17A1",
-                 "ABI3BP", "TSPAN1", "WFDC2", "ATP1B1", "DUT", "CXCL17"]
-# basal_markers = ['ABI3BP', 'BCAM', 'COL17A1', 'DCN', 'ITGB4', 'KRT15', 'KRT5',
-#                  'LAMB3', 'NGFR', 'PDPN', 'TRP63']
-basal_markers += [f.upper() for item in basal_subsets_markers.values() for f in item]
-basal_markers = sorted(list(set(basal_markers)))
-secretory_markers = ["SCGB1A1", "MUC5AC", "MUC5B", "TFF3", "SCGB3A1", "SCGB3A2",
-                     "BPIFB1", "MSMB", "SLPI", "BPIFA1", "MSLN", "AGR2"]
-# secretory_markers = ['AGR2', 'BPIFA1', 'BPIFB1', 'MSLN', 'MSMB', 'MUC5B', 
-#                      'SCGB1A1', 'SCGB3A2']
-secretory_markers = sorted(list(set(secretory_markers)))
-# selected_features_dict = {'Basal': ['KRT5', 'TRP63', 'LAMB3',
-#                                     'KRT15', 'TSPAN1', 'COL17A1'],
-#                           'Secretory': ['MUC5B', 'SCGB1A1', 'SCGB3A2',
-#                                         'BPIFA1', 'MSLN', 'AGR2']}
-selected_features_dict = {'Basal': basal_markers,
-                          'Secretory': secretory_markers}
-temp_dict = {}
-for key, items in selected_features_dict.items():
-    temp = []
-    for item in items:
-        if item.upper() in adata.var_names:
-            temp.append(item.upper())
-    if len(temp) > 0:
-        temp_dict[key] = temp
-selected_features_dict = temp_dict
-selected_features = [f for k, item in selected_features_dict.items() for f in item]
-temp_dict = {}
-for key, items in basal_subsets_markers.items():
-    temp = []
-    for item in items:
-        if item.upper() in adata.var_names:
-            temp.append(item.upper())
-    if len(temp) > 0:
-        temp_dict[key] = temp
-basal_subsets_markers = temp_dict
-# Plot UMAP 
-with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
-    sc.pl.umap(adata, color=['clusters'] + ['donors'] + selected_features,
-               use_raw=False, add_outline=False, legend_loc='on data',
-               legend_fontsize=40, legend_fontoutline=2, frameon=False)
-# Violin plot
-adata.var_names_make_unique()
-with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
-                     'axes.titlesize': '30', 'axes.labelsize': '30',
-                     'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
-    sc.pl.violin(adata, selected_features_dict["Basal"],
-                 groupby='clusters', xlabel="Clusters", stripplot=False,
-                 inner='box')
-    sc.pl.violin(adata, selected_features_dict["Secretory"],
-                 groupby='clusters', xlabel="Clusters", stripplot=False,
-                 inner='box')
-# Dotplot
-with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
-                     'axes.titlesize': '30', 'axes.labelsize': '30',
-                     'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
-    sc.pl.dotplot(adata, selected_features_dict, groupby='clusters',
-                  title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of expressed \n cells (%)")
-# Heatmaps
-adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
-with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
-                     'axes.labelsize': '30', 'xtick.labelsize': '35',
-                     'ytick.labelsize': '12'}):
-    sc.pl.heatmap(adata, selected_features_dict, groupby='clusters',
-                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
-                  swap_axes=False, figsize=(10, 2))
-
-##############################################################
 ################## Plasschaert Basal (PHet) ##################
 ##############################################################
 full_features = pd.read_csv(os.path.join(DATASET_PATH,
@@ -717,16 +543,14 @@ basal_markers = ["KRT5", "KRT14", "KRT15", "KRT19", "TRP63", "PDPN", "NGFR",
                  "ITGA6", "ITGB4", "LAMB3", "BCAM", "DST", "DCN", "COL17A1",
                  "ABI3BP", "TSPAN1", "WFDC2", "ATP1B1", "DUT", "CXCL17"]
 basal_markers += [f.upper() for item in basal_subsets_markers.values() for f in item]
-# basal_markers = ['KRT5', 'TRP63', 'LAMB3', 'KRT15', "TSPAN1", 'COL17A1']
 basal_markers = sorted(list(set(basal_markers)))
 secretory_markers = ["MUC5AC", "MUC5B", "TFF3", "SCGB3A1", "SCGB3A2",
                      "BPIFB1", "MSMB", "SLPI", "WFDC2", "BPIFA1", "MSLN", "AGR2"]
-# secretory_markers = ['AGR2', 'BPIFA1', 'MSLN', 'MUC5B', 'SCGB1A1', 'SCGB3A2']
 secretory_markers = sorted(list(set(secretory_markers)))
-# selected_features_dict = {'Basal': ['KRT5', 'TRP63', 'LAMB3',
-#                                     'KRT15', 'DCN', 'COL17A1'],
-#                           'Secretory': ['MUC5B', 'SCGB1A1', 'SCGB3A2',
-#                                         'BPIFA1', 'MSLN', 'AGR2']}
+selected_features_dict = {'Basal': ['COL17A1', 'KRT15', 'KRT5', 'LAMB3', 'TRP63', 
+                                    'TSPAN1'],
+                          'Secretory': ['AGR2', 'BPIFA1', 'MSLN', 'MUC5B', 
+                                        'SCGB1A1', 'SCGB3A2']}
 selected_features_dict = {'Basal': basal_markers,
                           'Secretory': secretory_markers}
 temp_dict = {}
@@ -749,13 +573,38 @@ for key, items in basal_subsets_markers.items():
         temp_dict[key] = temp
 basal_subsets_markers = temp_dict
 # Plot UMAP 
+adata.uns["donors_colors"] = ["#F05454", "#59CE8F"]
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
+    sc.pl.umap(adata, color=['clusters'] + ['donors'],
+               use_raw=False, add_outline=False, legend_loc='on data',
+               legend_fontsize=40, legend_fontoutline=2, frameon=False)
     sc.pl.umap(adata, color=['clusters'] + ['donors'] + selected_features,
                use_raw=False, add_outline=False, legend_loc='on data',
                legend_fontsize=40, legend_fontoutline=2, frameon=False)
+# Plot distributions of basal cells in injury vs uninjury conditions
+basal_populations = list()
+for d in sorted(set(adata.obs["donors"])):
+    df = adata[adata.obs["donors"] == d].obs.groupby(["clusters"]).count()["donors"]
+    df /= df.sum()
+    temp = df.to_list()
+    temp.insert(0, d)
+    basal_populations.append(temp)
+basal_populations = pd.DataFrame(basal_populations, columns=["Cluster"] + df.index.to_list())
+# Use static colors
+basal_palette = {"Basal-1": "#4c72b0", "Basal-2": "#dd8452",
+                 "Basal-3": "#55a868", "Basal-4": "#c44e52"}
+plt.figure(figsize=(10, 8))
+ax = basal_populations.plot(kind='bar', stacked=True, width=0.9, 
+                            color=basal_palette)
+ticks = [str(float(t.get_text()) * 100) for t in ax.get_yticklabels()]
+ax.set_yticklabels(ticks, fontsize=16)
+ax.set_xticklabels(["Injured", "Uninjured"], rotation=45, fontsize=20)
+ax.set_ylabel("Percentage of basal cells", fontsize=20)
+ax.set_xlabel(None)
+ax.legend(title=None, fontsize=26, ncol=1, bbox_to_anchor=(1.005, 1),
+          loc=2, borderaxespad=0., frameon=False)
 # Violin plot
 adata.X = X
-sc.pp.scale(adata)
 adata.var_names_make_unique()
 with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '30',
@@ -767,18 +616,202 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                  groupby='clusters', xlabel="Clusters", stripplot=False,
                  inner='box')
 # Dotplot
+sc.pp.scale(adata)
 with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
     sc.pl.dotplot(adata, basal_subsets_markers, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
                   size_title="Fraction of expressed \n cells (%)")
-    # sc.pl.dotplot(adata, markers_dict["Basal"], groupby='clusters',
-    #               title=None, colorbar_title="Mean expression values",
-    #               size_title="Fraction of expressed \n cells (%)")
-    # sc.pl.dotplot(adata, markers_dict["Secretory"], groupby='clusters',
-    #               title=None, colorbar_title="Mean expression values",
-    #               size_title="Fraction of expressed \n cells (%)")
+    sc.pl.dotplot(adata, selected_features_dict, groupby='clusters',
+                  title=None, colorbar_title="Mean expression values",
+                  size_title="Fraction of expressed \n cells (%)")
+# Heatmaps
+adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
+with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
+                     'axes.labelsize': '30', 'xtick.labelsize': '35',
+                     'ytick.labelsize': '12'}):
+    sc.pl.heatmap(adata, selected_features_dict, groupby='clusters',
+                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
+                  swap_axes=False, figsize=(10, 2))
+
+##############################################################
+################ Plasschaert Basal (Markers) #################
+##############################################################
+full_features = pd.read_csv(os.path.join(DATASET_PATH,
+                                         "plasschaert_mouse_feature_names.csv"), sep=',')
+full_features = full_features["features"].to_list()
+full_features = [f.upper() for f in full_features]
+# load basal subsets markers
+df = pd.read_csv(os.path.join(DATASET_PATH, "basal_subsets_markers.csv"),
+                 sep=',', header=0)
+df = df[["gene", "cluster", "Signature"]]
+df = df[df["Signature"] == "yes"]
+basal_subsets_markers = {}
+for cluster in set(df["cluster"]):
+    if cluster == "Basal1":
+        name_cluster = "Canonical basal"
+    elif cluster == "Basal2":
+        name_cluster = "Proliferating basal"
+    elif cluster == "Basal3":
+        name_cluster = "Serpins expressing basal"
+    elif cluster == "Basal4":
+        name_cluster = "JUN/FOS"
+    else:
+        name_cluster = "Beta-catenin"
+    temp = df[df["cluster"] == cluster]["gene"].values.tolist()
+    temp = [f for f in temp if f in full_features]
+    basal_subsets_markers[name_cluster] = temp
+# load all markers
+df = pd.read_csv(os.path.join(DATASET_PATH,
+                              "plasschaert_mouse_all_markers.csv"),
+                 sep=',', header=0)
+df.columns = ["Genes", "Cells"]
+markers_dict = {}
+for cell in np.unique(df["Cells"]):
+    temp = df["Cells"] == cell
+    if cell in ['PNEC', 'Ionocytes', 'Brush', 'Ciliated', 'Cycling Basal']:
+        continue
+    if cell in ['Basal', 'Basal & Cycling basal pooled']:
+        cell = 'Basal'
+    temp = sorted([f.upper() for f in df[temp]["Genes"].values.tolist()
+                   if not f.lower().startswith("rp")])
+    temp = list(set(temp))
+    if cell.capitalize() in markers_dict.keys():
+        markers_dict[cell.capitalize()] = temp + markers_dict[cell]
+    else:
+        markers_dict[cell.capitalize()] = temp
+del df
+markers = np.unique([i for k, item in markers_dict.items()
+                     for i in item])
+# load trajectory data
+samples_idx = pd.read_csv(os.path.join(RESULT_PATH, "plasschaert_mouse",
+                                       "plasschaert_mouse_basal.txt"),
+                          sep=',', index_col=0, header=None)
+samples_idx = np.squeeze(samples_idx.values.tolist())
+# load donors data
+donors = pd.read_csv(os.path.join(RESULT_PATH, "plasschaert_mouse",
+                                  "plasschaert_mouse_groups.csv"),
+                     sep=',', index_col=0, header=None)
+donors = donors.T["timepoints"]
+donors = ["Injured" if item != "uninjured" else "Uninjured"
+          for item in donors.values.tolist()]
+donors = pd.Series(donors, dtype="category")
+donors = donors[samples_idx]
+# Load data
+adata = sc.read_mtx(os.path.join(DATASET_PATH, "plasschaert_mouse_matrix.mtx"))
+adata = adata[samples_idx][:, [idx for idx, f in enumerate(full_features)
+                               if f in markers]]
+adata.var_names = [f for idx, f in enumerate(full_features) if f in markers]
+donors.index = adata.obs.index
+adata.obs["donors"] = donors
+X = deepcopy(adata.X)
+# QC calculations
+sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
+# Regress out effects of total counts per cell 
+sc.pp.regress_out(adata, ['total_counts'])
+# Scale each gene to unit variance. Clip values exceeding standard deviation 10.
+sc.pp.scale(adata, max_value=10)
+# Computing the neighborhood graph
+sc.pp.neighbors(adata, n_neighbors=30, n_pcs=50)
+# UMAP (Embedding the neighborhood graph)
+sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
+           maxiter=2000)
+# Clustering the neighborhood graph
+sc.tl.leiden(adata, resolution=0.5, key_added="clusters")
+# Rename clusters
+new_cluster_names = ['Basal-1', 'Basal-2', 'Basal-4', 'Basal-3']
+adata.rename_categories('clusters', new_cluster_names)
+# Find differentially expressed features
+sc.tl.rank_genes_groups(adata, 'clusters', method='wilcoxon',
+                        corr_method='benjamini-hochberg', tie_correct=True)
+# Filter markers
+temp_dict = {}
+for key, items in markers_dict.items():
+    temp = []
+    for item in items:
+        if item.upper() in adata.var_names:
+            temp.append(item.upper())
+    if len(temp) > 0:
+        temp_dict[key] = temp
+markers_dict = temp_dict
+markers = [f for k, item in markers_dict.items() for f in item]
+basal_markers = ['ABI3BP', 'ATP1B1', 'BCAM', 'COL17A1', 'CXCL17', 'DCN', 'DST', 'DUT',
+                 'ITGA6', 'ITGB4', 'KRT15', 'KRT5', 'LAMB3', 'NGFR', 'PDPN', 'TRP63', 'TSPAN1', 'WFDC2']
+basal_markers = sorted(list(set(basal_markers)))
+secretory_markers = ['AGR2', 'BPIFA1', 'BPIFB1', 'MSLN', 'MUC5B', 'SCGB3A1', 
+                     'SCGB3A2', 'WFDC2']
+secretory_markers = sorted(list(set(secretory_markers)))
+selected_features_dict = {'Basal': basal_markers,
+                          'Secretory': secretory_markers}
+selected_features_dict = {'Basal': ['COL17A1', 'KRT15', 'KRT5', 'LAMB3', 'TRP63', 
+                                    'TSPAN1'],
+                          'Secretory': ['AGR2', 'BPIFA1', 'MSLN', 'MUC5B', 
+                                        'SCGB1A1', 'SCGB3A2']}
+temp_dict = {}
+for key, items in selected_features_dict.items():
+    temp = []
+    for item in items:
+        if item.upper() in adata.var_names:
+            temp.append(item.upper())
+    if len(temp) > 0:
+        temp_dict[key] = temp
+selected_features_dict = temp_dict
+selected_features = [f for k, item in selected_features_dict.items() for f in item]
+temp_dict = {}
+for key, items in basal_subsets_markers.items():
+    temp = []
+    for item in items:
+        if item.upper() in adata.var_names:
+            temp.append(item.upper())
+    if len(temp) > 0:
+        temp_dict[key] = temp
+basal_subsets_markers = temp_dict
+# Plot UMAP
+adata.uns["donors_colors"] = ["#F05454", "#59CE8F"]
+adata.uns["clusters_colors"] = ['#4c72b0', '#dd8452', '#c44e52', '#55a868']
+with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
+    sc.pl.umap(adata, color=['clusters'] + ['donors'],
+               use_raw=False, add_outline=False, legend_loc='on data',
+               legend_fontsize=40, legend_fontoutline=2, frameon=False)
+# Plot distributions of basal cells in injury vs uninjury conditions
+basal_populations = list()
+for d in sorted(set(adata.obs["donors"])):
+    df = adata[adata.obs["donors"] == d].obs.groupby(["clusters"]).count()["donors"]
+    df /= df.sum()
+    temp = df.to_list()
+    temp.insert(0, d)
+    basal_populations.append(temp)
+basal_populations = pd.DataFrame(basal_populations, columns=["Cluster"] + df.index.to_list())
+# Use static colors
+basal_palette = {"Basal-1": "#4c72b0", "Basal-2": "#dd8452",
+                 "Basal-3": "#55a868", "Basal-4": "#c44e52"}
+plt.figure(figsize=(10, 8))
+ax = basal_populations.plot(kind='bar', stacked=True, width=0.9, color=basal_palette)
+ticks = [str(float(t.get_text()) * 100) for t in ax.get_yticklabels()]
+ax.set_yticklabels(ticks, fontsize=16)
+ax.set_xticklabels(["Injured", "Uninjured"], rotation=45, fontsize=20)
+ax.set_ylabel("Percentage of basal cells", fontsize=20)
+ax.set_xlabel(None)
+ax.legend(title=None, fontsize=26, ncol=1, bbox_to_anchor=(1.005, 1),
+          loc=2, borderaxespad=0., frameon=False)
+# Violin plot
+adata.X = X
+adata.var_names_make_unique()
+with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
+                     'axes.titlesize': '30', 'axes.labelsize': '30',
+                     'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
+    sc.pl.violin(adata, selected_features_dict["Basal"],
+                 groupby='clusters', xlabel="Clusters", stripplot=False,
+                 inner='box')
+    sc.pl.violin(adata, selected_features_dict["Secretory"],
+                 groupby='clusters', xlabel="Clusters", stripplot=False,
+                 inner='box')
+# Dotplot
+sc.pp.scale(adata, max_value=10)
+with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
+                     'axes.titlesize': '30', 'axes.labelsize': '30',
+                     'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
     sc.pl.dotplot(adata, selected_features_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
                   size_title="Fraction of expressed \n cells (%)")
@@ -892,7 +925,7 @@ adata.obs["clusters"] = ["0" if item == "5" else item for item in adata.obs['clu
 adata.obs["clusters"] = ["0" if item == "3" else item for item in adata.obs['clusters']]
 adata.obs["clusters"] = pd.Series(adata.obs["clusters"], name="clusters", dtype="category")
 # Rename clusters
-new_cluster_names = ['Basal-1', 'Basal-2', 'Basal-3']
+new_cluster_names = ['Basal-1', 'Basal-4', 'Basal-2/3']
 adata.rename_categories('clusters', new_cluster_names)
 # Find differentially expressed features
 sc.tl.rank_genes_groups(adata, 'clusters', method='wilcoxon',
@@ -908,23 +941,18 @@ for key, items in markers_dict.items():
         temp_dict[key] = temp
 markers_dict = temp_dict
 markers = [f for k, item in markers_dict.items() for f in item]
-basal_markers = ["KRT5", "KRT14", "KRT15", "KRT19", "TRP63", "PDPN", "NGFR",
-                 "ITGA6", "ITGB4", "LAMB3", "BCAM", "DST", "DCN", "COL17A1",
-                 "ABI3BP", "TSPAN1", "WFDC2", "ATP1B1", "DUT", "CXCL17"]
-# basal_markers = ['ABI3BP', 'BCAM', 'COL17A1', 'DCN', 'ITGB4', 'KRT15', 'KRT5', 
-#  'LAMB3', 'NGFR', 'PDPN', 'TRP63']
-basal_markers += [f.upper() for item in basal_subsets_markers.values() for f in item]
+basal_markers = ['ABI3BP', 'ATP1B1', 'BCAM', 'COL17A1', 'CXCL17', 'DCN', 'DST', 'DUT',
+                 'ITGA6', 'ITGB4', 'KRT15', 'KRT5', 'LAMB3', 'NGFR', 'PDPN', 'TRP63', 'TSPAN1', 'WFDC2']
 basal_markers = sorted(list(set(basal_markers)))
-secretory_markers = ["SCGB1A1", "MUC5AC", "MUC5B", "TFF3", "SCGB3A1", "SCGB3A2",
-                     "BPIFB1", "MSMB", "SLPI", "WFDC2", "BPIFA1", "MSLN", "AGR2"]
-# secretory_markers = ['AGR2', 'BPIFA1', 'MSLN', 'MUC5B', 'SCGB1A1', 'SCGB3A2']
+secretory_markers = ['AGR2', 'BPIFA1', 'BPIFB1', 'MSLN', 'MUC5B', 'SCGB3A1', 
+                     'SCGB3A2', 'WFDC2']
 secretory_markers = sorted(list(set(secretory_markers)))
-# selected_features_dict = {'Basal': ['KRT5', 'TRP63', 'LAMB3',
-#                                     'KRT15', 'DCN', 'COL17A1'],
-#                           'Secretory': ['MUC5B', 'SCGB1A1', 'SCGB3A2',
-#                                         'BPIFA1', 'MSLN', 'AGR2']}
 selected_features_dict = {'Basal': basal_markers,
                           'Secretory': secretory_markers}
+# selected_features_dict = {'Basal': ['COL17A1', 'KRT15', 'KRT5', 'LAMB3', 'TRP63', 
+#                                     'TSPAN1'],
+#                           'Secretory': ['AGR2', 'BPIFA1', 'MSLN', 'MUC5B', 
+#                                         'SCGB1A1', 'SCGB3A2']}
 temp_dict = {}
 for key, items in selected_features_dict.items():
     temp = []
@@ -944,14 +972,34 @@ for key, items in basal_subsets_markers.items():
     if len(temp) > 0:
         temp_dict[key] = temp
 basal_subsets_markers = temp_dict
-# Plot UMAP 
+# Plot UMAP
+adata.uns["donors_colors"] = ["#F05454", "#59CE8F"]
+adata.uns["clusters_colors"] = ['#4c72b0', '#c44e52', '#dd8452']
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
-    sc.pl.umap(adata, color=['clusters'],
+    sc.pl.umap(adata, color=['clusters'] + ['donors'],
                use_raw=False, add_outline=False, legend_loc='on data',
                legend_fontsize=40, legend_fontoutline=2, frameon=False)
-    sc.pl.umap(adata, color=['clusters'] + ['donors'] + selected_features,
-               use_raw=False, add_outline=False, legend_loc='on data',
-               legend_fontsize=40, legend_fontoutline=2, frameon=False)
+# Plot distributions of basal cells in injury vs uninjury conditions
+basal_populations = list()
+for d in sorted(set(adata.obs["donors"])):
+    df = adata[adata.obs["donors"] == d].obs.groupby(["clusters"]).count()["donors"]
+    df /= df.sum()
+    temp = df.to_list()
+    temp.insert(0, d)
+    basal_populations.append(temp)
+basal_populations = pd.DataFrame(basal_populations, columns=["Cluster"] + df.index.to_list())
+# Use static colors
+basal_palette = {"Basal-1": "#4c72b0", "Basal-2/3": "#dd8452",
+                 "Basal-4": "#c44e52"}
+plt.figure(figsize=(10, 8))
+ax = basal_populations.plot(kind='bar', stacked=True, width=0.9, color=basal_palette)
+ticks = [str(float(t.get_text()) * 100) for t in ax.get_yticklabels()]
+ax.set_yticklabels(ticks, fontsize=16)
+ax.set_xticklabels(["Injured", "Uninjured"], rotation=45, fontsize=20)
+ax.set_ylabel("Percentage of basal cells", fontsize=20)
+ax.set_xlabel(None)
+ax.legend(title=None, fontsize=26, ncol=1, bbox_to_anchor=(1.005, 1),
+          loc=2, borderaxespad=0., frameon=False)
 # Violin plot
 adata.X = X
 adata.var_names_make_unique()
@@ -965,18 +1013,10 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                  groupby='clusters', xlabel="Clusters", stripplot=False,
                  inner='box')
 # Dotplot
+sc.pp.scale(adata, max_value=10)
 with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
-    sc.pl.dotplot(adata, basal_subsets_markers, groupby='clusters',
-                  title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of expressed \n cells (%)")
-    # sc.pl.dotplot(adata, markers_dict["Basal"], groupby='clusters',
-    #               title=None, colorbar_title="Mean expression values",
-    #               size_title="Fraction of expressed \n cells (%)")
-    # sc.pl.dotplot(adata, markers_dict["Secretory"], groupby='clusters',
-    #               title=None, colorbar_title="Mean expression values",
-    #               size_title="Fraction of expressed \n cells (%)")
     sc.pl.dotplot(adata, selected_features_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
                   size_title="Fraction of expressed \n cells (%)")

@@ -337,7 +337,7 @@ def train():
                              calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
                              weight_range=[0.2, 0.4, 0.8])
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-            methods_dict.update({METHODS[21]: df})
+            methods_dict.update({METHODS[22]: df})
 
             print("\t>> Scoring results using known regulated features and outliers...")
             for method_idx, item in enumerate(methods_dict.items()):
