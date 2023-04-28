@@ -17,13 +17,13 @@ sns.set_theme()
 sns.set_style(style='white')
 
 methods_name = {"ttest_p": "t-statistic", "ttest_g": "t-statistic+Gamma", "wilcoxon_p": "Wilcoxon",
-                "wilcoxon_g": "Wilcoxon+Gamma", "limma_p": "LIMMA", "limma_g": "LIMMA+Gamma",
-                "hvf_a": "HVF (composite)", "hvf_c": "HVF (by condition)", "deltahvf": "ΔHVF",
-                "deltahvfmean": "ΔHVF+ΔMean", "iqr_a": "IQR (composite)", "iqr_c": "IQR (by condition)",
-                "deltaiqr": "ΔIQR", "deltaiqrmean": "ΔIQR+ΔMean", "copa": "COPA", "os": "OS",
-                "ort": "ORT", "most": "MOST", "lsoss": "LSOSS", "dids": "DIDS", "deco": "DECO",
-                "phet_bh": "PHet (ΔHVF)", "phet_br": "PHet"}
-selected_methods = ["t-statistic+Gamma", "Wilcoxon+Gamma", "LIMMA+Gamma", "ΔHVF",
+                "wilcoxon_g": "Wilcoxon+Gamma", "ks_p": "KS", "ks_g": "KS+Gamma", "limma_p": "LIMMA",
+                "limma_g": "LIMMA+Gamma", "hvf_a": "HVF (composite)", "hvf_c": "HVF (by condition)",
+                "deltahvf": "ΔHVF", "deltahvfmean": "ΔHVF+ΔMean", "iqr_a": "IQR (composite)",
+                "iqr_c": "IQR (by condition)", "deltaiqr": "ΔIQR", "deltaiqrmean": "ΔIQR+ΔMean",
+                "copa": "COPA", "os": "OS", "ort": "ORT", "most": "MOST", "lsoss": "LSOSS",
+                "dids": "DIDS", "deco": "DECO", "phet_bh": "PHet (ΔHVF)", "phet_br": "PHet"}
+selected_methods = ["t-statistic+Gamma", "Wilcoxon+Gamma", "KS+Gamma", "LIMMA+Gamma", "ΔHVF",
                     "ΔHVF+ΔMean", "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT", "MOST",
                     "LSOSS", "DIDS", "DECO", "PHet (ΔHVF)", "PHet"]
 # Use static colors
@@ -31,6 +31,8 @@ palette = sns.color_palette("tab20")
 palette.append("#fcfc81")
 palette.append("#b5563c")
 palette.append("#C724B1")
+palette.append("#606c38")
+palette.append("#283618")
 palette = dict([(item[1], mcolors.to_hex(palette[idx]))
                 for idx, item in enumerate(methods_name.items())])
 
@@ -193,7 +195,7 @@ ax.legend(title="Methods", title_fontsize=30, fontsize=26, ncol=5,
 ####################################################################################
 ###             Microarray and scRNA Benchmark Evaluations and Plots             ###
 ####################################################################################
-folder_name = "microarray"
+folder_name = "scRNA"
 result_path = os.path.join(RESULT_PATH, folder_name)
 if folder_name == "microarray":
     suptitle = "11 microarray gene expression datasets"
@@ -428,15 +430,15 @@ for column_idx, column in enumerate(metrics):
         df_cluster = df_cluster.iloc[temp]
         plt.figure(figsize=(14, 8))
         ax = sns.boxplot(y=column, x='Methods', data=df_cluster, width=0.85,
-                        palette=palette, showfliers=False, showmeans=True,
-                        meanprops={"marker": "D", "markerfacecolor": "white",
+                         palette=palette, showfliers=False, showmeans=True,
+                         meanprops={"marker": "D", "markerfacecolor": "white",
                                     "markeredgecolor": "black", "markersize": "15"})
         sns.swarmplot(y=column, x='Methods', data=df_cluster, color="black", s=10, linewidth=0,
-                    alpha=.7)
+                      alpha=.7)
         sns.lineplot(data=df_cluster[df_cluster["Data"] == max_ds], x="Methods",
-                    y=column, color="green", linewidth=3, linestyle='dashed')
+                     y=column, color="green", linewidth=3, linestyle='dashed')
         sns.lineplot(data=df_cluster[df_cluster["Data"] == min_ds], x="Methods",
-                    y=column, color="red", linewidth=3, linestyle='dotted')
+                     y=column, color="red", linewidth=3, linestyle='dotted')
         ax.set_xlabel("")
         ax.set_ylabel(column.capitalize(), fontsize=36)
         ax.set_xticklabels(list())
@@ -452,7 +454,7 @@ for column_idx, column in enumerate(metrics):
         plt.close(fig="all")
 
 # Legend
-plt.figure(figsize=(20, 6))
+plt.figure(figsize=(12, 8))
 # Create legend handles manually
 handles = [mpl.Patch(color=palette[x], label=x) for x in palette.keys()]
 # Create legend
@@ -462,6 +464,22 @@ plt.legend(handles=handles, title="Methods", title_fontsize=30, fontsize=26, nco
 sns.despine()
 plt.tight_layout()
 file_path = os.path.join(RESULT_PATH, "legends.png")
+plt.savefig(file_path)
+plt.clf()
+plt.cla()
+plt.close(fig="all")
+
+# Legend
+plt.figure(figsize=(20, 8))
+# Create legend handles manually
+handles = [mpl.Patch(color=palette[x], label=x) for x in palette.keys()]
+# Create legend
+plt.legend(handles=handles, title="Methods", title_fontsize=30, fontsize=26, ncol=5,
+           loc="lower right", bbox_to_anchor=(1.0, 1.0),
+           facecolor="None", frameon=False)
+sns.despine()
+plt.tight_layout()
+file_path = os.path.join(RESULT_PATH, "legends_full.png")
 plt.savefig(file_path)
 plt.clf()
 plt.cla()
@@ -691,7 +709,7 @@ for ds_name in ds_files:
             df_features = [features_name[feature_ids[item]] for item in df_features]
 
         df_features = [idx for idx, feature in enumerate(features_name)
-                             if feature in df_features]
+                       if feature in df_features]
         list_scores = clustering_performance(X=X, labels_true=labels_true, labels_pred=labels_pred,
                                              num_jobs=2)
     df = pd.DataFrame(list_scores, index=list(methods_name.values()),

@@ -25,8 +25,8 @@ def train(num_jobs: int = 4):
     save_name = "PHet_br"
 
     # Descriptions of the data
-    data_name = "baron1"
-    suptitle_name = "Baron"
+    data_name = "yan"
+    suptitle_name = "Yan"
     control_name = "0"
     case_name = "1"
 
@@ -34,7 +34,7 @@ def train(num_jobs: int = 4):
     ari_threshold = 0.9
     num_epochs = 50
     search_optimum_f1 = False
-    cluster_type = "spectral"
+    cluster_type = "kmeans"
 
     # Exprssion, classes, subtypes, donors, timepoints files
     expression_file_name = data_name + "_matrix.mtx"

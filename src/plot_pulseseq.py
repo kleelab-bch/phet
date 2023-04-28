@@ -323,7 +323,6 @@ df = pd.DataFrame(df, columns=columns)
 df.to_csv(os.path.join(DATASET_PATH, "pulseseq_tuft_vs_ionocyte_exclude_types.csv"),
           sep=',', index=False)
 
-
 ##############################################################
 ######### Pulseseq Tuft vs Ionocytes Exclude (PHet) ##########
 ##############################################################
@@ -415,10 +414,13 @@ new_cluster_names = ['Tuft-1', 'Ionocyte', 'Tuft-2', 'Tuft-3']
 adata.rename_categories('clusters', new_cluster_names)
 # Plot UMAP
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
+    sc.pl.umap(adata, color=['clusters'], use_raw=False, add_outline=False,
+               legend_loc='on data', legend_fontsize=25, legend_fontoutline=0,
+               frameon=False)
     sc.pl.umap(adata, color=['clusters', 'POU2F3', 'GNAT3', 'TRPM5', 'HCK',
                              'LRMP', 'RGS13', 'GNG13', 'ALOX5AP', 'CFTR', 'FOXI1', 'ASCL3'],
                use_raw=False, add_outline=False, legend_loc='on data',
-               legend_fontsize=30, legend_fontoutline=2, frameon=False)
+               legend_fontsize=30, legend_fontoutline=0, frameon=False)
 # Find differentially expressed features
 sc.tl.rank_genes_groups(adata, 'clusters', method='wilcoxon',
                         corr_method='benjamini-hochberg', tie_correct=True)
@@ -738,7 +740,7 @@ with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
                   swap_axes=False, figsize=(12, 6))
     sc.pl.heatmap(adata, markers_dict, groupby='clusters', layer='scaled', vmin=-2,
                   vmax=2, cmap='RdBu_r', dendrogram=True, swap_axes=True, figsize=(12, 3))
-    
+
 ##############################################################
 ################ Pulseseq Tuft Exclude (PHet) ################
 ##############################################################
@@ -817,7 +819,7 @@ with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
     sc.pl.umap(adata, color=['clusters', 'POU2F3', 'GNAT3', 'TRPM5', 'HCK',
                              'LRMP', 'FOXE1', 'RGS2', 'RGS13', 'GNG13', 'ALOX5AP', 'ALOX5'],
                use_raw=False, add_outline=False, legend_loc='on data',
-               legend_fontsize=30, legend_fontoutline=2, frameon=False)
+               legend_fontsize=30, legend_fontoutline=0, frameon=False)
 # Find differentially expressed features
 sc.tl.rank_genes_groups(adata, 'clusters', method='wilcoxon',
                         corr_method='benjamini-hochberg', tie_correct=True)
@@ -928,7 +930,7 @@ adata.uns["clusters_colors"] = tuft_palette
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
     sc.pl.umap(adata, color=['clusters', 'HCK', 'RGS13', 'ALOX5AP'],
                use_raw=False, add_outline=False, legend_loc='on data',
-               legend_fontsize=30, legend_fontoutline=2, frameon=False)
+               legend_fontsize=30, legend_fontoutline=0, frameon=False)
 # Violin plot
 with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '30',
@@ -942,7 +944,7 @@ with plt.rc_context({'figure.figsize': (12, 6), 'figure.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
     sc.pl.tracksplot(adata, markers_dict, groupby='clusters',
                      dendrogram=False)
-    
+
 ##############################################################
 ################ Pulseseq Tuft Exclude (HVF) #################
 ##############################################################
@@ -1030,7 +1032,7 @@ adata.uns["clusters_colors"] = tuft_palette
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
     sc.pl.umap(adata, color=['clusters', 'HCK', 'RGS13', 'ALOX5AP'],
                use_raw=False, add_outline=False, legend_loc='on data',
-               legend_fontsize=30, legend_fontoutline=2, frameon=False)
+               legend_fontsize=30, legend_fontoutline=0, frameon=False)
 # Violin plot
 with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '30',

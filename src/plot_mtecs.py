@@ -547,9 +547,9 @@ basal_markers = sorted(list(set(basal_markers)))
 secretory_markers = ["MUC5AC", "MUC5B", "TFF3", "SCGB3A1", "SCGB3A2",
                      "BPIFB1", "MSMB", "SLPI", "WFDC2", "BPIFA1", "MSLN", "AGR2"]
 secretory_markers = sorted(list(set(secretory_markers)))
-selected_features_dict = {'Basal': ['COL17A1', 'KRT15', 'KRT5', 'LAMB3', 'TRP63', 
+selected_features_dict = {'Basal': ['COL17A1', 'KRT15', 'KRT5', 'LAMB3', 'TRP63',
                                     'TSPAN1'],
-                          'Secretory': ['AGR2', 'BPIFA1', 'MSLN', 'MUC5B', 
+                          'Secretory': ['AGR2', 'BPIFA1', 'MSLN', 'MUC5B',
                                         'SCGB1A1', 'SCGB3A2']}
 selected_features_dict = {'Basal': basal_markers,
                           'Secretory': secretory_markers}
@@ -577,10 +577,10 @@ adata.uns["donors_colors"] = ["#F05454", "#59CE8F"]
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
     sc.pl.umap(adata, color=['clusters'] + ['donors'],
                use_raw=False, add_outline=False, legend_loc='on data',
-               legend_fontsize=40, legend_fontoutline=2, frameon=False)
+               legend_fontsize=30, legend_fontoutline=0, frameon=False)
     sc.pl.umap(adata, color=['clusters'] + ['donors'] + selected_features,
                use_raw=False, add_outline=False, legend_loc='on data',
-               legend_fontsize=40, legend_fontoutline=2, frameon=False)
+               legend_fontsize=30, legend_fontoutline=0, frameon=False)
 # Plot distributions of basal cells in injury vs uninjury conditions
 basal_populations = list()
 for d in sorted(set(adata.obs["donors"])):
@@ -594,7 +594,7 @@ basal_populations = pd.DataFrame(basal_populations, columns=["Cluster"] + df.ind
 basal_palette = {"Basal-1": "#4c72b0", "Basal-2": "#dd8452",
                  "Basal-3": "#55a868", "Basal-4": "#c44e52"}
 plt.figure(figsize=(10, 8))
-ax = basal_populations.plot(kind='bar', stacked=True, width=0.9, 
+ax = basal_populations.plot(kind='bar', stacked=True, width=0.9,
                             color=basal_palette)
 ticks = [str(float(t.get_text()) * 100) for t in ax.get_yticklabels()]
 ax.set_yticklabels(ticks, fontsize=16)
@@ -739,14 +739,14 @@ markers = [f for k, item in markers_dict.items() for f in item]
 basal_markers = ['ABI3BP', 'ATP1B1', 'BCAM', 'COL17A1', 'CXCL17', 'DCN', 'DST', 'DUT',
                  'ITGA6', 'ITGB4', 'KRT15', 'KRT5', 'LAMB3', 'NGFR', 'PDPN', 'TRP63', 'TSPAN1', 'WFDC2']
 basal_markers = sorted(list(set(basal_markers)))
-secretory_markers = ['AGR2', 'BPIFA1', 'BPIFB1', 'MSLN', 'MUC5B', 'SCGB3A1', 
+secretory_markers = ['AGR2', 'BPIFA1', 'BPIFB1', 'MSLN', 'MUC5B', 'SCGB3A1',
                      'SCGB3A2', 'WFDC2']
 secretory_markers = sorted(list(set(secretory_markers)))
 selected_features_dict = {'Basal': basal_markers,
                           'Secretory': secretory_markers}
-selected_features_dict = {'Basal': ['COL17A1', 'KRT15', 'KRT5', 'LAMB3', 'TRP63', 
+selected_features_dict = {'Basal': ['COL17A1', 'KRT15', 'KRT5', 'LAMB3', 'TRP63',
                                     'TSPAN1'],
-                          'Secretory': ['AGR2', 'BPIFA1', 'MSLN', 'MUC5B', 
+                          'Secretory': ['AGR2', 'BPIFA1', 'MSLN', 'MUC5B',
                                         'SCGB1A1', 'SCGB3A2']}
 temp_dict = {}
 for key, items in selected_features_dict.items():
@@ -773,7 +773,7 @@ adata.uns["clusters_colors"] = ['#4c72b0', '#dd8452', '#c44e52', '#55a868']
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
     sc.pl.umap(adata, color=['clusters'] + ['donors'],
                use_raw=False, add_outline=False, legend_loc='on data',
-               legend_fontsize=40, legend_fontoutline=2, frameon=False)
+               legend_fontsize=30, legend_fontoutline=0, frameon=False)
 # Plot distributions of basal cells in injury vs uninjury conditions
 basal_populations = list()
 for d in sorted(set(adata.obs["donors"])):
@@ -944,7 +944,7 @@ markers = [f for k, item in markers_dict.items() for f in item]
 basal_markers = ['ABI3BP', 'ATP1B1', 'BCAM', 'COL17A1', 'CXCL17', 'DCN', 'DST', 'DUT',
                  'ITGA6', 'ITGB4', 'KRT15', 'KRT5', 'LAMB3', 'NGFR', 'PDPN', 'TRP63', 'TSPAN1', 'WFDC2']
 basal_markers = sorted(list(set(basal_markers)))
-secretory_markers = ['AGR2', 'BPIFA1', 'BPIFB1', 'MSLN', 'MUC5B', 'SCGB3A1', 
+secretory_markers = ['AGR2', 'BPIFA1', 'BPIFB1', 'MSLN', 'MUC5B', 'SCGB3A1',
                      'SCGB3A2', 'WFDC2']
 secretory_markers = sorted(list(set(secretory_markers)))
 selected_features_dict = {'Basal': basal_markers,
@@ -978,7 +978,7 @@ adata.uns["clusters_colors"] = ['#4c72b0', '#c44e52', '#dd8452']
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
     sc.pl.umap(adata, color=['clusters'] + ['donors'],
                use_raw=False, add_outline=False, legend_loc='on data',
-               legend_fontsize=40, legend_fontoutline=2, frameon=False)
+               legend_fontsize=30, legend_fontoutline=0, frameon=False)
 # Plot distributions of basal cells in injury vs uninjury conditions
 basal_populations = list()
 for d in sorted(set(adata.obs["donors"])):
