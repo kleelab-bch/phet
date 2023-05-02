@@ -140,7 +140,8 @@ def train():
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                   METHODS[0]), end="\r")
-        estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=False)
+        estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=True, 
+                                 adjusted_alpha=alpha)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False, ascending=True)
@@ -154,7 +155,8 @@ def train():
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                   METHODS[1]), end="\r")
-        estimator = StudentTTest(use_statistics=True, direction=direction, adjust_pvalue=False)
+        estimator = StudentTTest(use_statistics=True, direction=direction, adjust_pvalue=True, 
+                                 adjusted_alpha=alpha)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -167,7 +169,8 @@ def train():
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                   METHODS[2]), end="\r")
-        estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=False)
+        estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=True, 
+                                        adjusted_alpha=alpha)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False, ascending=True)
@@ -181,7 +184,8 @@ def train():
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                   METHODS[3]), end="\r")
-        estimator = WilcoxonRankSumTest(use_statistics=True, direction=direction, adjust_pvalue=False)
+        estimator = WilcoxonRankSumTest(use_statistics=True, direction=direction, adjust_pvalue=True,
+                                        adjusted_alpha=alpha)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
@@ -194,7 +198,8 @@ def train():
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                   METHODS[4]), end="\r")
-        estimator = KolmogorovSmirnovTest(use_statistics=False, direction=direction, adjust_pvalue=False)
+        estimator = KolmogorovSmirnovTest(use_statistics=False, direction=direction, adjust_pvalue=True,
+                                          adjusted_alpha=alpha)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False, ascending=True)
@@ -208,7 +213,8 @@ def train():
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                   METHODS[5]), end="\r")
-        estimator = KolmogorovSmirnovTest(use_statistics=True, direction=direction, adjust_pvalue=False)
+        estimator = KolmogorovSmirnovTest(use_statistics=True, direction=direction, adjust_pvalue=True, 
+                                          adjusted_alpha=alpha)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False)
