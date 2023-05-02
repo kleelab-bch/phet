@@ -47,6 +47,7 @@ def train():
     suptitle_name = "srbct"
     expression_file_name = file_name + "_matrix.mtx"
     classes_file_name = file_name + "_classes.csv"
+    alpha = 0.01
 
     # Load expression data and class data
     y = pd.read_csv(os.path.join(DATASET_PATH, classes_file_name), sep=',')
@@ -64,7 +65,8 @@ def train():
     for iteration in range(num_iterations):
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[0]), end="\r")
-        estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=False)
+        estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=True, 
+                                 adjusted_alpha=alpha)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
@@ -72,7 +74,8 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[1]), end="\r")
-        estimator = StudentTTest(use_statistics=True, direction=direction, adjust_pvalue=False)
+        estimator = StudentTTest(use_statistics=True, direction=direction, adjust_pvalue=True,
+                                 adjusted_alpha=alpha)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
@@ -80,7 +83,8 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[2]), end="\r")
-        estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=False)
+        estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=True, 
+                                        adjusted_alpha=alpha)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
@@ -88,7 +92,8 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[3]), end="\r")
-        estimator = WilcoxonRankSumTest(use_statistics=True, direction=direction, adjust_pvalue=False)
+        estimator = WilcoxonRankSumTest(use_statistics=True, direction=direction, adjust_pvalue=True,
+                                        adjusted_alpha=alpha)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
@@ -96,15 +101,16 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[4]), end="\r")
-        estimator = KolmogorovSmirnovTest(use_statistics=False, direction=direction, adjust_pvalue=False)
-        curr_time = time.time()
+        estimator = KolmogorovSmirnovTest(use_statistics=False, direction=direction, adjust_pvalue=True,
+                                          adjusted_alpha=alpha)
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)
         current_progress += 1
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[5]), end="\r")
-        estimator = KolmogorovSmirnovTest(use_statistics=True, direction=direction, adjust_pvalue=False)
+        estimator = KolmogorovSmirnovTest(use_statistics=True, direction=direction, adjust_pvalue=True,
+                                          adjusted_alpha=alpha)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         list_times.append(time.time() - curr_time)

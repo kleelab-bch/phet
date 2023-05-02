@@ -58,7 +58,7 @@ def compute_score(lb, top_features_true, top_features_pred, probes2genes, genes2
 
 def train():
     # Filtering and subsampling arguments
-    pvalue = 0.01
+    alpha = 0.01
     top_k_features = 500
     range_topfeatures = list(range(0, top_k_features + 5, 5))
     range_topfeatures[0] = 1
@@ -144,7 +144,7 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False, ascending=True)
-        top_features_pred = top_features_pred[top_features_pred["score"] <= pvalue]
+        top_features_pred = top_features_pred[top_features_pred["score"] < alpha]
         temp_range = compute_score(lb=lb, top_features_true=top_features_true,
                                    top_features_pred=top_features_pred,
                                    probes2genes=probes2genes, genes2probes=genes2probes,
@@ -171,7 +171,7 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False, ascending=True)
-        top_features_pred = top_features_pred[top_features_pred["score"] <= pvalue]
+        top_features_pred = top_features_pred[top_features_pred["score"] < alpha]
         temp_range = compute_score(lb=lb, top_features_true=top_features_true,
                                    top_features_pred=top_features_pred,
                                    probes2genes=probes2genes, genes2probes=genes2probes,
@@ -198,7 +198,7 @@ def train():
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                           X_map=None, map_genes=False, ascending=True)
-        top_features_pred = top_features_pred[top_features_pred["score"] <= pvalue]
+        top_features_pred = top_features_pred[top_features_pred["score"] < alpha]
         temp_range = compute_score(lb=lb, top_features_true=top_features_true,
                                    top_features_pred=top_features_pred,
                                    probes2genes=probes2genes, genes2probes=genes2probes,

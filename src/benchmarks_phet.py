@@ -172,7 +172,7 @@ def train(num_jobs: int = 4):
         method_name = METHODS[method_idx]
         save_name = methods_save_name[method_idx]
         if sort_by_pvalue:
-            temp = significant_features(X=df, features_name=features_name, pvalue=pvalue,
+            temp = significant_features(X=df, features_name=features_name, alpha=pvalue,
                                         X_map=None, map_genes=False, ttest=False)
         else:
             temp = sort_features(X=df, features_name=features_name, X_map=None,

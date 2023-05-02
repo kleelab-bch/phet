@@ -75,13 +75,13 @@ def clustering(X, cluster_type: str = "spectral", affinity: str = "nearest_neigh
     return cls
 
 
-def significant_features(X, features_name, pvalue: float = 0.01, X_map=None, map_genes: bool = True,
+def significant_features(X, features_name, alpha: float = 0.01, X_map=None, map_genes: bool = True,
                          ttest: bool = False):
     tempX = np.copy(X)
     if X.shape[1] != 1:
         tempX = X[:, 3]
     shape, loc, scale = gamma.fit(zscore(tempX))
-    selected_features = np.where((1 - gamma.cdf(zscore(tempX), shape, loc=loc, scale=scale)) <= pvalue)[0]
+    selected_features = np.where((1 - gamma.cdf(zscore(tempX), shape, loc=loc, scale=scale)) < alpha)[0]
     if len(selected_features) != 0:
         X = X[selected_features]
         features_name = np.array(features_name)[selected_features].tolist()

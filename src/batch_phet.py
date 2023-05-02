@@ -18,7 +18,7 @@ sns.set_theme(style="white")
 
 def train(num_jobs: int = 4):
     # Arguments
-    pvalue = 0.01
+    alpha = 0.01
     top_k_features = 100
     is_filter = True
     method_name = "PHet"
@@ -98,7 +98,7 @@ def train(num_jobs: int = 4):
         temp = [feature for feature in top_features_true.index.to_list() if str(feature) in features_name]
         if top_features_true.shape[1] > 0:
             top_features_true = top_features_true.loc[temp]
-            temp = top_features_true[top_features_true["adj.P.Val"] <= pvalue]
+            temp = top_features_true[top_features_true["adj.P.Val"] < alpha]
             if temp.shape[0] < top_k_features:
                 temp = top_features_true[:top_k_features - 1]
             top_features_true = [str(feature_idx) for feature_idx in temp.index.to_list()[:top_k_features]]
@@ -128,7 +128,7 @@ def train(num_jobs: int = 4):
                          calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
                          weight_range=[0.2, 0.4, 0.8])
         df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
-        df = significant_features(X=df, features_name=features_name, pvalue=pvalue,
+        df = significant_features(X=df, features_name=features_name, alpha=alpha,
                                   X_map=None, map_genes=False, ttest=False)
         temp = [idx for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
         labels_pred = clustering(X=X[:, temp], cluster_type=cluster_type, num_clusters=num_clusters,

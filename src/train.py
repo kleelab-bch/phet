@@ -229,7 +229,7 @@ def train(args):
         method_name = METHODS[method_idx]
         save_name = methods_save_name[method_idx]
         if args.sort_by_pvalue:
-            temp = significant_features(X=df, features_name=features_name, pvalue=args.pvalue)
+            temp = significant_features(X=df, features_name=features_name, alpha=args.pvalue)
         else:
             temp = sort_features(X=df, features_name=features_name)
         methods_dict[method_name] = temp

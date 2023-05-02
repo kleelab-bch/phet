@@ -36,7 +36,7 @@ METHODS = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma",
 def train(num_jobs: int = 4):
     # Filtering arguments
     minimum_samples = 5
-    pvalue = 0.01
+    alpha = 0.01
 
     # Models parameters
     direction = "both"
@@ -131,7 +131,7 @@ def train(num_jobs: int = 4):
         temp = [feature for feature in top_features_true.index.to_list() if str(feature) in features_name]
         if top_features_true.shape[1] > 0:
             top_features_true = top_features_true.loc[temp]
-            temp = top_features_true[top_features_true["adj.P.Val"] <= pvalue]
+            temp = top_features_true[top_features_true["adj.P.Val"] < alpha]
             if temp.shape[0] < top_k_features:
                 temp = top_features_true[:top_k_features - 1]
                 if sort_by_pvalue and temp.shape[0] == 0:
@@ -152,51 +152,57 @@ def train(num_jobs: int = 4):
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[0]), end="\r")
-        estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=False)
+        estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=True,
+                                 adjusted_alpha=alpha)
         df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False,
                            ttest=False, ascending=True)
-        df = df[df["score"] <= pvalue]
+        df = df[df["score"] < alpha]
         methods_dict.update({METHODS[0]: df})
         current_progress += 1
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[1]), end="\r")
-        estimator = StudentTTest(use_statistics=True, direction=direction, adjust_pvalue=False)
+        estimator = StudentTTest(use_statistics=True, direction=direction, adjust_pvalue=True,
+                                 adjusted_alpha=alpha)
         df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         methods_dict.update({METHODS[1]: df})
         current_progress += 1
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[2]), end="\r")
-        estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=False)
+        estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=True,
+                                        adjusted_alpha=alpha)
         df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False,
                            ttest=False, ascending=True)
-        df = df[df["score"] <= pvalue]
+        df = df[df["score"] < alpha]
         methods_dict.update({METHODS[2]: df})
         current_progress += 1
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[3]), end="\r")
-        estimator = WilcoxonRankSumTest(use_statistics=True, direction=direction, adjust_pvalue=False)
+        estimator = WilcoxonRankSumTest(use_statistics=True, direction=direction, adjust_pvalue=True,
+                                        adjusted_alpha=alpha)
         df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         methods_dict.update({METHODS[3]: df})
         current_progress += 1
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[4]), end="\r")
-        estimator = KolmogorovSmirnovTest(use_statistics=False, direction=direction, adjust_pvalue=False)
+        estimator = KolmogorovSmirnovTest(use_statistics=False, direction=direction, adjust_pvalue=True,
+                                          adjusted_alpha=alpha)
         df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False,
                            ttest=False, ascending=True)
-        df = df[df["score"] <= pvalue]
+        df = df[df["score"] < alpha]
         methods_dict.update({METHODS[4]: df})
         current_progress += 1
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[5]), end="\r")
-        estimator = KolmogorovSmirnovTest(use_statistics=True, direction=direction, adjust_pvalue=False)
+        estimator = KolmogorovSmirnovTest(use_statistics=True, direction=direction, adjust_pvalue=True,
+                                          adjusted_alpha=alpha)
         df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         methods_dict.update({METHODS[5]: df})
         current_progress += 1
@@ -205,7 +211,7 @@ def train(num_jobs: int = 4):
                                                                 METHODS[6]), end="\r")
         df = pd.read_csv(os.path.join(DATASET_PATH, data_name + "_limma_features.csv"), sep=',')
         df = df[["ID", "adj.P.Val", "B"]]
-        df = df[df["adj.P.Val"] <= pvalue]
+        df = df[df["adj.P.Val"] < alpha]
         df = df[["ID", "B"]]
         df.columns = ["features", "score"]
         methods_dict.update({METHODS[6]: df})
@@ -362,7 +368,7 @@ def train(num_jobs: int = 4):
         methods_dict.update({METHODS[24]: df})
 
         if sort_by_pvalue:
-            print("   ## Sort features by the cut-off {0:.2f} p-value...".format(pvalue))
+            print("   ## Sort features by the cut-off {0:.2f} p-value...".format(alpha))
         else:
             print("   ## Sort features by the score statistic...".format())
         for method_idx, item in enumerate(methods_dict.items()):
@@ -372,7 +378,7 @@ def train(num_jobs: int = 4):
             if method_name in ['DECO', 't-statistic', 'Wilcoxon', 'LIMMA', 'KS']:
                 continue
             if sort_by_pvalue:
-                temp = significant_features(X=df, features_name=features_name, pvalue=pvalue,
+                temp = significant_features(X=df, features_name=features_name, alpha=alpha,
                                             X_map=None, map_genes=False, ttest=False)
             else:
                 temp = sort_features(X=df, features_name=features_name, X_map=None,
@@ -441,6 +447,9 @@ def train(num_jobs: int = 4):
                 temp_feature = [feature for idx, feature in enumerate(features_name) if
                                 feature in df['features'].tolist()]
             num_features = len(temp)
+            if num_features == 0:
+                temp = [idx for idx, feature in enumerate(features_name)]
+                temp_feature = [feature for idx, feature in enumerate(features_name)]
             scores = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature,
                                num_features=num_features,
                                standardize=True, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,

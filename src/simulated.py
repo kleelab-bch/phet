@@ -88,7 +88,7 @@ def train():
     build_simulation = False
 
     # Filtering arguments
-    pvalue = 0.01
+    alpha = 0.01
     num_features_changes = 100
 
     # Models parameters
@@ -150,51 +150,57 @@ def train():
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       METHODS[0]), end="\r")
-            estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=False)
+            estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=True, 
+                                     adjusted_alpha=alpha)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False,
                                ascending=True)
-            df = df[df["score"] <= pvalue]
+            df = df[df["score"] < alpha]
             methods_dict.update({METHODS[0]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       METHODS[1]), end="\r")
-            estimator = StudentTTest(use_statistics=True, direction=direction, adjust_pvalue=False)
+            estimator = StudentTTest(use_statistics=True, direction=direction, adjust_pvalue=True, 
+                                     adjusted_alpha=alpha)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             methods_dict.update({METHODS[1]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       METHODS[2]), end="\r")
-            estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=False)
+            estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=True, 
+                                            adjusted_alpha=alpha)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False,
                                ascending=True)
-            df = df[df["score"] <= pvalue]
+            df = df[df["score"] < alpha]
             methods_dict.update({METHODS[2]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       METHODS[3]), end="\r")
-            estimator = WilcoxonRankSumTest(use_statistics=True, direction=direction, adjust_pvalue=False)
+            estimator = WilcoxonRankSumTest(use_statistics=True, direction=direction, adjust_pvalue=True,
+                                            adjusted_alpha=alpha)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             methods_dict.update({METHODS[3]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       METHODS[4]), end="\r")
-            estimator = KolmogorovSmirnovTest(use_statistics=False, direction=direction, adjust_pvalue=False)
+            estimator = KolmogorovSmirnovTest(use_statistics=False, direction=direction, adjust_pvalue=True,
+                                              adjusted_alpha=alpha)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False,
                                ascending=True)
-            df = df[df["score"] <= pvalue]
+            df = df[df["score"] < alpha]
             methods_dict.update({METHODS[4]: df})
             current_progress += 1
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       METHODS[5]), end="\r")
-            estimator = KolmogorovSmirnovTest(use_statistics=True, direction=direction, adjust_pvalue=False)
+            estimator = KolmogorovSmirnovTest(use_statistics=True, direction=direction, adjust_pvalue=True, 
+                                     adjusted_alpha=alpha)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             methods_dict.update({METHODS[5]: df})
             current_progress += 1
@@ -203,7 +209,7 @@ def train():
                                                                       METHODS[6]), end="\r")
             df = pd.read_csv(os.path.join(DATASET_PATH, temp_name + "_limma_features.csv"), sep=',')
             df = df[["ID", "adj.P.Val", "B"]]
-            df = df[df["adj.P.Val"] <= pvalue]
+            df = df[df["adj.P.Val"] < alpha]
             df = df[["ID", "B"]]
             df["ID"] = list(np.array(features_name)[df["ID"].to_list()])
             df.columns = ["features", "score"]
@@ -371,7 +377,7 @@ def train():
                     temp_sign = [features_name.index(item) for item in df['features'].tolist()]
                     temp_sort = temp_sign
                 else:
-                    temp_sign = significant_features(X=df, features_name=features_name, pvalue=pvalue,
+                    temp_sign = significant_features(X=df, features_name=features_name, alpha=alpha,
                                                      X_map=None, map_genes=False, ttest=False)
                     temp_sign = [idx for idx, feature in enumerate(features_name)
                                  if feature in temp_sign['features'].tolist()]

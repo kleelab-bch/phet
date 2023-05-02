@@ -2,15 +2,18 @@ import numpy as np
 from scipy.stats import ttest_ind, mannwhitneyu, ks_2samp
 from statsmodels.stats.multitest import fdrcorrection
 
+EPSILON = np.finfo(np.float).eps
+
 
 class StudentTTest:
     def __init__(self, use_statistics: bool = False, direction: str = "both",
-                 perform_permutation: bool = False, adjust_pvalue: bool = False,
-                 num_rounds: int = 10000):
+                 perform_permutation: bool = False, adjust_pvalue: bool = True,
+                 adjusted_alpha=0.01, num_rounds: int = 10000):
         self.use_statistics = use_statistics
         self.direction = direction  # up, down, both
         self.perform_permutation = perform_permutation
         self.adjust_pvalue = adjust_pvalue
+        self.adjusted_alpha = adjusted_alpha
         self.num_rounds = num_rounds
 
     def fit_predict(self, X, y, control_class: int = 0, case_class: int = 1):
@@ -47,17 +50,20 @@ class StudentTTest:
                 results[feature_idx] = np.absolute(statistic)
         if not self.use_statistics:
             if self.adjust_pvalue:
-                results = fdrcorrection(results, alpha=0.05, method="indep")[1]
+                results = fdrcorrection(results, alpha=self.adjusted_alpha + EPSILON,
+                                        method="indep")[1]
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
         results = np.reshape(results, (results.shape[0], 1))
         return results
 
 
 class WilcoxonRankSumTest:
-    def __init__(self, use_statistics: bool = False, direction: str = "both", adjust_pvalue: bool = False):
+    def __init__(self, use_statistics: bool = False, direction: str = "both",
+                 adjust_pvalue: bool = True, adjusted_alpha=0.01):
         self.use_statistics = use_statistics
         self.direction = direction  # up, down, both
         self.adjust_pvalue = adjust_pvalue
+        self.adjusted_alpha = adjusted_alpha
 
     def fit_predict(self, X, y, control_class: int = 0, case_class: int = 1):
         # Sanity checking
@@ -89,17 +95,20 @@ class WilcoxonRankSumTest:
                 results[feature_idx] = np.absolute(statistic)
         if not self.use_statistics:
             if self.adjust_pvalue:
-                results = fdrcorrection(results, alpha=0.05, method="indep")[1]
+                results = fdrcorrection(results, alpha=self.adjusted_alpha + EPSILON,
+                                        method="indep")[1]
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
         results = np.reshape(results, (results.shape[0], 1))
         return results
 
 
 class KolmogorovSmirnovTest:
-    def __init__(self, use_statistics: bool = False, direction: str = "both", adjust_pvalue: bool = False):
+    def __init__(self, use_statistics: bool = False, direction: str = "both",
+                 adjust_pvalue: bool = True, adjusted_alpha=0.01):
         self.use_statistics = use_statistics
         self.direction = direction  # up, down, both
         self.adjust_pvalue = adjust_pvalue
+        self.adjusted_alpha = adjusted_alpha
 
     def fit_predict(self, X, y, control_class: int = 0, case_class: int = 1):
         # Sanity checking
@@ -131,7 +140,8 @@ class KolmogorovSmirnovTest:
                 results[feature_idx] = np.absolute(statistic)
         if not self.use_statistics:
             if self.adjust_pvalue:
-                results = fdrcorrection(results, alpha=0.05, method="indep")[1]
+                results = fdrcorrection(results, alpha=self.adjusted_alpha + EPSILON,
+                                        method="indep")[1]
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
         results = np.reshape(results, (results.shape[0], 1))
         return results
