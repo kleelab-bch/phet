@@ -36,6 +36,11 @@ METHODS = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma",
 PALETTE = sns.color_palette("tab20")
 PALETTE.append("#fcfc81")
 PALETTE.append("#C724B1")
+PALETTE.append("#fcfc81")
+PALETTE.append("#b5563c")
+PALETTE.append("#C724B1")
+PALETTE.append("#606c38")
+PALETTE.append("#283618")
 PALETTE = dict([(item, mcolors.to_hex(PALETTE[idx])) for idx, item in enumerate(METHODS)])
 
 
@@ -49,9 +54,12 @@ def compute_score(lb, top_features_true, top_features_pred, probes2genes, genes2
                       for p in genes2probes[probes2genes[probe]]]
         temp.extend(add_probes)
         temp = list(set(temp))
-        pred_features = lb.transform(temp).sum(axis=0).astype(int)
-        temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                 metric="precision")
+        if len(temp) != 0:
+            pred_features = lb.transform(temp).sum(axis=0).astype(int)
+            temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
+                                     metric="precision")
+        else:
+            temp = 0
         temp_range.append(temp)
     return temp_range
 
@@ -140,7 +148,7 @@ def train():
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                   METHODS[0]), end="\r")
-        estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=True, 
+        estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=True,
                                  adjusted_alpha=alpha)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -155,7 +163,7 @@ def train():
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                   METHODS[1]), end="\r")
-        estimator = StudentTTest(use_statistics=True, direction=direction, adjust_pvalue=True, 
+        estimator = StudentTTest(use_statistics=True, direction=direction, adjust_pvalue=True,
                                  adjusted_alpha=alpha)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -169,7 +177,7 @@ def train():
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                   METHODS[2]), end="\r")
-        estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=True, 
+        estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=True,
                                         adjusted_alpha=alpha)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
@@ -213,7 +221,7 @@ def train():
 
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                   METHODS[5]), end="\r")
-        estimator = KolmogorovSmirnovTest(use_statistics=True, direction=direction, adjust_pvalue=True, 
+        estimator = KolmogorovSmirnovTest(use_statistics=True, direction=direction, adjust_pvalue=True,
                                           adjusted_alpha=alpha)
         top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         top_features_pred = sort_features(X=top_features_pred, features_name=features_name,

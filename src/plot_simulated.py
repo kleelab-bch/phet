@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
+from PIL import Image
 
 from utility.file_path import RESULT_PATH, DATASET_PATH
 from utility.utils import clustering_performance
@@ -27,13 +28,15 @@ selected_methods = ["t-statistic+Gamma", "Wilcoxon+Gamma", "KS+Gamma", "LIMMA+Ga
                     "ΔHVF+ΔMean", "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT", "MOST",
                     "LSOSS", "DIDS", "DECO", "PHet (ΔHVF)", "PHet"]
 # Use static colors
-palette = sns.color_palette("tab20")
-palette.append("#fcfc81")
-palette.append("#b5563c")
-palette.append("#C724B1")
-palette.append("#606c38")
-palette.append("#283618")
-palette = dict([(item[1], mcolors.to_hex(palette[idx]))
+PALETTE = sns.color_palette("tab20")
+PALETTE.append("#fcfc81")
+PALETTE.append("#C724B1")
+PALETTE.append("#fcfc81")
+PALETTE.append("#b5563c")
+PALETTE.append("#C724B1")
+PALETTE.append("#606c38")
+PALETTE.append("#283618")
+PALETTE = dict([(item[1], mcolors.to_hex(PALETTE[idx]))
                 for idx, item in enumerate(methods_name.items())])
 
 ####################################################################################
@@ -43,15 +46,15 @@ palette = dict([(item[1], mcolors.to_hex(palette[idx]))
 df = pd.read_csv(os.path.join(RESULT_PATH, "simulated",
                               "simulated_normal_methods_outliers_scores.csv"),
                  sep=',', index_col=0)
-data_name = df.columns.to_list()
+data = df.columns.to_list()
 
-temp = [1, 0, 0, 0] * int(len(data_name) / 4)
-df_minority = df[[data_name[idx] for idx, item in enumerate(temp) if item == 1]]
-temp = [0, 1, 0, 0] * int(len(data_name) / 4)
-df_mixed = df[[data_name[idx] for idx, item in enumerate(temp) if item == 1]]
+temp = [1, 0, 0, 0] * int(len(data) / 4)
+df_minority = df[[data[idx] for idx, item in enumerate(temp) if item == 1]]
+temp = [0, 1, 0, 0] * int(len(data) / 4)
+df_mixed = df[[data[idx] for idx, item in enumerate(temp) if item == 1]]
 
 ax = df_minority.T.plot.bar(rot=0, legend=False, align='center', width=0.85,
-                            figsize=(10, 6), color=palette)
+                            figsize=(10, 6), color=PALETTE)
 ax.set_xlabel("Number of outliers (case samples)", fontsize=24)
 ax.set_ylabel("F1 score ", fontsize=24)
 ax.set_xticklabels(["1/20", "3/20", "5/20", "7/20", "9/20"])
@@ -65,7 +68,7 @@ plt.cla()
 plt.close(fig="all")
 
 ax = df_mixed.T.plot.bar(rot=0, legend=False, align='center', width=0.85,
-                         figsize=(10, 6), color=palette)
+                         figsize=(10, 6), color=PALETTE)
 ax.set_xlabel("Number of outliers (case and control samples)", fontsize=22)
 ax.set_ylabel("F1 score", fontsize=24)
 ax.set_xticklabels(["2/40", "6/40", "10/40", "14/40", "18/40"])
@@ -80,7 +83,7 @@ plt.close(fig="all")
 
 ax = df_minority.loc[selected_methods].T.plot.bar(rot=0, legend=False,
                                                   align='center', width=0.85,
-                                                  figsize=(8, 6), color=palette)
+                                                  figsize=(8, 6), color=PALETTE)
 ax.set_xlabel("Number of outliers (case samples)", fontsize=24)
 ax.set_ylabel("F1 score ", fontsize=24)
 ax.set_xticklabels(["1/20", "3/20", "5/20", "7/20", "9/20"])
@@ -95,7 +98,7 @@ plt.close(fig="all")
 
 ax = df_mixed.loc[selected_methods].T.plot.bar(rot=0, legend=False,
                                                align='center', width=0.85,
-                                               figsize=(8, 6), color=palette)
+                                               figsize=(8, 6), color=PALETTE)
 ax.set_xlabel("Number of outliers (case and control samples)", fontsize=22)
 ax.set_ylabel("F1 score", fontsize=24)
 ax.set_xticklabels(["2/40", "6/40", "10/40", "14/40", "18/40"])
@@ -112,16 +115,16 @@ plt.close(fig="all")
 df = pd.read_csv(os.path.join(RESULT_PATH, "simulated",
                               "simulated_normal_methods_features.csv"),
                  sep=',', index_col=0)
-data_name = df.columns.to_list()
+data = df.columns.to_list()
 df = np.log10(df)
 
-temp = [1, 0, 0, 0] * int(len(data_name) / 4)
-df_minority = df[[data_name[idx] for idx, item in enumerate(temp) if item == 1]]
-temp = [0, 1, 0, 0] * int(len(data_name) / 4)
-df_mixed = df[[data_name[idx] for idx, item in enumerate(temp) if item == 1]]
+temp = [1, 0, 0, 0] * int(len(data) / 4)
+df_minority = df[[data[idx] for idx, item in enumerate(temp) if item == 1]]
+temp = [0, 1, 0, 0] * int(len(data) / 4)
+df_mixed = df[[data[idx] for idx, item in enumerate(temp) if item == 1]]
 
 ax = df_minority.T.plot.bar(rot=0, legend=False, align='center', width=0.85,
-                            figsize=(10, 6), color=palette)
+                            figsize=(10, 6), color=PALETTE)
 ax.set_xlabel("Number of outliers (case samples)", fontsize=24)
 ax.set_ylabel("Number of predicted features", fontsize=24)
 ax.set_yticks([0, 1, 2, 3])
@@ -137,7 +140,7 @@ plt.cla()
 plt.close(fig="all")
 
 ax = df_mixed.T.plot.bar(rot=0, legend=False, align='center', width=0.85,
-                         figsize=(10, 6), color=palette)
+                         figsize=(10, 6), color=PALETTE)
 ax.set_xlabel("Number of outliers (case and control samples)", fontsize=22)
 ax.set_ylabel("Number of predicted features", fontsize=24)
 ax.set_yticks([0, 1, 2, 3])
@@ -154,7 +157,7 @@ plt.close(fig="all")
 
 ax = df_minority.loc[selected_methods].T.plot.bar(rot=0, legend=False,
                                                   align='center', width=0.85,
-                                                  figsize=(8, 6), color=palette)
+                                                  figsize=(8, 6), color=PALETTE)
 ax.set_xlabel("Number of outliers (case samples)", fontsize=24)
 ax.set_ylabel("Number of predicted features", fontsize=24)
 ax.set_yticks([0, 1, 2, 3])
@@ -171,7 +174,7 @@ plt.close(fig="all")
 
 ax = df_mixed.loc[selected_methods].T.plot.bar(rot=0, legend=False,
                                                align='center', width=0.85,
-                                               figsize=(8, 6), color=palette)
+                                               figsize=(8, 6), color=PALETTE)
 ax.set_xlabel("Number of outliers (case and control samples)", fontsize=22)
 ax.set_ylabel("Number of predicted features", fontsize=24)
 ax.set_yticks([0, 1, 2, 3])
@@ -187,10 +190,93 @@ plt.cla()
 plt.close(fig="all")
 
 # Legend
-ax = df_mixed.T.plot.bar(rot=0, figsize=(20, 10), color=palette)
+ax = df_mixed.T.plot.bar(rot=0, figsize=(20, 10), color=PALETTE)
 ax.legend(title="Methods", title_fontsize=30, fontsize=26, ncol=5,
           loc="lower right", bbox_to_anchor=(1.0, 1.0),
           facecolor="None")
+
+####################################################################################
+###               Combine multiple images into a single mega image               ###
+####################################################################################
+RESULT_PATH = "/home/bch/Desktop/GeneAnalysis/result"
+folder_name = "microarray"
+result_path = os.path.join(RESULT_PATH, folder_name)
+if folder_name == "microarray":
+    list_data = ["allgse412", "bc_ccgse3726", "bladdergse89", "braintumor",
+                 "gastricgse2685", "glioblastoma", "leukemia_golub", "lunggse1987",
+                 "lung", "mll", "srbct"]
+else:
+    list_data = ["baron1", "camp1", "darmanis", "li", "patel", "yan"]
+
+for data in list_data:
+    # need to manually do list to get correct order
+    files = [os.path.join(result_path, data + '_all_subtypes_umap.png'),
+             os.path.join(result_path, data + '_ttest_p_subtypes_umap.png'),
+             os.path.join(result_path, data + '_ttest_g_subtypes_umap.png'),
+             os.path.join(result_path, data + '_wilcoxon_p_subtypes_umap.png'),
+             os.path.join(result_path, data + '_wilcoxon_g_subtypes_umap.png'),
+             os.path.join(result_path, data + '_ks_p_subtypes_umap.png'),
+             os.path.join(result_path, data + '_ks_g_subtypes_umap.png'),
+             os.path.join(result_path, data + '_limma_p_subtypes_umap.png'),
+             os.path.join(result_path, data + '_limma_g_subtypes_umap.png'),
+             os.path.join(result_path, data + '_hvf_a_subtypes_umap.png'),
+             os.path.join(result_path, data + '_hvf_c_subtypes_umap.png'),
+             os.path.join(result_path, data + '_deltahvf_subtypes_umap.png'),
+             os.path.join(result_path, data + '_deltahvfmean_subtypes_umap.png'),
+             os.path.join(result_path, data + '_iqr_a_subtypes_umap.png'),
+             os.path.join(result_path, data + '_iqr_c_subtypes_umap.png'),
+             os.path.join(result_path, data + '_deltaiqr_subtypes_umap.png'),
+             os.path.join(result_path, data + '_deltaiqrmean_subtypes_umap.png'),
+             os.path.join(result_path, data + '_copa_subtypes_umap.png'),
+             os.path.join(result_path, data + '_os_subtypes_umap.png'),
+             os.path.join(result_path, data + '_ort_subtypes_umap.png'),
+             os.path.join(result_path, data + '_most_subtypes_umap.png'),
+             os.path.join(result_path, data + '_lsoss_subtypes_umap.png'),
+             os.path.join(result_path, data + '_dids_subtypes_umap.png'),
+             os.path.join(result_path, data + '_deco_subtypes_umap.png'),
+             os.path.join(result_path, data + '_phet_bh_subtypes_umap.png'),
+             os.path.join(result_path, data + '_phet_br_subtypes_umap.png')]
+
+    # add ct variables to put each image in the correct spot
+    ct = 0
+    ct1 = 0
+    # for loop going through files
+    for idx in range(len(files)):
+        temp_img = Image.open(files[idx])
+        # create new image
+        if idx == 0:
+            # get temp image size, all should be the same
+            width, height = temp_img.size
+            new_image = Image.new('RGB', (width * 4, height * 7))
+            new_image.paste(temp_img, (0, 0))
+        # puts the last two images in the middle of the rows and not the beginning
+        elif idx == len(files) - 2:
+            new_image.paste(temp_img, (int(width * 1), height * 6))
+        elif idx == len(files) - 1:
+            new_image.paste(temp_img, (int(width * 2), height * 6))
+        # if % 4 = 0 then we want to go to new row
+        elif idx % 4 == 0:
+            if idx > 2:
+                ct += 1
+            ct1 = 0
+            new_image.paste(temp_img, (width * ct1, height * ct))
+        # if % 4 = 1 then we want to stay row and next column
+        elif idx % 4 == 1:
+            ct1 += 1
+            new_image.paste(temp_img, (width * ct1, height * ct))
+        # if % 4 = 2 then we want to stay row and next column
+        elif idx % 4 == 2:
+            ct1 += 1
+            new_image.paste(temp_img, (width * ct1, height * ct))
+        # if else then it will go in last column
+        else:
+            ct1 += 1
+            new_image.paste(temp_img, (width * ct1, height * ct))
+
+    white_background = Image.new(mode="RGBA", size=(width, height), color="white")
+    new_image.paste(white_background, (int(width * 0), height * 6))
+    new_image.paste(white_background, (int(width * 3), height * 6))
+    new_image.save(os.path.join(RESULT_PATH, data + '.png'))
 
 ####################################################################################
 ###             Microarray and scRNA Benchmark Evaluations and Plots             ###
@@ -211,16 +297,16 @@ files = [f for f in os.listdir(result_path) if f.endswith("_features_scores.csv"
 # DECO
 feature_files = sorted([f for f in os.listdir(result_path) if f.endswith("_deco_features.csv")])
 deco_features = list()
-for f in feature_files:
-    df = pd.read_csv(os.path.join(result_path, f), sep=',', header=None)
+for idx in feature_files:
+    df = pd.read_csv(os.path.join(result_path, idx), sep=',', header=None)
     deco_features.append(len(df[0].values.tolist()))
 
 # Collect features scores
 methods = list()
 scores = list()
 ds_names = list()
-for idx, f in enumerate(files):
-    df = pd.read_csv(os.path.join(result_path, f), sep=',')
+for idx, idx in enumerate(files):
+    df = pd.read_csv(os.path.join(result_path, idx), sep=',')
     methods.extend(df.iloc[:, 0].to_list())
     scores.extend(df.iloc[:, 1].to_list())
     ds_names.extend(len(df.iloc[:, 0].to_list()) * [data_names[idx]])
@@ -232,8 +318,8 @@ feature_files = [sorted([f for f in os.listdir(result_path)
 pred_features = list()
 for lst_files in feature_files:
     temp = list()
-    for f in lst_files:
-        df = pd.read_csv(os.path.join(result_path, f), sep=',', header=None)
+    for idx in lst_files:
+        df = pd.read_csv(os.path.join(result_path, idx), sep=',', header=None)
         temp.append(len(df.values.tolist()))
     pred_features.append(temp)
 pred_features[7] = deco_features
@@ -259,7 +345,7 @@ min_ds = df[df["Methods"] == "PHet"].sort_values('Scores').iloc[0].to_list()[-1]
 max_ds = df[df["Methods"] == "PHet"].sort_values('Scores').iloc[-1].to_list()[-1]
 plt.figure(figsize=(14, 8))
 ax = sns.boxplot(y='Scores', x='Methods', data=df, width=0.85,
-                 palette=palette, showfliers=False, showmeans=True,
+                 palette=PALETTE, showfliers=False, showmeans=True,
                  meanprops={"marker": "D", "markerfacecolor": "white",
                             "markeredgecolor": "black", "markersize": "15"})
 sns.swarmplot(y='Scores', x='Methods', data=df, color="black", s=10,
@@ -288,7 +374,7 @@ for m in selected_methods:
 selected_df = df.iloc[temp]
 plt.figure(figsize=(14, 8))
 ax = sns.boxplot(y='Scores', x='Methods', data=selected_df, width=0.85,
-                 palette=palette, showfliers=False, showmeans=True,
+                 palette=PALETTE, showfliers=False, showmeans=True,
                  meanprops={"marker": "D", "markerfacecolor": "white",
                             "markeredgecolor": "black", "markersize": "15"})
 sns.swarmplot(y='Scores', x='Methods', data=selected_df, color="black", s=10,
@@ -316,7 +402,7 @@ min_ds = df_features[df_features["Methods"] == "PHet"].sort_values('Features').i
 max_ds = df_features[df_features["Methods"] == "PHet"].sort_values('Features').iloc[-1].to_list()[-1]
 plt.figure(figsize=(14, 8))
 ax = sns.boxplot(y='Features', x='Methods', data=df_features, width=0.85,
-                 palette=palette, showfliers=False, showmeans=True,
+                 palette=PALETTE, showfliers=False, showmeans=True,
                  meanprops={"marker": "D", "markerfacecolor": "white",
                             "markeredgecolor": "black", "markersize": "15"})
 sns.swarmplot(y='Features', x='Methods', data=df_features, color="black", s=10,
@@ -348,7 +434,7 @@ for m in selected_methods:
 selected_df = df_features.iloc[temp]
 plt.figure(figsize=(14, 8))
 ax = sns.boxplot(y='Features', x='Methods', data=selected_df, width=0.85,
-                 palette=palette, showfliers=False, showmeans=True,
+                 palette=PALETTE, showfliers=False, showmeans=True,
                  meanprops={"marker": "D", "markerfacecolor": "white",
                             "markeredgecolor": "black", "markersize": "15"})
 sns.swarmplot(y='Features', x='Methods', data=selected_df, color="black", s=10,
@@ -388,8 +474,8 @@ for column_idx, column in enumerate(metrics):
     methods = list()
     scores = list()
     ds_names = list()
-    for idx, f in enumerate(files):
-        df = pd.read_csv(os.path.join(result_path, f), sep=',', index_col=0)
+    for idx, idx in enumerate(files):
+        df = pd.read_csv(os.path.join(result_path, idx), sep=',', index_col=0)
         scores.extend(df[column].to_numpy()[1:])
         methods.extend(df.index.to_list()[1:])
         ds_names.extend(len(df.index.to_list()[1:]) * [data_names[idx]])
@@ -400,7 +486,7 @@ for column_idx, column in enumerate(metrics):
     max_ds = df_cluster[df_cluster["Methods"] == "PHet"].sort_values(column).iloc[-1].to_list()[-1]
     plt.figure(figsize=(14, 8))
     ax = sns.boxplot(y=column, x='Methods', data=df_cluster, width=0.85,
-                     palette=palette, showfliers=False, showmeans=True,
+                     palette=PALETTE, showfliers=False, showmeans=True,
                      meanprops={"marker": "D", "markerfacecolor": "white",
                                 "markeredgecolor": "black", "markersize": "15"})
     sns.swarmplot(y=column, x='Methods', data=df_cluster, color="black", s=10, linewidth=0,
@@ -430,7 +516,7 @@ for column_idx, column in enumerate(metrics):
         df_cluster = df_cluster.iloc[temp]
         plt.figure(figsize=(14, 8))
         ax = sns.boxplot(y=column, x='Methods', data=df_cluster, width=0.85,
-                         palette=palette, showfliers=False, showmeans=True,
+                         palette=PALETTE, showfliers=False, showmeans=True,
                          meanprops={"marker": "D", "markerfacecolor": "white",
                                     "markeredgecolor": "black", "markersize": "15"})
         sns.swarmplot(y=column, x='Methods', data=df_cluster, color="black", s=10, linewidth=0,
@@ -456,7 +542,7 @@ for column_idx, column in enumerate(metrics):
 # Legend
 plt.figure(figsize=(12, 8))
 # Create legend handles manually
-handles = [mpl.Patch(color=palette[x], label=x) for x in palette.keys()]
+handles = [mpl.Patch(color=PALETTE[x], label=x) for x in PALETTE.keys()]
 # Create legend
 plt.legend(handles=handles, title="Methods", title_fontsize=30, fontsize=26, ncol=3,
            loc="lower right", bbox_to_anchor=(1.0, 1.0),
@@ -472,7 +558,7 @@ plt.close(fig="all")
 # Legend
 plt.figure(figsize=(20, 8))
 # Create legend handles manually
-handles = [mpl.Patch(color=palette[x], label=x) for x in palette.keys()]
+handles = [mpl.Patch(color=PALETTE[x], label=x) for x in PALETTE.keys()]
 # Create legend
 plt.legend(handles=handles, title="Methods", title_fontsize=30, fontsize=26, ncol=5,
            loc="lower right", bbox_to_anchor=(1.0, 1.0),
@@ -487,7 +573,7 @@ plt.close(fig="all")
 
 plt.figure(figsize=(20, 6))
 # Create legend handles manually
-handles = [mpl.Patch(color=palette[x], label=x) for x in palette.keys() if x in selected_methods]
+handles = [mpl.Patch(color=PALETTE[x], label=x) for x in PALETTE.keys() if x in selected_methods]
 # Create legend
 plt.legend(handles=handles, title="Methods", title_fontsize=30, fontsize=26, ncol=6,
            loc="lower right", bbox_to_anchor=(1.0, 1.0),
@@ -527,33 +613,33 @@ for result_path in [result_microarray_path, result_scrna_path]:
     data_names = pd.read_csv(os.path.join(result_path, "data_names.txt"), sep=',')
     data_names = data_names.columns.to_list()
     files = [f for f in os.listdir(result_path) if f.endswith("_cluster_quality.csv")]
-    for idx, f in enumerate(files):
-        df = pd.read_csv(os.path.join(result_path, f), sep=',')
+    for idx, idx in enumerate(files):
+        df = pd.read_csv(os.path.join(result_path, idx), sep=',')
         ari_scores.extend(df.loc[1:]["Scores"].to_numpy())
         methods.extend(df.iloc[1:, 0].to_list())
         ds_names.extend(len(df.iloc[1:, 0].to_list()) * [data_names[idx]])
     files = [f for f in os.listdir(result_path) if f.endswith("_features_scores.csv")]
-    for idx, f in enumerate(files):
-        df = pd.read_csv(os.path.join(result_path, f), sep=',')
+    for idx, idx in enumerate(files):
+        df = pd.read_csv(os.path.join(result_path, idx), sep=',')
         f1_scores.extend(df.loc[0:]["Scores"].to_numpy())
     files = [[f for f in os.listdir(result_path) if f.endswith(method.lower() + "_features.csv")]
              for method, _ in methods_name.items()]
     files = np.array(files)
     for f_idx in range(files.shape[1]):
         for m_idx in range(files.shape[0]):
-            f = files[m_idx, f_idx]
-            if f.endswith("_deco_features.csv"):
-                df = pd.read_csv(os.path.join(result_path, f), sep=',')
+            idx = files[m_idx, f_idx]
+            if idx.endswith("_deco_features.csv"):
+                df = pd.read_csv(os.path.join(result_path, idx), sep=',')
                 pred_features.append(len(df["features"].to_list()))
             else:
-                df = pd.read_csv(os.path.join(result_path, f), sep=',', header=None)
+                df = pd.read_csv(os.path.join(result_path, idx), sep=',', header=None)
                 pred_features.append(len(df.values.tolist()))
 
-for f in ds_files:
+for idx in ds_files:
     temp = pd.read_csv(os.path.join(DATASET_PATH,
-                                    f + "_feature_names.csv"), sep=',')
+                                    idx + "_feature_names.csv"), sep=',')
     feature_size.extend(len(methods_name) * [temp.shape[0]])
-    temp = pd.read_csv(os.path.join(DATASET_PATH, f + "_classes.csv"), sep=',')
+    temp = pd.read_csv(os.path.join(DATASET_PATH, idx + "_classes.csv"), sep=',')
     sample_size.extend(len(methods_name) * [temp.shape[0]])
 
 pred_features = np.log10(pred_features)
@@ -573,7 +659,7 @@ min_ds = df[df["Methods"] == "PHet"].sort_values('ARI').iloc[0].to_list()[-1]
 max_ds = df[df["Methods"] == "PHet"].sort_values('ARI').iloc[-1].to_list()[-1]
 plt.figure(figsize=(14, 8))
 ax = sns.boxplot(y='ARI', x='Methods', data=df, width=0.85,
-                 palette=palette, showfliers=False)
+                 palette=PALETTE, showfliers=False)
 sns.swarmplot(y='ARI', x='Methods', data=df, color="black", s=10, linewidth=0,
               alpha=.7)
 sns.pointplot(y="ARI", x="Methods", data=df, scale=1.3,
@@ -595,7 +681,7 @@ min_ds = df[df["Methods"] == "PHet"].sort_values('F1').iloc[0].to_list()[-1]
 max_ds = df[df["Methods"] == "PHet"].sort_values('F1').iloc[-1].to_list()[-1]
 plt.figure(figsize=(14, 8))
 ax = sns.boxplot(y='F1', x='Methods', data=df, width=0.85,
-                 palette=palette, showfliers=False)
+                 palette=PALETTE, showfliers=False)
 sns.swarmplot(y='F1', x='Methods', data=df, color="black", s=10, linewidth=0,
               alpha=.7)
 sns.pointplot(y="F1", x="Methods", data=df, scale=1.3,
@@ -617,7 +703,7 @@ min_ds = df[df["Methods"] == "PHet"].sort_values('Predicted features').iloc[0].t
 max_ds = df[df["Methods"] == "PHet"].sort_values('Predicted features').iloc[-1].to_list()[-1]
 plt.figure(figsize=(14, 8))
 ax = sns.boxplot(y='Predicted features', x='Methods', data=df, width=0.85,
-                 palette=palette, showfliers=False)
+                 palette=PALETTE, showfliers=False)
 sns.swarmplot(y='Predicted features', x='Methods', data=df, color="black",
               s=10, linewidth=0, alpha=.7)
 sns.pointplot(y="Predicted features", x="Methods", data=df, scale=1.3,

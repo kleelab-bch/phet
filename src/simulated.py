@@ -150,7 +150,7 @@ def train():
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       METHODS[0]), end="\r")
-            estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=True, 
+            estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=True,
                                      adjusted_alpha=alpha)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False,
@@ -161,7 +161,7 @@ def train():
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       METHODS[1]), end="\r")
-            estimator = StudentTTest(use_statistics=True, direction=direction, adjust_pvalue=True, 
+            estimator = StudentTTest(use_statistics=True, direction=direction, adjust_pvalue=True,
                                      adjusted_alpha=alpha)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             methods_dict.update({METHODS[1]: df})
@@ -169,7 +169,7 @@ def train():
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       METHODS[2]), end="\r")
-            estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=True, 
+            estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=True,
                                             adjusted_alpha=alpha)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             df = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, ttest=False,
@@ -199,8 +199,8 @@ def train():
 
             print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                       METHODS[5]), end="\r")
-            estimator = KolmogorovSmirnovTest(use_statistics=True, direction=direction, adjust_pvalue=True, 
-                                     adjusted_alpha=alpha)
+            estimator = KolmogorovSmirnovTest(use_statistics=True, direction=direction, adjust_pvalue=True,
+                                              adjusted_alpha=alpha)
             df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
             methods_dict.update({METHODS[5]: df})
             current_progress += 1

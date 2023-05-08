@@ -1,8 +1,8 @@
-require(madsim)
+require(polyester)
 
 working_dir <- file.path("R:/GeneAnalysis/data")
 
-# NOTE: Please use the follwing settings
+# NOTE: Please use the following settings
 # 1. For increasing variability of normal expressed genes 
 # use the following setting: lambda2 <- 2
 # 2. For increasing variability of weekly expressed genes 

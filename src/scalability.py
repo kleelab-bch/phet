@@ -65,7 +65,7 @@ def train():
     for iteration in range(num_iterations):
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[0]), end="\r")
-        estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=True, 
+        estimator = StudentTTest(use_statistics=False, direction=direction, adjust_pvalue=True,
                                  adjusted_alpha=alpha)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
@@ -83,7 +83,7 @@ def train():
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[2]), end="\r")
-        estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=True, 
+        estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=True,
                                         adjusted_alpha=alpha)
         curr_time = time.time()
         estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
