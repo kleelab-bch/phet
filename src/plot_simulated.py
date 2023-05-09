@@ -19,8 +19,8 @@ sns.set_style(style='white')
 
 methods_name = {"ttest_p": "t-statistic", "ttest_g": "t-statistic+Gamma", "wilcoxon_p": "Wilcoxon",
                 "wilcoxon_g": "Wilcoxon+Gamma", "ks_p": "KS", "ks_g": "KS+Gamma", "limma_p": "LIMMA",
-                "limma_g": "LIMMA+Gamma", "dispersion_a": "Dispersion (composite)", 
-                "dispersion_c": "Dispersion (by condition)", "deltadispersion": "ΔDispersion", 
+                "limma_g": "LIMMA+Gamma", "dispersion_a": "Dispersion (composite)",
+                "dispersion_c": "Dispersion (by condition)", "deltadispersion": "ΔDispersion",
                 "deltadispersionmean": "ΔDispersion+ΔMean", "iqr_a": "IQR (composite)",
                 "iqr_c": "IQR (by condition)", "deltaiqr": "ΔIQR", "deltaiqrmean": "ΔIQR+ΔMean",
                 "copa": "COPA", "os": "OS", "ort": "ORT", "most": "MOST", "lsoss": "LSOSS",
@@ -568,7 +568,7 @@ plt.cla()
 plt.close(fig="all")
 
 plt.figure(figsize=(22, 6))
-handles = [mpl.Patch(color=PALETTE[x], label=x) for x in PALETTE.keys() 
+handles = [mpl.Patch(color=PALETTE[x], label=x) for x in PALETTE.keys()
            if x in selected_methods]
 plt.legend(handles=handles, title="Methods", title_fontsize=30, fontsize=26, ncol=6,
            loc="lower right", bbox_to_anchor=(1.0, 1.0),
