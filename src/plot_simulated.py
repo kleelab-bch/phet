@@ -19,14 +19,15 @@ sns.set_style(style='white')
 
 methods_name = {"ttest_p": "t-statistic", "ttest_g": "t-statistic+Gamma", "wilcoxon_p": "Wilcoxon",
                 "wilcoxon_g": "Wilcoxon+Gamma", "ks_p": "KS", "ks_g": "KS+Gamma", "limma_p": "LIMMA",
-                "limma_g": "LIMMA+Gamma", "hvf_a": "HVF (composite)", "hvf_c": "HVF (by condition)",
-                "deltahvf": "ΔHVF", "deltahvfmean": "ΔHVF+ΔMean", "iqr_a": "IQR (composite)",
+                "limma_g": "LIMMA+Gamma", "dispersion_a": "Dispersion (composite)", 
+                "dispersion_c": "Dispersion (by condition)", "deltadispersion": "ΔDispersion", 
+                "deltadispersionmean": "ΔDispersion+ΔMean", "iqr_a": "IQR (composite)",
                 "iqr_c": "IQR (by condition)", "deltaiqr": "ΔIQR", "deltaiqrmean": "ΔIQR+ΔMean",
                 "copa": "COPA", "os": "OS", "ort": "ORT", "most": "MOST", "lsoss": "LSOSS",
-                "dids": "DIDS", "deco": "DECO", "phet_bh": "PHet (ΔHVF)", "phet_br": "PHet"}
-selected_methods = ["t-statistic+Gamma", "Wilcoxon+Gamma", "KS+Gamma", "LIMMA+Gamma", "ΔHVF",
-                    "ΔHVF+ΔMean", "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT", "MOST",
-                    "LSOSS", "DIDS", "DECO", "PHet (ΔHVF)", "PHet"]
+                "dids": "DIDS", "deco": "DECO", "phet_bd": "PHet (ΔDispersion)", "phet_br": "PHet"}
+selected_methods = ["t-statistic+Gamma", "Wilcoxon+Gamma", "KS+Gamma", "LIMMA+Gamma", "ΔDispersion",
+                    "ΔDispersion+ΔMean", "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT", "MOST",
+                    "LSOSS", "DIDS", "DECO", "PHet (ΔDispersion)", "PHet"]
 # Use static colors
 PALETTE = sns.color_palette("tab20")
 PALETTE.append("#fcfc81")
@@ -198,8 +199,7 @@ ax.legend(title="Methods", title_fontsize=30, fontsize=26, ncol=5,
 ####################################################################################
 ###               Combine multiple images into a single mega image               ###
 ####################################################################################
-RESULT_PATH = "/home/bch/Desktop/GeneAnalysis/result"
-folder_name = "microarray"
+folder_name = "scRNA"
 result_path = os.path.join(RESULT_PATH, folder_name)
 if folder_name == "microarray":
     list_data = ["allgse412", "bc_ccgse3726", "bladdergse89", "braintumor",
@@ -219,10 +219,10 @@ for data in list_data:
              os.path.join(result_path, data + '_ks_g_subtypes_umap.png'),
              os.path.join(result_path, data + '_limma_p_subtypes_umap.png'),
              os.path.join(result_path, data + '_limma_g_subtypes_umap.png'),
-             os.path.join(result_path, data + '_hvf_a_subtypes_umap.png'),
-             os.path.join(result_path, data + '_hvf_c_subtypes_umap.png'),
-             os.path.join(result_path, data + '_deltahvf_subtypes_umap.png'),
-             os.path.join(result_path, data + '_deltahvfmean_subtypes_umap.png'),
+             os.path.join(result_path, data + '_dispersion_a_subtypes_umap.png'),
+             os.path.join(result_path, data + '_dispersion_c_subtypes_umap.png'),
+             os.path.join(result_path, data + '_deltadispersion_subtypes_umap.png'),
+             os.path.join(result_path, data + '_deltadispersionmean_subtypes_umap.png'),
              os.path.join(result_path, data + '_iqr_a_subtypes_umap.png'),
              os.path.join(result_path, data + '_iqr_c_subtypes_umap.png'),
              os.path.join(result_path, data + '_deltaiqr_subtypes_umap.png'),
@@ -234,7 +234,7 @@ for data in list_data:
              os.path.join(result_path, data + '_lsoss_subtypes_umap.png'),
              os.path.join(result_path, data + '_dids_subtypes_umap.png'),
              os.path.join(result_path, data + '_deco_subtypes_umap.png'),
-             os.path.join(result_path, data + '_phet_bh_subtypes_umap.png'),
+             os.path.join(result_path, data + '_phet_bd_subtypes_umap.png'),
              os.path.join(result_path, data + '_phet_br_subtypes_umap.png')]
 
     # add ct variables to put each image in the correct spot
@@ -281,7 +281,7 @@ for data in list_data:
 ####################################################################################
 ###             Microarray and scRNA Benchmark Evaluations and Plots             ###
 ####################################################################################
-folder_name = "scRNA"
+folder_name = "microarray"
 result_path = os.path.join(RESULT_PATH, folder_name)
 if folder_name == "microarray":
     suptitle = "11 microarray gene expression datasets"
@@ -305,8 +305,8 @@ for idx in feature_files:
 methods = list()
 scores = list()
 ds_names = list()
-for idx, idx in enumerate(files):
-    df = pd.read_csv(os.path.join(result_path, idx), sep=',')
+for idx, file in enumerate(files):
+    df = pd.read_csv(os.path.join(result_path, file), sep=',')
     methods.extend(df.iloc[:, 0].to_list())
     scores.extend(df.iloc[:, 1].to_list())
     ds_names.extend(len(df.iloc[:, 0].to_list()) * [data_names[idx]])
@@ -474,8 +474,8 @@ for column_idx, column in enumerate(metrics):
     methods = list()
     scores = list()
     ds_names = list()
-    for idx, idx in enumerate(files):
-        df = pd.read_csv(os.path.join(result_path, idx), sep=',', index_col=0)
+    for idx, file in enumerate(files):
+        df = pd.read_csv(os.path.join(result_path, file), sep=',', index_col=0)
         scores.extend(df[column].to_numpy()[1:])
         methods.extend(df.index.to_list()[1:])
         ds_names.extend(len(df.index.to_list()[1:]) * [data_names[idx]])
@@ -540,10 +540,8 @@ for column_idx, column in enumerate(metrics):
         plt.close(fig="all")
 
 # Legend
-plt.figure(figsize=(12, 8))
-# Create legend handles manually
+plt.figure(figsize=(16, 10))
 handles = [mpl.Patch(color=PALETTE[x], label=x) for x in PALETTE.keys()]
-# Create legend
 plt.legend(handles=handles, title="Methods", title_fontsize=30, fontsize=26, ncol=3,
            loc="lower right", bbox_to_anchor=(1.0, 1.0),
            facecolor="None", frameon=False)
@@ -556,10 +554,8 @@ plt.cla()
 plt.close(fig="all")
 
 # Legend
-plt.figure(figsize=(20, 8))
-# Create legend handles manually
+plt.figure(figsize=(22, 8))
 handles = [mpl.Patch(color=PALETTE[x], label=x) for x in PALETTE.keys()]
-# Create legend
 plt.legend(handles=handles, title="Methods", title_fontsize=30, fontsize=26, ncol=5,
            loc="lower right", bbox_to_anchor=(1.0, 1.0),
            facecolor="None", frameon=False)
@@ -571,10 +567,9 @@ plt.clf()
 plt.cla()
 plt.close(fig="all")
 
-plt.figure(figsize=(20, 6))
-# Create legend handles manually
-handles = [mpl.Patch(color=PALETTE[x], label=x) for x in PALETTE.keys() if x in selected_methods]
-# Create legend
+plt.figure(figsize=(22, 6))
+handles = [mpl.Patch(color=PALETTE[x], label=x) for x in PALETTE.keys() 
+           if x in selected_methods]
 plt.legend(handles=handles, title="Methods", title_fontsize=30, fontsize=26, ncol=6,
            loc="lower right", bbox_to_anchor=(1.0, 1.0),
            facecolor="None", frameon=False)

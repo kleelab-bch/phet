@@ -12,7 +12,7 @@ from utility.utils import comparative_score
 from utility.utils import sort_features, significant_features
 
 sns.set_theme(style="white")
-METHODS = ["PHet (ΔHVF)"]
+METHODS = ["PHet (ΔDispersion)"]
 METHODS = ["PHet"]
 
 
@@ -37,7 +37,7 @@ def train(num_jobs: int = 4):
     normalize = "zscore"
     methods_save_name = []
     if phet_delta_type == "hvf":
-        temp = "h"
+        temp = "d"
     else:
         temp = "r"
     if bin_pvalues:

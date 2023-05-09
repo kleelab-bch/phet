@@ -290,8 +290,6 @@ class PHeT:
                                               examples_j[slice_idx: slice_idx + temp_size])[1]
                             temp.append(pvalue)
                         pvalue = np.min(temp)
-                        # TODO: delete
-                        # pvalue = ks_2samp(examples_i, examples_j)[1]
                         temp_pvalues.append(pvalue)
                     if self.bin_pvalues:
                         O[feature_idx] = np.mean(temp_pvalues)

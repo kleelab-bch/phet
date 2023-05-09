@@ -27,10 +27,11 @@ sns.set_theme(style="white")
 np.random.seed(seed=12345)
 
 METHODS = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma",
-           "KS", "KS+Gamma", "LIMMA", "LIMMA+Gamma", "HVF (composite)",
-           "HVF (by condition)", "ΔHVF", "ΔHVF+ΔMean", "IQR (composite)",
-           "IQR (by condition)", "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT",
-           "MOST", "LSOSS", "DIDS", "DECO", "PHet (ΔHVF)", "PHet"]
+           "KS", "KS+Gamma", "LIMMA", "LIMMA+Gamma", "Dispersion (composite)", 
+           "Dispersion (by condition)", "ΔDispersion", "ΔDispersion+ΔMean", 
+           "IQR (composite)", "IQR (by condition)", "ΔIQR", "ΔIQR+ΔMean", 
+           "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "PHet (ΔDispersion)", 
+           "PHet"]
 
 
 def train(num_jobs: int = 4):
@@ -44,10 +45,10 @@ def train(num_jobs: int = 4):
     phet_hvf_normalize = None
     if log_transform:
         phet_hvf_normalize = "log"
-    methods_save_name = ["ttest_p", "ttest_g", "wilcoxon_p", "wilcoxon_g", "ks_p", "ks_g", "limma_p",
-                         "limma_g", "hvf_a", "hvf_c", "deltahvf", "deltahvfmean", "iqr_a", "iqr_c",
-                         "deltaiqr", "deltaiqrmean", "copa", "os", "ort", "most", "lsoss", "dids",
-                         "deco", "phet_bh", "phet_br"]
+    methods_save_name = ["ttest_p", "ttest_g", "wilcoxon_p", "wilcoxon_g", "ks_p", "ks_g", 
+                         "limma_p", "limma_g", "dispersion_a", "dispersion_c", "deltadispersion", 
+                         "deltadispersionmean", "iqr_a", "iqr_c", "deltaiqr", "deltaiqrmean", 
+                         "copa", "os", "ort", "most", "lsoss", "dids", "deco", "phet_bd", "phet_br"]
     # Clustering and UMAP parameters
     sort_by_pvalue = True
     export_spring = False
