@@ -370,7 +370,7 @@ def train(num_jobs: int = 2):
     top_k_features = 500
     range_topfeatures = list(range(0, top_k_features + 5, 5))
     range_topfeatures[0] = 1
-    num_batches = 3
+    num_batches = 1000
     subsample_size = 10
 
     # Models parameters
@@ -488,4 +488,4 @@ if __name__ == "__main__":
     # for mac and linux(here, os.name is 'posix')
     else:
         _ = os.system('clear')
-    train(num_jobs=2)
+    train(num_jobs=20)
