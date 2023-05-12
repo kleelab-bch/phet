@@ -470,6 +470,8 @@ metrics_name = ['complete_diameter_distance', 'average_diameter_distance', 'cent
                 'single_linkage_distance', 'maximum_linkage_distance', 'average_linkage_distance',
                 'centroid_linkage_distance', 'wards_distance', 'silhouette', 'homogeneity',
                 'completeness', 'v_measure', 'adjusted_rand_index', 'adjusted_mutual_info']
+metrics = ['Adjusted Rand Index']
+metrics_name = ['adjusted_rand_index']
 for column_idx, column in enumerate(metrics):
     methods = list()
     scores = list()
@@ -482,32 +484,32 @@ for column_idx, column in enumerate(metrics):
     df_cluster = pd.DataFrame([methods, scores, ds_names]).T
     df_cluster.columns = ["Methods", column, "Data"]
     df_cluster["Methods"] = df_cluster["Methods"].astype(str)
-    min_ds = df_cluster[df_cluster["Methods"] == "PHet"].sort_values(column).iloc[0].to_list()[-1]
-    max_ds = df_cluster[df_cluster["Methods"] == "PHet"].sort_values(column).iloc[-1].to_list()[-1]
-    plt.figure(figsize=(14, 8))
-    ax = sns.boxplot(y=column, x='Methods', data=df_cluster, width=0.85,
-                     palette=PALETTE, showfliers=False, showmeans=True,
-                     meanprops={"marker": "D", "markerfacecolor": "white",
-                                "markeredgecolor": "black", "markersize": "15"})
-    sns.swarmplot(y=column, x='Methods', data=df_cluster, color="black", s=10, linewidth=0,
-                  alpha=.7)
-    sns.lineplot(data=df_cluster[df_cluster["Data"] == max_ds], x="Methods",
-                 y=column, color="green", linewidth=3, linestyle='dashed')
-    sns.lineplot(data=df_cluster[df_cluster["Data"] == min_ds], x="Methods",
-                 y=column, color="red", linewidth=3, linestyle='dotted')
-    ax.set_xlabel("")
-    ax.set_ylabel(column.capitalize(), fontsize=36)
-    ax.set_xticklabels(list())
-    ax.tick_params(axis='both', labelsize=30)
-    plt.suptitle(suptitle, fontsize=36)
-    sns.despine()
-    plt.tight_layout()
-    file_name = folder_name.lower() + "_" + str(metrics_name[column_idx]).lower() + ".png"
-    file_path = os.path.join(RESULT_PATH, file_name)
-    plt.savefig(file_path)
-    plt.clf()
-    plt.cla()
-    plt.close(fig="all")
+    # min_ds = df_cluster[df_cluster["Methods"] == "PHet"].sort_values(column).iloc[0].to_list()[-1]
+    # max_ds = df_cluster[df_cluster["Methods"] == "PHet"].sort_values(column).iloc[-1].to_list()[-1]
+    # plt.figure(figsize=(14, 8))
+    # ax = sns.boxplot(y=column, x='Methods', data=df_cluster, width=0.85,
+    #                  palette=PALETTE, showfliers=False, showmeans=True,
+    #                  meanprops={"marker": "D", "markerfacecolor": "white",
+    #                             "markeredgecolor": "black", "markersize": "15"})
+    # sns.swarmplot(y=column, x='Methods', data=df_cluster, color="black", s=10, linewidth=0,
+    #               alpha=.7)
+    # sns.lineplot(data=df_cluster[df_cluster["Data"] == max_ds], x="Methods",
+    #              y=column, color="green", linewidth=3, linestyle='dashed')
+    # sns.lineplot(data=df_cluster[df_cluster["Data"] == min_ds], x="Methods",
+    #              y=column, color="red", linewidth=3, linestyle='dotted')
+    # ax.set_xlabel("")
+    # ax.set_ylabel(column.capitalize(), fontsize=36)
+    # ax.set_xticklabels(list())
+    # ax.tick_params(axis='both', labelsize=30)
+    # plt.suptitle(suptitle, fontsize=36)
+    # sns.despine()
+    # plt.tight_layout()
+    # file_name = folder_name.lower() + "_" + str(metrics_name[column_idx]).lower() + ".png"
+    # file_path = os.path.join(RESULT_PATH, file_name)
+    # plt.savefig(file_path)
+    # plt.clf()
+    # plt.cla()
+    # plt.close(fig="all")
 
     if column == "Adjusted Rand Index":
         temp = list()
