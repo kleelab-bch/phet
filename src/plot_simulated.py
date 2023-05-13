@@ -281,7 +281,7 @@ for data in list_data:
 ####################################################################################
 ###             Microarray and scRNA Benchmark Evaluations and Plots             ###
 ####################################################################################
-folder_name = "microarray"
+folder_name = "scRNA"
 result_path = os.path.join(RESULT_PATH, folder_name)
 if folder_name == "microarray":
     suptitle = "11 microarray gene expression datasets"
@@ -586,221 +586,34 @@ plt.close(fig="all")
 ####################################################################################
 ###                Total Avergae Scores of Each Method and Plots                 ###
 ####################################################################################
+full_features = pd.read_csv(os.path.join(DATASET_PATH, "patel_feature_names.csv"), sep=',')
+full_features = full_features["features"].to_list()
+full_features = [f.upper() for f in full_features]
+selected_featrues = ["CLU", "PGM2L1", "OLIG1", "MGST1", "ABHD4", "ADAM9"]
+features_idx = [full_features.index(f) for f in selected_featrues]
+# Classes
+classes = pd.read_csv(os.path.join(DATASET_PATH,
+                                   "patel_classes.csv"),
+                      sep=',').values.tolist()
+classes = np.squeeze(classes)
+# Load data
+df = sc.read_mtx(os.path.join(DATASET_PATH, "patel_matrix.mtx"))
+df.var_names = full_features
+df = df[:, features_idx].to_df()
+df["Condition"] = classes
 
-sns.set_theme(style="ticks")
-result_scrna_path = os.path.join(RESULT_PATH, "scRNA")
-result_microarray_path = os.path.join(RESULT_PATH, "microarray")
-ds_files = ["allgse412", "bc_ccgse3726", "bladdergse89", "braintumor",
-            "gastricgse2685", "glioblastoma", "leukemia_golub",
-            "lunggse1987", "lung", "mll", "srbct", "baron1", "camp1",
-            "darmanis", "li", "patel", "yan"]
-# data_names = ["GSE412", "GSE3726", "GSE89", "Braintumor", "GSE2685", 
-#               "Glioblastoma", "Leukemia", "GSE1987", "Lung", "MLL", "SRBCT",
-#               "Baron", "Camp", "Darmanis", "Li", "Patel", "Yan"]
-# Various scores
-methods = list()
-ari_scores = list()
-f1_scores = list()
-pred_features = list()
-feature_size = list()
-sample_size = list()
-ds_names = list()
-
-for result_path in [result_microarray_path, result_scrna_path]:
-    data_names = pd.read_csv(os.path.join(result_path, "data_names.txt"), sep=',')
-    data_names = data_names.columns.to_list()
-    files = [f for f in os.listdir(result_path) if f.endswith("_cluster_quality.csv")]
-    for idx, idx in enumerate(files):
-        df = pd.read_csv(os.path.join(result_path, idx), sep=',')
-        ari_scores.extend(df.loc[1:]["Scores"].to_numpy())
-        methods.extend(df.iloc[1:, 0].to_list())
-        ds_names.extend(len(df.iloc[1:, 0].to_list()) * [data_names[idx]])
-    files = [f for f in os.listdir(result_path) if f.endswith("_features_scores.csv")]
-    for idx, idx in enumerate(files):
-        df = pd.read_csv(os.path.join(result_path, idx), sep=',')
-        f1_scores.extend(df.loc[0:]["Scores"].to_numpy())
-    files = [[f for f in os.listdir(result_path) if f.endswith(method.lower() + "_features.csv")]
-             for method, _ in methods_name.items()]
-    files = np.array(files)
-    for f_idx in range(files.shape[1]):
-        for m_idx in range(files.shape[0]):
-            idx = files[m_idx, f_idx]
-            if idx.endswith("_deco_features.csv"):
-                df = pd.read_csv(os.path.join(result_path, idx), sep=',')
-                pred_features.append(len(df["features"].to_list()))
-            else:
-                df = pd.read_csv(os.path.join(result_path, idx), sep=',', header=None)
-                pred_features.append(len(df.values.tolist()))
-
-for idx in ds_files:
-    temp = pd.read_csv(os.path.join(DATASET_PATH,
-                                    idx + "_feature_names.csv"), sep=',')
-    feature_size.extend(len(methods_name) * [temp.shape[0]])
-    temp = pd.read_csv(os.path.join(DATASET_PATH, idx + "_classes.csv"), sep=',')
-    sample_size.extend(len(methods_name) * [temp.shape[0]])
-
-pred_features = np.log10(pred_features)
-feature_size = np.array(feature_size)
-sample_size = np.array(sample_size)
-df = pd.DataFrame([methods, ari_scores, f1_scores, pred_features,
-                   feature_size, sample_size, ds_names]).T
-df.columns = ["Methods", "ARI", "F1", "Predicted features",
-              "Feature size", "Sample size", "Data"]
-df["Methods"] = df["Methods"].astype(str)
-df["ARI"] = df["ARI"].astype(np.float64)
-df["F1"] = df["F1"].astype(np.float64)
-df["Predicted features"] = df["Predicted features"].astype(np.float64)
-
-# Plot ARI
-min_ds = df[df["Methods"] == "PHet"].sort_values('ARI').iloc[0].to_list()[-1]
-max_ds = df[df["Methods"] == "PHet"].sort_values('ARI').iloc[-1].to_list()[-1]
-plt.figure(figsize=(14, 8))
-ax = sns.boxplot(y='ARI', x='Methods', data=df, width=0.85,
-                 palette=PALETTE, showfliers=False)
-sns.swarmplot(y='ARI', x='Methods', data=df, color="black", s=10, linewidth=0,
-              alpha=.7)
-sns.pointplot(y="ARI", x="Methods", data=df, scale=1.3,
-              errwidth=5, markers="D", color="#343d46")
-sns.lineplot(data=df[df["Data"] == max_ds], x="Methods",
-             y="ARI", color="green", linewidth=3, linestyle='dashed')
-sns.lineplot(data=df[df["Data"] == min_ds], x="Methods",
-             y="ARI", color="red", linewidth=3, linestyle='dotted')
-ax.set_xlabel("")
-ax.set_ylabel("ARI scores of each method", fontsize=36)
-ax.set_xticklabels(list())
-ax.tick_params(axis='both', labelsize=30)
-plt.suptitle("17 microarray and single cell RNA-seq datasets", fontsize=36)
-sns.despine()
-plt.tight_layout()
-
-# Plot F1
-min_ds = df[df["Methods"] == "PHet"].sort_values('F1').iloc[0].to_list()[-1]
-max_ds = df[df["Methods"] == "PHet"].sort_values('F1').iloc[-1].to_list()[-1]
-plt.figure(figsize=(14, 8))
-ax = sns.boxplot(y='F1', x='Methods', data=df, width=0.85,
-                 palette=PALETTE, showfliers=False)
-sns.swarmplot(y='F1', x='Methods', data=df, color="black", s=10, linewidth=0,
-              alpha=.7)
-sns.pointplot(y="F1", x="Methods", data=df, scale=1.3,
-              errwidth=5, markers="D", color="#343d46")
-sns.lineplot(data=df[df["Data"] == max_ds], x="Methods",
-             y="F1", color="green", linewidth=3, linestyle='dashed')
-sns.lineplot(data=df[df["Data"] == min_ds], x="Methods",
-             y="F1", color="red", linewidth=3, linestyle='dotted')
-ax.set_xlabel("")
-ax.set_ylabel("F1 scores of each method", fontsize=36)
-ax.set_xticklabels(list())
-ax.tick_params(axis='both', labelsize=30)
-plt.suptitle("17 microarray and single cell RNA-seq datasets", fontsize=36)
-sns.despine()
-plt.tight_layout()
-
-# Plot Predicted features
-min_ds = df[df["Methods"] == "PHet"].sort_values('Predicted features').iloc[0].to_list()[-1]
-max_ds = df[df["Methods"] == "PHet"].sort_values('Predicted features').iloc[-1].to_list()[-1]
-plt.figure(figsize=(14, 8))
-ax = sns.boxplot(y='Predicted features', x='Methods', data=df, width=0.85,
-                 palette=PALETTE, showfliers=False)
-sns.swarmplot(y='Predicted features', x='Methods', data=df, color="black",
-              s=10, linewidth=0, alpha=.7)
-sns.pointplot(y="Predicted features", x="Methods", data=df, scale=1.3,
-              errwidth=5, markers="D", color="#343d46")
-sns.lineplot(data=df[df["Data"] == max_ds], x="Methods",
-             y="Predicted features", color="green", linewidth=3, linestyle='dashed')
-sns.lineplot(data=df[df["Data"] == min_ds], x="Methods",
-             y="Predicted features", color="red", linewidth=3,
-             linestyle='dotted')
-ax.set_xlabel("")
-ax.set_ylabel("Number of predicted features \n of each method",
-              fontsize=36)
-ax.set_xticklabels(list())
-ax.set_yticks([0, 1, 2, 3, 4, 5])
-ax.set_yticklabels(["1", "10", "100", "1000", "10000", "100000"])
-ax.tick_params(axis='both', labelsize=30)
-plt.suptitle("17 microarray and single cell RNA-seq datasets", fontsize=36)
-sns.despine()
-plt.tight_layout()
-
-result_path = os.path.join(RESULT_PATH, "temp")
-minimum_samples = 5
-metric = "euclidean"
-num_jobs = 2
-ds_files = ["allgse412", "bc_ccgse3726", "bladdergse89", "braintumor",
-            "gastricgse2685", "glioblastoma", "leukemia_golub",
-            "lunggse1987", "lung", "mll", "srbct", "baron1", "camp1",
-            "darmanis", "li", "patel", "yan"]
-for ds_name in ds_files:
-    # Expression, classes, subtypes, donors, timepoints Files
-    expression_file_name = ds_name + "_matrix.mtx"
-    features_file_name = ds_name + "_feature_names.csv"
-    classes_file_name = ds_name + "_classes.csv"
-    subtypes_file = ds_name + "_types.csv"
-    # Load subtypes file
-    subtypes = pd.read_csv(os.path.join(DATASET_PATH, subtypes_file), sep=',').dropna(axis=1)
-    subtypes = [str(item[0]).lower() for item in subtypes.values.tolist()]
-    num_clusters = len(np.unique(subtypes))
-    # Load features, expression, and class data
-    features_name = pd.read_csv(os.path.join(DATASET_PATH, features_file_name), sep=',')
-    features_name = features_name["features"].to_list()
-    y = pd.read_csv(os.path.join(DATASET_PATH, classes_file_name), sep=',')
-    y = y["classes"].to_numpy()
-    X = sc.read_mtx(os.path.join(DATASET_PATH, expression_file_name))
-    X = X.to_df().to_numpy()
-    np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
-    # Filter data
-    num_examples, num_features = X.shape
-    example_sums = np.absolute(X).sum(1)
-    examples_ids = np.where(example_sums >= 5)[0]  # filter out cells below 5
-    X = X[examples_ids]
-    y = y[examples_ids]
-    subtypes = np.array(subtypes)[examples_ids].tolist()
-    num_examples, num_features = X.shape
-    del example_sums, examples_ids
-    temp = np.absolute(X)
-    temp = (temp * 1e6) / temp.sum(axis=1).reshape((num_examples, 1))
-    temp[temp > 1] = 1
-    temp[temp != 1] = 0
-    feature_sums = temp.sum(0)
-    if num_examples <= minimum_samples or minimum_samples > num_examples // 2:
-        minimum_samples = num_examples // 2
-    feature_ids = np.where(feature_sums >= minimum_samples)[0]
-    features_name = np.array(features_name)[feature_ids].tolist()
-    X = X[:, feature_ids]
-    feature_ids = dict([(feature_idx, idx)
-                        for idx, feature_idx in enumerate(feature_ids)])
-    num_examples, num_features = X.shape
-    del temp, feature_sums
-
-    labels_true = np.unique(subtypes)
-    labels_true = dict([(item, idx) for idx, item in enumerate(labels_true)])
-    labels_true = [labels_true[item] for item in subtypes]
-    labels_true = np.array(labels_true)
-
-    list_scores = list()
-    for method, _ in methods_name.items():
-        temp_feature = ds_name + "_" + method.lower() + "_features.csv"
-        temp_cluster = ds_name + "_" + method.lower() + "_clusters.csv"
-        labels_pred = pd.read_csv(os.path.join(result_path, temp_cluster), sep=',', header=0)
-        labels_pred = labels_pred["Cluster"].to_list()
-        labels_pred = np.array(labels_pred)
-        if method != "deco":
-            df_features = pd.read_csv(os.path.join(result_path, temp_feature), sep=',', header=None)
-            df_features = df_features[0].to_list()
-        else:
-            df_features = pd.read_csv(os.path.join(result_path, temp_feature), sep=',')
-            df_features = df_features["features"].to_list()
-            df_features = [features_name[feature_ids[item]] for item in df_features]
-
-        df_features = [idx for idx, feature in enumerate(features_name)
-                       if feature in df_features]
-        list_scores = clustering_performance(X=X, labels_true=labels_true, labels_pred=labels_pred,
-                                             num_jobs=2)
-    df = pd.DataFrame(list_scores, index=list(methods_name.values()),
-                      columns=["Complete Diameter Distance", "Average Diameter Distance",
-                               "Centroid Diameter Distance", "Single Linkage Distance",
-                               "Maximum Linkage Distance", "Average Linkage Distance",
-                               "Centroid Linkage Distance", "Ward's Distance", "Silhouette",
-                               "Homogeneity", "Completeness", "V-measure", "Adjusted Rand Index",
-                               "Adjusted Mutual Info"])
-    df.to_csv(path_or_buf=os.path.join(RESULT_PATH, ds_name + "_cluster_quality.csv"),
-              sep=",")
+# Boxplots
+for feature in selected_featrues:
+    plt.figure(figsize=(8, 8))
+    ax = sns.boxplot(y=feature, x='Condition', data=df, width=0.85,
+                    palette={0: "#F4B183", 1: "#9DC3E6"}, 
+                    showfliers=False, showmeans=True,
+                    meanprops={"marker": "D", "markerfacecolor": "white",
+                                "markeredgecolor": "black", "markersize": "15"})
+    sns.stripplot(y=feature, x='Condition', data=df, color="black", s=10,
+                  linewidth=0, alpha=.4)
+    ax.set_xlabel("Condition", fontsize=36)
+    ax.set_ylabel(feature, fontsize=36)
+    ax.tick_params(axis='both', labelsize=30)
+    sns.despine()
+    plt.tight_layout()
