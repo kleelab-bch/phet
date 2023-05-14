@@ -63,8 +63,13 @@ def plot_scatter(X, y, num_features: int = 100, add_legend: bool = True, legend_
                  suptitle: str = "temp", file_name: str = "temp", save_path: str = "."):
     plt.figure(figsize=(12, 10))
     plt.title('%s (%s features)' % (suptitle, str(num_features)), fontsize=36)
-    sns.scatterplot(x=X[:, 0], y=X[:, 1], hue=y, palette='tab10', s=80, alpha=0.6, linewidth=0,
-                    legend=add_legend)
+    if y is not None:
+        sns.scatterplot(x=X[:, 0], y=X[:, 1], hue=y, palette='tab10', s=80, alpha=0.6, linewidth=0,
+                        legend=add_legend)
+    else:
+        add_legend = False
+        sns.scatterplot(x=X[:, 0], y=X[:, 1], palette='tab10', s=80, alpha=0.6, linewidth=0,
+                        legend=add_legend)
     plt.xticks([], fontsize=28)
     plt.yticks([], fontsize=28)
     plt.xlabel("UMAP 1", fontsize=30)
@@ -116,6 +121,8 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, labels_pre
     # Make umap and umap data
     X_reducer = dimensionality_reduction(X, num_neighbors=num_neighbors, num_components=2, min_dist=min_dist,
                                          reduction_method="umap", num_epochs=2000, num_jobs=num_jobs)
+    plot_scatter(X=X_reducer, y=None, num_features=num_features, legend_title="Class",
+                 suptitle=suptitle, file_name=file_name + "_no_class_umap.png", save_path=save_path)
     plot_scatter(X=X_reducer, y=y, num_features=num_features, legend_title="Class",
                  suptitle=suptitle, file_name=file_name + "_umap.png", save_path=save_path)
     if subtypes is not None:
