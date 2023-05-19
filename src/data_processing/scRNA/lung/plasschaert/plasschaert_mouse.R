@@ -14,6 +14,7 @@ metadata <- read.table(file.path(working_dir,
                                  paste("GSE102580_meta_mouse.tsv", sep = "")),
                        header = TRUE, sep = "\t", row.names = 1,
                        check.names = FALSE, stringsAsFactors = FALSE)
+library_id <- metadata$unique_library_id
 donors <- metadata$mouse_id
 timepoints <- metadata$timepoint
 metadata$cell_type1 <- metadata$clusters_Fig2
@@ -29,6 +30,10 @@ write.table(as.data.frame(features),
             sep = ",", quote = FALSE, row.names = FALSE)
 write.table(as.data.frame(donors),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
+            sep = ",", quote = FALSE, row.names = FALSE)
+write.table(as.data.frame(library_id),
+            file = file.path(working_dir, paste(file_name, "_library_ids.csv", 
+                                                sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 write.table(as.data.frame(timepoints),
             file = file.path(working_dir, paste(file_name, "_timepoints.csv", sep = "")),

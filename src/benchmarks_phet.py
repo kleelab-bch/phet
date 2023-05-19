@@ -25,7 +25,7 @@ def train(num_jobs: int = 4):
     if not sort_by_pvalue:
         plot_topKfeatures = True
     is_filter = True
-    export_spring = False
+    export_spring = True
     num_neighbors = 5
     max_clusters = 10
     feature_metric = "f1"
@@ -46,10 +46,10 @@ def train(num_jobs: int = 4):
         methods_save_name.append("PHet_nb" + temp)
 
     # descriptions of the data
-    data_name = "baron1"
-    suptitle_name = "Baron"
-    control_name = "0"
-    case_name = "1"
+    data_name = "plasschaert_mouse"
+    suptitle_name = "Basal vs non Basal"
+    control_name = "Basal"
+    case_name = "non Basal"
 
     # Exprssion, classes, subtypes, donors, timepoints files
     expression_file_name = data_name + "_matrix.mtx"
@@ -58,6 +58,7 @@ def train(num_jobs: int = 4):
     classes_file_name = data_name + "_classes.csv"
     subtypes_file = data_name + "_types.csv"
     differential_features_file = data_name + "_limma_features.csv"
+    sample_ids_file = data_name + "_library_ids.csv"
     donors_file = data_name + "_donors.csv"
     timepoints_file = data_name + "_timepoints.csv"
 
@@ -65,6 +66,10 @@ def train(num_jobs: int = 4):
     subtypes = pd.read_csv(os.path.join(DATASET_PATH, subtypes_file), sep=',').dropna(axis=1)
     subtypes = [str(item[0]).lower() for item in subtypes.values.tolist()]
     num_clusters = len(np.unique(subtypes))
+    sample_ids = []
+    if os.path.exists(os.path.join(DATASET_PATH, sample_ids_file)):
+        sample_ids = pd.read_csv(os.path.join(DATASET_PATH, sample_ids_file), sep=',').dropna(axis=1)
+        sample_ids = [str(item[0]).lower() for item in sample_ids.values.tolist()]
     donors = []
     if os.path.exists(os.path.join(DATASET_PATH, donors_file)):
         donors = pd.read_csv(os.path.join(DATASET_PATH, donors_file), sep=',').dropna(axis=1)
@@ -91,6 +96,8 @@ def train(num_jobs: int = 4):
         X = X[examples_ids]
         y = y[examples_ids]
         subtypes = np.array(subtypes)[examples_ids].tolist()
+        if len(sample_ids) != 0:
+            sample_ids = np.array(sample_ids)[examples_ids].tolist()
         if len(donors) != 0:
             donors = np.array(donors)[examples_ids].tolist()
         if len(timepoints) != 0:
@@ -112,7 +119,10 @@ def train(num_jobs: int = 4):
     # Save subtypes for SPRING
     if export_spring:
         groups = []
+        groups.append(["classes"] + [case_name if idx == 1 else control_name for idx in y])
         groups.append(["subtypes"] + subtypes)
+        if len(sample_ids) != 0:
+            groups.append(["samples"] + sample_ids)
         if len(donors) != 0:
             groups.append(["donors"] + donors)
         if len(timepoints) != 0:
