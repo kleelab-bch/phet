@@ -77,7 +77,6 @@ nh_graph_pl <- plotNhoodGraphDA(mtecs_milo, da_results, layout="UMAP",
 UMAP_pl + nh_graph_pl +
   plot_layout(guides="collect")
 
-
 da_results <- annotateNhoods(mtecs_milo, da_results, coldata_col = "subtypes")
 ggplot(da_results, aes(subtypes_fraction)) +
   geom_histogram(bins=50)

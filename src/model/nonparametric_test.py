@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import ttest_ind, mannwhitneyu, ks_2samp
 from statsmodels.stats.multitest import fdrcorrection
 
-EPSILON = np.finfo(np.float).eps
+EPSILON = np.finfo(np.float32).eps
 
 
 class StudentTTest:

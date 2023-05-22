@@ -437,7 +437,8 @@ def train(num_jobs: int = 2):
                                                                                                     X_case.shape[0],
                                                                                                     len(features_name),
                                                                                                     selected_features))
-    parallel = Parallel(n_jobs=num_jobs, prefer="threads", verbose=0)
+    parallel = Parallel(n_jobs=num_jobs, verbose=0)
+    # parallel = Parallel(n_jobs=num_jobs, prefer="threads", verbose=0)
     list_scores = parallel(delayed(single_batch)(X_case, X_control, X_deco[:, batch_idx], X_limma[:, batch_idx],
                                                  X_limma_distr[:, batch_idx], top_features_true, features_name,
                                                  genes2probes, probes2genes, lb, range_topfeatures, subsample_size,
