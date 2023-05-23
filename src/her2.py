@@ -367,7 +367,7 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
 def train(num_jobs: int = 2):
     # Filtering and subsampling arguments
     alpha = 0.01
-    top_k_features = 500
+    top_k_features = 100
     range_topfeatures = list(range(0, top_k_features + 5, 5))
     range_topfeatures[0] = 1
     num_batches = 1000
@@ -438,7 +438,6 @@ def train(num_jobs: int = 2):
                                                                                                     len(features_name),
                                                                                                     selected_features))
     parallel = Parallel(n_jobs=num_jobs, verbose=0)
-    # parallel = Parallel(n_jobs=num_jobs, prefer="threads", verbose=0)
     list_scores = parallel(delayed(single_batch)(X_case, X_control, X_deco[:, batch_idx], X_limma[:, batch_idx],
                                                  X_limma_distr[:, batch_idx], top_features_true, features_name,
                                                  genes2probes, probes2genes, lb, range_topfeatures, subsample_size,
@@ -459,9 +458,9 @@ def train(num_jobs: int = 2):
     df.to_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',', index=False)
 
     # TODO:delete below
-    # df = pd.read_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',')
-    # temp = [idx for idx, item in enumerate(df["Methods"].tolist())]
-    # df = df.iloc[temp]
+    df = pd.read_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',')
+    temp = [idx for idx, item in enumerate(df["Methods"].tolist())]
+    df = df.iloc[temp]
 
     # Plot lineplot
     print("## Plot lineplot using top k features...")
@@ -471,7 +470,7 @@ def train(num_jobs: int = 2):
     plt.xticks([item for item in range_topfeatures if item % 25 == 0 or item == 1], fontsize=20, rotation=45)
     plt.yticks(fontsize=20)
     plt.xlabel('Top k features', fontsize=22)
-    plt.ylabel("F1 scores of each method", fontsize=22)
+    plt.ylabel("Precision", fontsize=22)
     plt.suptitle("Results using Her2 data", fontsize=26)
     sns.despine()
     plt.tight_layout()
