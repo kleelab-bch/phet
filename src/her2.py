@@ -1,11 +1,10 @@
-import os
-from copy import deepcopy
-
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pandas as pd
 import seaborn as sns
+from copy import deepcopy
 from joblib import Parallel, delayed
 from sklearn.preprocessing import LabelBinarizer
 

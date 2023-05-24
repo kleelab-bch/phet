@@ -6,10 +6,9 @@ differential gene expression analysis. Biostatistics, 8(1),
 pp.2-8.
 '''
 
-from typing import Optional
-
 import numpy as np
 from scipy.stats import iqr
+from typing import Optional
 
 
 class OutlierSumStatistic:

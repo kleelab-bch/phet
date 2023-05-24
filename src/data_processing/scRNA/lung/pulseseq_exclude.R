@@ -9,18 +9,18 @@ working_dir <- file.path("R:/GeneAnalysis/data")
 file_name <- "pulseseq_tuft_vs_ionocyte"
 
 # load series and platform data from GEO
-neg_ionocytes <- read.table(file.path(working_dir, 
+neg_ionocytes <- read.table(file.path(working_dir,
                                       paste("pulseseq_neg_ionocytes.txt", sep = "")),
-                   header = FALSE, sep = ",", check.names = FALSE,
-                   stringsAsFactors = FALSE)[, 1]
+                            header = FALSE, sep = ",", check.names = FALSE,
+                            stringsAsFactors = FALSE)[, 1]
 neg_ionocytes <- neg_ionocytes + 1
 features <- read.table(file.path(working_dir, paste(file_name, "_feature_names.csv", sep = "")),
                        header = TRUE, sep = ",", check.names = FALSE,
                        stringsAsFactors = FALSE)
 features <- features$features
 classes <- read.table(file.path(working_dir, paste(file_name, "_types.csv", sep = "")),
-                       header = TRUE, sep = ",", check.names = FALSE,
-                       stringsAsFactors = FALSE)
+                      header = TRUE, sep = ",", check.names = FALSE,
+                      stringsAsFactors = FALSE)
 classes <- classes$subtypes
 condition <- classes %in% c("Ionocyte")
 classes[neg_ionocytes] <- "Unconventional"
@@ -32,7 +32,7 @@ colnames(gset) <- features
 # 1 (Unconventional): "Unconventional"
 condition <- classes %in% c("Ionocyte", "Unconventional")
 classes <- classes[condition]
-gset <- gset[condition, ]
+gset <- gset[condition,]
 gset <- as.data.frame(data.matrix(gset))
 gsms <- c(1, 0)
 names(gsms) <- unique(classes)

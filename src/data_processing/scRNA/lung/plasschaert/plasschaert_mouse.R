@@ -32,7 +32,7 @@ write.table(as.data.frame(donors),
             file = file.path(working_dir, paste(file_name, "_donors.csv", sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 write.table(as.data.frame(library_id),
-            file = file.path(working_dir, paste(file_name, "_library_ids.csv", 
+            file = file.path(working_dir, paste(file_name, "_library_ids.csv",
                                                 sep = "")),
             sep = ",", quote = FALSE, row.names = FALSE)
 write.table(as.data.frame(timepoints),

@@ -3,13 +3,12 @@ Unraveling cellular Heterogeneity by analyzing intra-cellular
 variation.
 '''
 
-from typing import Optional
-
 import numpy as np
 import pandas as pd
 from scipy import stats
 from scipy.stats import iqr
 from scipy.stats import zscore
+from typing import Optional
 
 
 class DeltaIQRMean:

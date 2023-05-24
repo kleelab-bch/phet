@@ -1,9 +1,8 @@
-import os
-
 import matplotlib.colors as mcolors
 import matplotlib.patches as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
@@ -606,9 +605,9 @@ df["Condition"] = classes
 for feature in selected_featrues:
     plt.figure(figsize=(8, 8))
     ax = sns.boxplot(y=feature, x='Condition', data=df, width=0.85,
-                    palette={0: "#F4B183", 1: "#9DC3E6"}, 
-                    showfliers=False, showmeans=True,
-                    meanprops={"marker": "D", "markerfacecolor": "white",
+                     palette={0: "#F4B183", 1: "#9DC3E6"},
+                     showfliers=False, showmeans=True,
+                     meanprops={"marker": "D", "markerfacecolor": "white",
                                 "markeredgecolor": "black", "markersize": "15"})
     sns.stripplot(y=feature, x='Condition', data=df, color="black", s=10,
                   linewidth=0, alpha=.4)
