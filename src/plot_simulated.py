@@ -1,15 +1,15 @@
+import os
+
 import matplotlib.colors as mcolors
 import matplotlib.patches as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
 from PIL import Image
 
 from utility.file_path import RESULT_PATH, DATASET_PATH
-from utility.utils import clustering_performance
 
 sc.settings.verbosity = 0  # verbosity: errors (0), warnings (1), info (2), hints (3)
 sc.settings.set_figure_params(dpi=80, facecolor='white')

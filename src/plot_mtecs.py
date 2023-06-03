@@ -1,10 +1,11 @@
+import os
+from copy import deepcopy
+
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
-from copy import deepcopy
 
 from utility.file_path import RESULT_PATH, DATASET_PATH
 

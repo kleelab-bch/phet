@@ -2,15 +2,16 @@
 DeteCtion of celluLar hEterogeneity by anAlyzing variatioNs of cElls.
 '''
 
+from itertools import combinations
+from typing import Optional
+
 import anndata as ad
 import numpy as np
 import scanpy as sc
-from itertools import combinations
 from scipy.stats import f_oneway, ks_2samp
 from scipy.stats import iqr, norm, zscore, ttest_ind
 from sklearn.preprocessing import KBinsDiscretizer
 from statsmodels.stats.weightstats import ztest
-from typing import Optional
 from utility.utils import clustering
 
 SEED_VALUE = 0.001
