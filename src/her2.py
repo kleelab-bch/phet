@@ -457,11 +457,6 @@ def train(num_jobs: int = 2):
     df["Range"] = temp_range
     df.to_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',', index=False)
 
-    # TODO:delete below
-    df = pd.read_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',')
-    temp = [idx for idx, item in enumerate(df["Methods"].tolist())]
-    df = df.iloc[temp]
-
     # Plot lineplot
     print("## Plot lineplot using top k features...")
     plt.figure(figsize=(14, 8))

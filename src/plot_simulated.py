@@ -196,6 +196,55 @@ ax.legend(title="Methods", title_fontsize=30, fontsize=26, ncol=5,
           facecolor="None")
 
 ####################################################################################
+###                                 HER2 results                                 ###
+####################################################################################
+top_k_features = 100
+range_topfeatures = list(range(0, top_k_features + 5, 5))
+range_topfeatures[0] = 1
+
+# Load data
+df = pd.read_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',')
+temp = [idx for idx, item in enumerate(df["Methods"].tolist())]
+df = df.iloc[temp]
+
+# Selected methods
+selected_df = df.iloc[[idx for idx, item in enumerate(df["Methods"]) if item in selected_methods]]
+print("## Plot lineplot using top k features...")
+plt.figure(figsize=(14, 8))
+sns.lineplot(data=selected_df, x='Range', y='Scores', hue="Methods", palette=PALETTE)
+plt.xticks([item for item in range_topfeatures if item % 25 == 0 or item == 1], fontsize=20, rotation=45)
+plt.yticks(fontsize=20)
+plt.xlabel('Top k features', fontsize=22)
+plt.ylabel("Precision", fontsize=22)
+plt.legend('', frameon=False)
+plt.suptitle("Results using Her2 data", fontsize=26)
+sns.despine()
+plt.tight_layout()
+file_path = os.path.join(RESULT_PATH, "her2_lineplot.png")
+plt.savefig(file_path)
+plt.clf()
+plt.cla()
+plt.close(fig="all")
+
+# Full methods
+print("## Plot lineplot using top k features...")
+plt.figure(figsize=(14, 8))
+sns.lineplot(data=df, x='Range', y='Scores', hue="Methods", palette=PALETTE, style="Methods")
+plt.axvline(20, color='red')
+plt.xticks([item for item in range_topfeatures if item % 25 == 0 or item == 1], fontsize=20, rotation=45)
+plt.yticks(fontsize=20)
+plt.xlabel('Top k features', fontsize=22)
+plt.ylabel("Precision", fontsize=22)
+plt.suptitle("Results using Her2 data", fontsize=26)
+sns.despine()
+plt.tight_layout()
+file_path = os.path.join(RESULT_PATH, "her2_lineplot_all.png")
+plt.savefig(file_path)
+plt.clf()
+plt.cla()
+plt.close(fig="all")
+
+####################################################################################
 ###               Combine multiple images into a single mega image               ###
 ####################################################################################
 folder_name = "scRNA"
