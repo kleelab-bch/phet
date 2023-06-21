@@ -10,7 +10,7 @@ bpparam <- MulticoreParam(workers = 1)
 working_dir <- file.path("R:/GeneAnalysis/data")
 result_dir <- file.path("R:/GeneAnalysis/result/")
 
-# srbct, lung, baron, and pulseseq
+# srbct, lung, li, baron, and pulseseq
 file_name <- "srbct"
 q.val <- 0.01
 num_iterations <- 10

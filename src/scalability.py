@@ -26,10 +26,9 @@ sns.set_theme(style="white")
 np.random.seed(seed=12345)
 
 METHODS = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma",
-           "KS", "KS+Gamma", "LIMMA", "LIMMA+Gamma", "Dispersion (composite)",
-           "Dispersion (by condition)", "ΔDispersion", "ΔDispersion+ΔMean",
-           "IQR (composite)", "IQR (by condition)", "ΔIQR", "ΔIQR+ΔMean",
-           "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO",
+           "KS", "KS+Gamma", "Dispersion (composite)", "Dispersion (by condition)",
+           "ΔDispersion", "ΔDispersion+ΔMean", "IQR (composite)", "IQR (by condition)",
+           "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS",
            "PHet (ΔDispersion)", "PHet"]
 
 # Define colors
@@ -42,8 +41,8 @@ PALETTE = dict([(item, mcolors.to_hex(PALETTE[idx])) for idx, item in enumerate(
 def train():
     # Arguments
     direction = "both"
-    num_iterations = 3
-    # datasets: srbct, lung, baron, and pulseseq
+    num_iterations = 10
+    # datasets: srbct, lung, li, baron, and pulseseq
     file_name = "srbct"
     suptitle_name = "srbct"
     expression_file_name = file_name + "_matrix.mtx"
@@ -274,10 +273,10 @@ def train():
                 palette=PALETTE)
     sns.swarmplot(y='Times', x='Methods', data=df, color="black", s=10, linewidth=0,
                   alpha=.7)
-    plt.xticks(fontsize=18, rotation=45)
+    plt.xticks(fontsize=18, rotation=90)
     plt.yticks(fontsize=18)
     plt.xlabel('Methods', fontsize=22)
-    plt.ylabel("Times", fontsize=22)
+    plt.ylabel("Times (Seconds)", fontsize=22)
     plt.suptitle("Results using {0} data".format(suptitle_name), fontsize=26)
     sns.despine()
     plt.tight_layout()

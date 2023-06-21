@@ -5,8 +5,8 @@ require(Matrix)
 working_dir <- file.path("R:/GeneAnalysis/data")
 result_dir <- file.path("R:/GeneAnalysis/result/")
 
-# srbct, lung, baron, and pulseseq
-file_name <- "baron"
+# srbct, lung, li, baron, and pulseseq
+file_name <- "srbct"
 num_iterations <- 10
 
 # load data

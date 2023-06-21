@@ -30,8 +30,8 @@ METHODS = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma",
            "KS", "KS+Gamma", "LIMMA", "LIMMA+Gamma", "Dispersion (composite)",
            "Dispersion (by condition)", "ΔDispersion", "ΔDispersion+ΔMean",
            "IQR (composite)", "IQR (by condition)", "ΔIQR", "ΔIQR+ΔMean",
-           "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "PHet (ΔDispersion)",
-           "PHet"]
+           "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO",
+           "PHet (ΔDispersion)", "PHet"]
 
 
 def train(num_jobs: int = 4):

@@ -27,10 +27,11 @@ sns.set_theme(style="white")
 np.random.seed(seed=12345)
 
 METHODS = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma",
-           "KS", "KS+Gamma", "LIMMA", "LIMMA+Gamma", "HVF (composite)",
-           "HVF (by condition)", "ΔHVF", "ΔHVF+ΔMean", "IQR (composite)",
-           "IQR (by condition)", "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT",
-           "MOST", "LSOSS", "DIDS", "DECO", "PHet (ΔHVF)", "PHet"]
+           "KS", "KS+Gamma", "LIMMA", "LIMMA+Gamma", "Dispersion (composite)",
+           "Dispersion (by condition)", "ΔDispersion", "ΔDispersion+ΔMean",
+           "IQR (composite)", "IQR (by condition)", "ΔIQR", "ΔIQR+ΔMean",
+           "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO",
+           "PHet (ΔDispersion)", "PHet"]
 
 
 def train(num_jobs: int = 4):
