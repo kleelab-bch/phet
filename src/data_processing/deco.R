@@ -56,15 +56,15 @@ remove(StatFeature, gset)
 # RUNNING NSCA STEP: Looking for subclasses within a category/class of samples compared #
 #########################################################################################
 
-subClasses <- decoNSCA(sub = subSampling, v = 80, method = "ward.D",
-                       bpparam = bpparam, k.control = 2, k.case = 2,
-                       samp.perc = 0.05, rep.thr = 3)
+# subClasses <- decoNSCA(sub = subSampling, v = 80, method = "ward.D",
+#                        bpparam = bpparam, k.control = 2, k.case = 2,
+#                        samp.perc = 0.05, rep.thr = 3)
 
 ########################################################
 # PDF report with feature-sample patterns or subgroups #
 ########################################################
 
-working_dir <- file.path("R:/GeneAnalysis/result")
-path = file.path(working_dir, paste(file_name, "_deco.pdf", sep = ""))
-decoReport(subClasses, subSampling, pdf.file = path, cex.names = 0.3,
-           print.annot = TRUE)
+# working_dir <- file.path("R:/GeneAnalysis/result")
+# path = file.path(working_dir, paste(file_name, "_deco.pdf", sep = ""))
+# decoReport(subClasses, subSampling, pdf.file = path, cex.names = 0.3,
+#            print.annot = TRUE)

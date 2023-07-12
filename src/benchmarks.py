@@ -62,8 +62,8 @@ def train(num_jobs: int = 4):
     cluster_type = "kmeans"
 
     # Descriptions of the data
-    data_name = "allgse412"
-    suptitle_name = "GSE412"
+    data_name = "srbct"
+    suptitle_name = "SRBCT"
 
     # Expression, classes, subtypes, donors, timepoints files
     expression_file_name = data_name + "_matrix.mtx"
@@ -455,16 +455,15 @@ def train(num_jobs: int = 4):
 
     columns = ["Complete Diameter Distance", "Average Diameter Distance", "Centroid Diameter Distance",
                "Single Linkage Distance", "Maximum Linkage Distance", "Average Linkage Distance",
-               "Centroid Linkage Distance", "Ward's Distance", "Silhouette", "Adjusted Rand Index",
-               "Adjusted Mutual Info"]
+               "Centroid Linkage Distance", "Ward's Distance", "Silhouette", "Homogeneity",
+               "Completeness", "V-measure", "Adjusted Rand Index", "Adjusted Mutual Info"]
     df = pd.DataFrame(list_scores, columns=columns, index=["All"] + METHODS)
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_cluster_quality.csv"), sep=",")
 
     print("## Plot bar plot using ARI metric...".format(top_k_features))
-    plot_barplot(X=np.array(list_scores)[:, 9], methods_name=["All"] + METHODS, metric="ari",
+    plot_barplot(X=np.array(list_scores)[:, 12], methods_name=["All"] + METHODS, metric="ari",
                  suptitle=suptitle_name, file_name=data_name, save_path=RESULT_PATH)
-
-
+    
 if __name__ == "__main__":
     # for windows
     if os.name == 'nt':
