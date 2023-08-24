@@ -20,10 +20,12 @@ class DeltaHVFMean:
         num_features = X.shape[1]
         num_classes = len(np.unique(y))
         results = np.zeros((num_features))
+        
         # Shift data 
         min_value = X.min(0)
         if len(np.where(min_value < 0)[0]) > 0:
             X = X - min_value + 1
+
         adata = ad.AnnData(X=X)
         # Logarithm transformation
         if self.log_transform:

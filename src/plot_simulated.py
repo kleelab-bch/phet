@@ -27,15 +27,15 @@ methods_name = {"ttest_p": "t-statistic", "ttest_g": "t-statistic+Gamma", "wilco
 selected_methods = ["t-statistic+Gamma", "Wilcoxon+Gamma", "KS+Gamma", "LIMMA+Gamma", "ΔDispersion",
                     "ΔDispersion+ΔMean", "ΔIQR", "ΔIQR+ΔMean", "COPA", "OS", "ORT", "MOST",
                     "LSOSS", "DIDS", "DECO", "PHet (ΔDispersion)", "PHet"]
+selected_poster_methods = ["t-statistic", "Wilcoxon", "KS", "LIMMA", "ΔDispersion", "ΔIQR", 
+                           "COPA", "OS", "ORT", "MOST", "LSOSS", "DIDS", "DECO", "PHet"]
 # Use static colors
 PALETTE = sns.color_palette("tab20")
 PALETTE.append("#fcfc81")
 PALETTE.append("#C724B1")
-PALETTE.append("#fcfc81")
-PALETTE.append("#b5563c")
-PALETTE.append("#C724B1")
 PALETTE.append("#606c38")
-PALETTE.append("#283618")
+PALETTE.append("#5A5A5A")
+PALETTE.append("#b5563c")
 PALETTE = dict([(item[1], mcolors.to_hex(PALETTE[idx]))
                 for idx, item in enumerate(methods_name.items())])
 
@@ -203,7 +203,7 @@ range_topfeatures = list(range(0, top_k_features + 5, 5))
 range_topfeatures[0] = 1
 
 # Load data
-df = pd.read_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',')
+df = pd.read_csv(os.path.join(RESULT_PATH, "simulated", "her2_scores.csv"), sep=',')
 temp = [idx for idx, item in enumerate(df["Methods"].tolist())]
 df = df.iloc[temp]
 
@@ -211,12 +211,12 @@ df = df.iloc[temp]
 selected_df = df.iloc[[idx for idx, item in enumerate(df["Methods"]) if item in selected_methods]]
 print("## Plot lineplot using top k features...")
 plt.figure(figsize=(14, 8))
-sns.lineplot(data=selected_df, x='Range', y='Scores', hue="Methods", palette=PALETTE)
+sns.lineplot(data=selected_df, x='Range', y='Scores', hue="Methods", palette=PALETTE, style="Methods")
 plt.xticks([item for item in range_topfeatures if item % 25 == 0 or item == 1], fontsize=20, rotation=45)
 plt.yticks(fontsize=20)
 plt.xlabel('Top k features', fontsize=22)
 plt.ylabel("Precision", fontsize=22)
-plt.legend('', frameon=False)
+# plt.legend('', frameon=False)
 plt.suptitle("Results using Her2 data", fontsize=26)
 sns.despine()
 plt.tight_layout()
@@ -229,12 +229,14 @@ plt.close(fig="all")
 # Full methods
 print("## Plot lineplot using top k features...")
 plt.figure(figsize=(14, 8))
-sns.lineplot(data=df, x='Range', y='Scores', hue="Methods", palette=PALETTE, style="Methods")
+sns.lineplot(data=df, x='Range', y='Scores', hue="Methods", palette=PALETTE)
+# sns.lineplot(data=df, x='Range', y='Scores', hue="Methods", palette=PALETTE, style="Methods")
 plt.axvline(20, color='red')
 plt.xticks([item for item in range_topfeatures if item % 25 == 0 or item == 1], fontsize=20, rotation=45)
 plt.yticks(fontsize=20)
 plt.xlabel('Top k features', fontsize=22)
 plt.ylabel("Precision", fontsize=22)
+plt.legend('', frameon=False)
 plt.suptitle("Results using Her2 data", fontsize=26)
 sns.despine()
 plt.tight_layout()
@@ -445,6 +447,35 @@ plt.clf()
 plt.cla()
 plt.close(fig="all")
 
+temp = list()
+for m in selected_poster_methods:
+    temp.extend(np.where(df["Methods"] == m)[0])
+selected_df = df.iloc[temp]
+plt.figure(figsize=(14, 8))
+ax = sns.boxplot(y='Scores', x='Methods', data=selected_df, width=0.85,
+                 palette=PALETTE, showfliers=False, showmeans=True,
+                 meanprops={"marker": "D", "markerfacecolor": "white",
+                            "markeredgecolor": "black", "markersize": "15"})
+sns.swarmplot(y='Scores', x='Methods', data=selected_df, color="black", s=10,
+              linewidth=0, alpha=.7)
+sns.lineplot(data=selected_df[selected_df["Data"] == max_ds], x="Methods", y="Scores",
+             color="green", linewidth=3, linestyle='dashed')
+sns.lineplot(data=selected_df[selected_df["Data"] == min_ds], x="Methods", y="Scores",
+             color="red", linewidth=3, linestyle='dotted')
+ax.set_xlabel("")
+ax.set_ylabel("F1 score", fontsize=36)
+ax.set_xticklabels(list())
+ax.tick_params(axis='both', labelsize=30)
+plt.suptitle(suptitle, fontsize=36)
+sns.despine()
+plt.tight_layout()
+file_name = folder_name.lower() + "_f1_poster.png"
+file_path = os.path.join(RESULT_PATH, file_name)
+plt.savefig(file_path)
+plt.clf()
+plt.cla()
+plt.close(fig="all")
+
 # Plot the number of features
 min_ds = df_features[df_features["Methods"] == "PHet"].sort_values('Features').iloc[0].to_list()[-1]
 max_ds = df_features[df_features["Methods"] == "PHet"].sort_values('Features').iloc[-1].to_list()[-1]
@@ -508,6 +539,38 @@ plt.clf()
 plt.cla()
 plt.close(fig="all")
 
+temp = list()
+for m in selected_poster_methods:
+    temp.extend(np.where(df_features["Methods"] == m)[0])
+selected_df = df_features.iloc[temp]
+plt.figure(figsize=(14, 8))
+ax = sns.boxplot(y='Features', x='Methods', data=selected_df, width=0.85,
+                 palette=PALETTE, showfliers=False, showmeans=True,
+                 meanprops={"marker": "D", "markerfacecolor": "white",
+                            "markeredgecolor": "black", "markersize": "15"})
+sns.swarmplot(y='Features', x='Methods', data=selected_df, color="black", s=10,
+              linewidth=0, alpha=.7)
+sns.lineplot(data=selected_df[selected_df["Data"] == max_ds], x="Methods",
+             y="Features", color="green", linewidth=3, linestyle='dashed')
+sns.lineplot(data=selected_df[selected_df["Data"] == min_ds], x="Methods",
+             y="Features", color="red", linewidth=3, linestyle='dotted')
+ax.set_xlabel("")
+ax.set_ylabel("Number of predicted features",
+              fontsize=36)
+ax.set_xticklabels(list())
+ax.set_yticks([0, 1, 2, 3, 4, 5])
+ax.set_yticklabels(["1", "10", "100", "1000", "10000", "100000"])
+ax.tick_params(axis='both', labelsize=30)
+plt.suptitle(suptitle, fontsize=36)
+sns.despine()
+plt.tight_layout()
+file_name = folder_name.lower() + "_features_poster.png"
+file_path = os.path.join(RESULT_PATH, file_name)
+plt.savefig(file_path)
+plt.clf()
+plt.cla()
+plt.close(fig="all")
+
 # Cluster quality
 files = [f for f in os.listdir(result_path) if f.endswith("_cluster_quality.csv")]
 metrics = ['Complete Diameter Distance', 'Average Diameter Distance', 'Centroid Diameter Distance',
@@ -563,6 +626,35 @@ for column_idx, column in enumerate(metrics):
         temp = list()
         for m in selected_methods:
             temp.extend(np.where(df_cluster["Methods"] == m)[0])
+        df = df_cluster.iloc[temp]
+        plt.figure(figsize=(14, 8))
+        ax = sns.boxplot(y=column, x='Methods', data=df, width=0.85,
+                         palette=PALETTE, showfliers=False, showmeans=True,
+                         meanprops={"marker": "D", "markerfacecolor": "white",
+                                    "markeredgecolor": "black", "markersize": "15"})
+        sns.swarmplot(y=column, x='Methods', data=df, color="black", s=10, linewidth=0,
+                      alpha=.7)
+        sns.lineplot(data=df[df["Data"] == max_ds], x="Methods",
+                     y=column, color="green", linewidth=3, linestyle='dashed')
+        sns.lineplot(data=df[df["Data"] == min_ds], x="Methods",
+                     y=column, color="red", linewidth=3, linestyle='dotted')
+        ax.set_xlabel("")
+        ax.set_ylabel(column.capitalize(), fontsize=36)
+        ax.set_xticklabels(list())
+        ax.tick_params(axis='both', labelsize=30)
+        plt.suptitle(suptitle, fontsize=36)
+        sns.despine()
+        plt.tight_layout()
+        file_name = folder_name.lower() + "_" + str(metrics_name[column_idx]).lower() + "_front.png"
+        file_path = os.path.join(RESULT_PATH, file_name)
+        plt.savefig(file_path)
+        plt.clf()
+        plt.cla()
+        plt.close(fig="all")
+
+        temp = list()
+        for m in selected_poster_methods:
+            temp.extend(np.where(df_cluster["Methods"] == m)[0])
         df_cluster = df_cluster.iloc[temp]
         plt.figure(figsize=(14, 8))
         ax = sns.boxplot(y=column, x='Methods', data=df_cluster, width=0.85,
@@ -582,7 +674,7 @@ for column_idx, column in enumerate(metrics):
         plt.suptitle(suptitle, fontsize=36)
         sns.despine()
         plt.tight_layout()
-        file_name = folder_name.lower() + "_" + str(metrics_name[column_idx]).lower() + "_front.png"
+        file_name = folder_name.lower() + "_" + str(metrics_name[column_idx]).lower() + "_poster.png"
         file_path = os.path.join(RESULT_PATH, file_name)
         plt.savefig(file_path)
         plt.clf()

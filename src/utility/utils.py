@@ -13,7 +13,7 @@ from sklearn.manifold import TSNE
 from sklearn.metrics import jaccard_score, f1_score, roc_auc_score
 from sklearn.metrics import pairwise_distances
 from sklearn.metrics import precision_score, accuracy_score
-from sklearn.metrics import silhouette_score
+from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
 from sklearn.metrics.cluster import adjusted_mutual_info_score
 from sklearn.metrics.cluster import adjusted_rand_score
 from sklearn.metrics.cluster import homogeneity_completeness_v_measure
@@ -399,4 +399,32 @@ def clustering_performance(X, labels_true, labels_pred, metric: str = "euclidean
     list_scores = [intra_complete, intra_average, intra_centroid, inter_single,
                    inter_maximum, inter_average, inter_centroid, wards, silhouette,
                    homogeneity, completeness, v_measure, ari, ami]
+    return list_scores
+
+
+def clustering_performance_wo_ground_truth(X, labels_pred, metric: str = "euclidean", num_jobs: int = 2):
+    intra_complete = complete_diameter_distance(X=X, y=labels_pred, metric=metric,
+                                                num_jobs=num_jobs)
+    intra_average = average_diameter_distance(X=X, y=labels_pred, metric=metric,
+                                              num_jobs=num_jobs)
+    intra_centroid = centroid_diameter_distance(X=X, y=labels_pred, metric=metric,
+                                                num_jobs=num_jobs)
+
+    inter_single = single_linkage_distance(X=X, y=labels_pred, metric=metric,
+                                           num_jobs=num_jobs)
+    inter_maximum = maximum_linkage_distance(X=X, y=labels_pred, metric=metric,
+                                             num_jobs=num_jobs)
+    inter_average = average_linkage_distance(X=X, y=labels_pred, metric=metric,
+                                             num_jobs=num_jobs)
+    inter_centroid = centroid_linkage_distance(X=X, y=labels_pred, metric=metric,
+                                               num_jobs=num_jobs)
+    wards = wards_distance(X=X, y=labels_pred)
+    silhouette = silhouette_score(X=X, labels=labels_pred, metric=metric)
+    calinski_harabasz = calinski_harabasz_score(X=X, labels=labels_pred)
+    davies_bouldin = davies_bouldin_score(X=X, labels=labels_pred)
+
+    list_scores = [intra_complete, intra_average, intra_centroid, inter_single,
+                   inter_maximum, inter_average, inter_centroid, wards, silhouette,
+                   calinski_harabasz, davies_bouldin]
+
     return list_scores

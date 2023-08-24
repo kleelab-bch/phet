@@ -361,20 +361,23 @@ samples_name = pd.Series(samples_name, dtype="category")
 samples_name.index = adata.obs.index
 adata.obs["clusters"] = samples_name
 # Detect cell populations
-basal_markers = ["KRT5", "TRP63", "KRT14", "PDPN", "NGFR", "LGALS1", "ITGA6",
-                 "ITGB4", "LAMA3", "LAMB3", "KRT15", "S100A2", "NPPC", "BCAM",
-                 "DST", "KRT19", "NOTCH3", "DCN", "COL17A1", "ABI3BP"]
-basal_markers = [f for f in basal_markers if f in markers_dict["Basal"]]
-# selected_features_dict = {'Basal': ['KRT5', 'TRP63'], 
-#                           'KRT4/13+': ['KRT4', 'KRT13'],
-#                           'Secretory': marker_features_dict["Secretory"],
-#                           'Ciliated':  marker_features_dict["Ciliated"],
-#                           'Cycling basal': marker_features_dict['Cycling basal']}
-selected_features_dict = {'Basal': basal_markers,
-                          'KRT4/13+': markers_dict["Krt4/13+"],
-                          'Secretory': markers_dict["Secretory"],
-                          'Ciliated': markers_dict["Ciliated"],
-                          'Cycling basal': markers_dict['Cycling basal']}
+selected_features_dict = {'Basal': ['KRT5', 'TRP63'],
+                          'KRT4/13+': ['KRT13', 'Krt4'],
+                          'Secretory': ['MUC5B', 'SCGB1A1', 'NOTCH2', 'BPIFA1', 'MSLN', 'AGR2'],
+                          'Ciliated': ['FOXJ1', 'MYB', 'BASP1', 'PTGES3', 'CETN2',
+                                       'TUBA1A', 'CDHR3'],
+                          'Cycling basal': ['SPRR2A2']}
+temp_dict = {}
+for key, items in selected_features_dict.items():
+    temp = []
+    for item in items:
+        if item.upper() in adata.var_names:
+            temp.append(item.upper())
+    if len(temp) > 0:
+        temp_dict[key] = temp
+selected_features_dict = temp_dict
+selected_features = [f for k, item in selected_features_dict.items() for f in item]
+
 cell_populations = np.zeros((len(selected_features_dict.keys()), 2))
 cell_types = {}
 for cluster_idx, cluster in enumerate(["Top cluster", "Bottom cluster"]):
@@ -387,21 +390,6 @@ for cluster_idx, cluster in enumerate(["Top cluster", "Bottom cluster"]):
     for cell_idx, cell in enumerate(list(selected_features_dict.keys())):
         temp = []
         cells_per_feature = []
-        # for f in selected_features_dict[cell]:
-        #     idx = np.where(adata_copy.var_names == f)[0]
-        #     samples_idx = np.where(adata_copy.X[:, idx] > 0)[0]
-        #     samples_idx = np.array([i for i in samples_idx if i not in exclude_samples])
-        #     if samples_idx.shape[0] == 0:
-        #         continue
-        #     majority_f = np.percentile(np.sort(adata.X[samples_idx][:, idx].todense())[::-1], 90)
-        #     temp_idx = samples_idx[np.where(adata.X[samples_idx][:, idx].todense() > majority_f)[0]]
-        #     temp.append(temp_idx.shape[0])
-        #     cells_per_feature.extend(temp_idx)
-        # if len(cells_per_feature) == 0:
-        #     continue
-        # cell_types[cell] = list(set(cells_per_feature))
-        # exclude_samples.extend(cell_types[cell])
-        # temp = np.mean(temp)
         temp = adata_copy.var["mean_counts"][selected_features_dict[cell]]
         temp = np.percentile(np.sort(temp), 50)
         cell_populations[cell_idx, cluster_idx] = temp
@@ -414,8 +402,10 @@ cell_populations.index.names = ["Cluster"]
 cell_populations.reset_index(inplace=True)
 
 # Use static colors
-palette = {"Basal": "#ff7f0e", "KRT4/13+": "#1f77b4", "Secretory": "#8c564b", "Ciliated": "#2ca02c",
-           "Cycling basal": "#d62728"}
+palette = {"Basal": "#ff7f0e", "KRT4/13+": "#8c564b", 
+           "Secretory": "#1f77b4", "Ciliated": "#2ca02c", 
+           "Cycling basal": "#bcbd22"}
+
 plt.figure(figsize=(6, 8))
 ax = cell_populations.plot(kind='bar', stacked=True, width=0.9, color=palette)
 ticks = [str(float(t.get_text()) * 100) for t in ax.get_yticklabels()]

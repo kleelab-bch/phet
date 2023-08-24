@@ -63,3 +63,6 @@ leukemia_golub, lunggse1987, lung, mll, srbct
 
 GSE412,GSE3726,GSE89,Braintumor,GSE2685,Glioblastoma,Leukemia,GSE1987,Lung,MLL,SRBCT
 Baron,Camp,Darmanis,Li,Patel,Yan
+
+Exponentiate for SeuratHVF: patel
+Seurat Log Transform: patel, allgse412, bc_ccgse3726, bladdergse89, braintumor, gastricgse2685, glioblastoma, leukemia_golub, lunggse1987, lung, mll

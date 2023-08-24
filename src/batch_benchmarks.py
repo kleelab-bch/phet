@@ -41,9 +41,10 @@ def train(num_jobs: int = 4):
 
     # Models parameters
     direction = "both"
-    log_transform = False
+    exponentiate = False
+    seurat_log_transform = False
     phet_hvf_normalize = None
-    if log_transform:
+    if seurat_log_transform:
         phet_hvf_normalize = "log"
     methods_save_name = ["ttest_p", "ttest_g", "wilcoxon_p", "wilcoxon_g", "ks_p", "ks_g",
                          "limma_p", "limma_g", "dispersion_a", "dispersion_c", "deltadispersion",
@@ -59,19 +60,20 @@ def train(num_jobs: int = 4):
     num_neighbors = 5
     max_clusters = 10
     feature_metric = "f1"
+    standardize = True 
 
     # Descriptions of the data
     # datasets = ["bc_ccgse3726", "bladdergse89", "braintumor", "glioblastoma", "leukemia_golub", "lung"]
     # suptitle_names = ["GSE3726", "GSE89", "Braintumor", "Glioblastoma", "Leukemia", "Lung"]
-    # datasets = ["baron1"]
-    # suptitle_names = ["Baron"]
-    # cluster_type = "spectral"
+    datasets = ["baron1"]
+    suptitle_names = ["Baron"]
+    cluster_type = "spectral"
 
     # datasets = ["allgse412", "gastricgse2685", "lunggse1987", "mll", "srbct"]
     # suptitle_names = ["GSE412", "GSE2685", "GSE1987", "MLL", "SRBCT"]
-    datasets = ["camp1", "darmanis", "li", "patel", "yan"]
-    suptitle_names = ["Camp", "Darmanis", "Li", "Patel", "Yan"]
-    cluster_type = "kmeans"
+    # datasets = ["camp1", "darmanis", "li", "patel", "yan"]
+    # suptitle_names = ["Camp", "Darmanis", "Li", "Patel", "Yan"]
+    # cluster_type = "kmeans"
 
     for data_idx, data_name in enumerate(datasets):
 
@@ -229,10 +231,12 @@ def train(num_jobs: int = 4):
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[8]), end="\r")
-        estimator = SeuratHVF(per_condition=False, log_transform=log_transform,
+        estimator = SeuratHVF(per_condition=False, log_transform=seurat_log_transform,
                               num_top_features=num_features, min_disp=0.5,
                               min_mean=0.0125, max_mean=3)
         temp_X = deepcopy(X)
+        if exponentiate:
+            temp_X = np.exp(temp_X)
         df = estimator.fit_predict(X=temp_X, y=y)
         del temp_X
         methods_dict.update({METHODS[8]: df})
@@ -240,10 +244,12 @@ def train(num_jobs: int = 4):
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[9]), end="\r")
-        estimator = SeuratHVF(per_condition=True, log_transform=log_transform,
+        estimator = SeuratHVF(per_condition=True, log_transform=seurat_log_transform,
                               num_top_features=num_features, min_disp=0.5,
                               min_mean=0.0125, max_mean=3)
         temp_X = deepcopy(X)
+        if exponentiate:
+            temp_X = np.exp(temp_X)
         df = estimator.fit_predict(X=temp_X, y=y)
         del temp_X
         methods_dict.update({METHODS[9]: df})
@@ -251,10 +257,12 @@ def train(num_jobs: int = 4):
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[10]), end="\r")
-        estimator = DeltaHVFMean(calculate_deltamean=False, log_transform=log_transform,
+        estimator = DeltaHVFMean(calculate_deltamean=False, log_transform=seurat_log_transform,
                                  num_top_features=num_features, min_disp=0.5,
                                  min_mean=0.0125, max_mean=3)
         temp_X = deepcopy(X)
+        if exponentiate:
+            temp_X = np.exp(temp_X)
         df = estimator.fit_predict(X=temp_X, y=y)
         del temp_X
         methods_dict.update({METHODS[10]: df})
@@ -262,10 +270,12 @@ def train(num_jobs: int = 4):
 
         print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                 METHODS[11]), end="\r")
-        estimator = DeltaHVFMean(calculate_deltamean=True, log_transform=log_transform,
+        estimator = DeltaHVFMean(calculate_deltamean=True, log_transform=seurat_log_transform,
                                  num_top_features=num_features, min_disp=0.5,
                                  min_mean=0.0125, max_mean=3)
         temp_X = deepcopy(X)
+        if exponentiate:
+            temp_X = np.exp(temp_X)
         df = estimator.fit_predict(X=temp_X, y=y)
         del temp_X
         methods_dict.update({METHODS[11]: df})
@@ -355,7 +365,10 @@ def train(num_jobs: int = 4):
                          calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
                          calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
                          weight_range=[0.2, 0.4, 0.8])
-        df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+        if exponentiate:
+            df = estimator.fit_predict(X=np.exp(X), y=y, control_class=0, case_class=1)
+        else:
+            df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         methods_dict.update({METHODS[23]: df})
         current_progress += 1
 
@@ -453,7 +466,7 @@ def train(num_jobs: int = 4):
                 temp_feature = [feature for idx, feature in enumerate(features_name)]
             scores = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature,
                                num_features=num_features,
-                               standardize=True, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,
+                               standardize=standardize, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,
                                cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
                                heatmap_plot=False, num_jobs=num_jobs, suptitle=suptitle_name + "\n" + method_name,
                                file_name=data_name + "_" + save_name.lower(), save_path=RESULT_PATH)

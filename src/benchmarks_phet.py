@@ -30,7 +30,8 @@ def train(num_jobs: int = 4):
     max_clusters = 10
     feature_metric = "f1"
     cluster_type = "spectral"
-
+    standardize = True
+    
     # Models parameters
     bin_pvalues = True
     phet_delta_type = "iqr"
@@ -46,7 +47,7 @@ def train(num_jobs: int = 4):
         methods_save_name.append("PHet_nb" + temp)
 
     # descriptions of the data
-    data_name = "plasschaert_mouse"
+    data_name = "plasschaert_human"
     suptitle_name = "Basal vs non Basal"
     control_name = "Basal"
     case_name = "non Basal"
@@ -268,7 +269,7 @@ def train(num_jobs: int = 4):
             temp_feature = [feature for idx, feature in enumerate(features_name) if feature in df['features'].tolist()]
         num_features = len(temp)
         scores = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
-                           standardize=True, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,
+                           standardize=standardize, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,
                            cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
                            heatmap_plot=False, num_jobs=num_jobs, suptitle=suptitle_name + "\n" + method_name,
                            file_name=data_name + "_" + save_name.lower(), save_path=RESULT_PATH)

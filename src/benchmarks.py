@@ -41,14 +41,15 @@ def train(num_jobs: int = 4):
 
     # Models parameters
     direction = "both"
-    log_transform = True
+    exponentiate = False # See list of data
+    seurat_log_transform = False # See list of data
     phet_hvf_normalize = None
-    if log_transform:
+    if seurat_log_transform:
         phet_hvf_normalize = "log"
-    methods_save_name = ["ttest_p", "ttest_g", "wilcoxon_p", "wilcoxon_g", "ks_p", "ks_g", "limma_p",
-                         "limma_g", "hvf_a", "hvf_c", "deltahvf", "deltahvfmean", "iqr_a", "iqr_c",
-                         "deltaiqr", "deltaiqrmean", "copa", "os", "ort", "most", "lsoss", "dids",
-                         "deco", "phet_bh", "phet_br"]
+    methods_save_name = ["ttest_p", "ttest_g", "wilcoxon_p", "wilcoxon_g", "ks_p", "ks_g",
+                         "limma_p", "limma_g", "dispersion_a", "dispersion_c", "deltadispersion",
+                         "deltadispersionmean", "iqr_a", "iqr_c", "deltaiqr", "deltaiqrmean",
+                         "copa", "os", "ort", "most", "lsoss", "dids", "deco", "phet_bd", "phet_br"]
     # Clustering and UMAP parameters
     sort_by_pvalue = True
     export_spring = False
@@ -60,6 +61,7 @@ def train(num_jobs: int = 4):
     max_clusters = 10
     feature_metric = "f1"
     cluster_type = "kmeans"
+    standardize = False
 
     # Descriptions of the data
     data_name = "srbct"
@@ -217,10 +219,12 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[8]), end="\r")
-    estimator = SeuratHVF(per_condition=False, log_transform=log_transform,
+    estimator = SeuratHVF(per_condition=False, log_transform=seurat_log_transform,
                           num_top_features=num_features, min_disp=0.5,
                           min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)
+    if exponentiate:
+        temp_X = np.exp(temp_X)
     df = estimator.fit_predict(X=temp_X, y=y)
     del temp_X
     methods_dict.update({METHODS[8]: df})
@@ -228,10 +232,12 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[9]), end="\r")
-    estimator = SeuratHVF(per_condition=True, log_transform=log_transform,
+    estimator = SeuratHVF(per_condition=True, log_transform=seurat_log_transform,
                           num_top_features=num_features, min_disp=0.5,
                           min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)
+    if exponentiate:
+        temp_X = np.exp(temp_X)
     df = estimator.fit_predict(X=temp_X, y=y)
     del temp_X
     methods_dict.update({METHODS[9]: df})
@@ -239,10 +245,12 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[10]), end="\r")
-    estimator = DeltaHVFMean(calculate_deltamean=False, log_transform=log_transform,
+    estimator = DeltaHVFMean(calculate_deltamean=False, log_transform=seurat_log_transform,
                              num_top_features=num_features, min_disp=0.5,
                              min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)
+    if exponentiate:
+        temp_X = np.exp(temp_X)
     df = estimator.fit_predict(X=temp_X, y=y)
     del temp_X
     methods_dict.update({METHODS[10]: df})
@@ -250,10 +258,12 @@ def train(num_jobs: int = 4):
 
     print("\t >> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                             METHODS[11]), end="\r")
-    estimator = DeltaHVFMean(calculate_deltamean=True, log_transform=log_transform,
+    estimator = DeltaHVFMean(calculate_deltamean=True, log_transform=seurat_log_transform,
                              num_top_features=num_features, min_disp=0.5,
                              min_mean=0.0125, max_mean=3)
     temp_X = deepcopy(X)
+    if exponentiate:
+        temp_X = np.exp(temp_X)
     df = estimator.fit_predict(X=temp_X, y=y)
     del temp_X
     methods_dict.update({METHODS[11]: df})
@@ -343,7 +353,10 @@ def train(num_jobs: int = 4):
                      calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
                      calculate_profile=True, bin_pvalues=True, feature_weight=[0.4, 0.3, 0.2, 0.1],
                      weight_range=[0.2, 0.4, 0.8])
-    df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+    if exponentiate:
+        df = estimator.fit_predict(X=np.exp(X), y=y, control_class=0, case_class=1)
+    else:
+        df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     methods_dict.update({METHODS[23]: df})
     current_progress += 1
 
@@ -439,7 +452,7 @@ def train(num_jobs: int = 4):
             temp = [idx for idx, feature in enumerate(features_name)]
             temp_feature = [feature for idx, feature in enumerate(features_name)]
         scores = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
-                           standardize=True, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,
+                           standardize=standardize, num_neighbors=num_neighbors, min_dist=0.0, perform_cluster=True,
                            cluster_type=cluster_type, num_clusters=num_clusters, max_clusters=max_clusters,
                            heatmap_plot=False, num_jobs=num_jobs, suptitle=suptitle_name + "\n" + method_name,
                            file_name=data_name + "_" + save_name.lower(), save_path=RESULT_PATH)
@@ -463,7 +476,8 @@ def train(num_jobs: int = 4):
     print("## Plot bar plot using ARI metric...".format(top_k_features))
     plot_barplot(X=np.array(list_scores)[:, 12], methods_name=["All"] + METHODS, metric="ari",
                  suptitle=suptitle_name, file_name=data_name, save_path=RESULT_PATH)
-    
+
+
 if __name__ == "__main__":
     # for windows
     if os.name == 'nt':

@@ -25,16 +25,17 @@ def train(num_jobs: int = 4):
     save_name = "PHet_br"
 
     # Descriptions of the data
-    data_name = "yan"
-    suptitle_name = "Yan"
+    data_name = "baron1"
+    suptitle_name = "Baron"
     control_name = "0"
     case_name = "1"
 
     # Models parameters
-    ari_threshold = 0.9
-    num_epochs = 50
+    ari_threshold = 0.7
+    num_epochs = 1
     search_optimum_f1 = False
-    cluster_type = "kmeans"
+    cluster_type = "spectral"
+    standardize = True
 
     # Exprssion, classes, subtypes, donors, timepoints files
     expression_file_name = data_name + "_matrix.mtx"
@@ -182,7 +183,7 @@ def train(num_jobs: int = 4):
     y[np.where(y == 0)[0]] = control_name
     y[np.where(y == 1)[0]] = case_name
     list_scores = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=[], num_features=num_features,
-                            labels_pred=optimum_labels_pred, standardize=True, num_neighbors=5,
+                            labels_pred=optimum_labels_pred, standardize=standardize, num_neighbors=5,
                             min_dist=0.0, perform_cluster=True, cluster_type=cluster_type, num_clusters=num_clusters,
                             max_clusters=10, heatmap_plot=False, num_jobs=num_jobs,
                             suptitle=suptitle_name + "\n" + method_name,

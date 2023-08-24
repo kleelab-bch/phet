@@ -8,8 +8,11 @@ import pyCompare
 import seaborn as sns
 from scipy.stats import zscore
 from sklearn.metrics import silhouette_score
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from utility.utils import dimensionality_reduction, clustering, clustering_performance
+from sklearn.utils import resample
+from collections import Counter
+from imblearn.under_sampling import TomekLinks
 
 np.seterr(divide='ignore', invalid='ignore')
 warnings.filterwarnings('ignore')
@@ -59,16 +62,19 @@ def plot_barplot(X, methods_name, metric: str = "f1", suptitle: str = "temp", fi
     plt.close(fig="all")
 
 
-def plot_scatter(X, y, num_features: int = 100, add_legend: bool = True, legend_title: str = "Class",
-                 suptitle: str = "temp", file_name: str = "temp", save_path: str = "."):
+def plot_scatter(X, y, num_features: int = 100, palette: dict = None, add_legend: bool = True, 
+                 legend_title: str = "Class", suptitle: str = "temp", file_name: str = "temp", 
+                 save_path: str = "."):
     plt.figure(figsize=(12, 10))
     plt.title('%s (%s features)' % (suptitle, str(num_features)), fontsize=36)
+    if palette is None:
+        palette = 'tab10'
     if y is not None:
-        sns.scatterplot(x=X[:, 0], y=X[:, 1], hue=y, palette='tab10', s=80, alpha=0.6, linewidth=0,
+        sns.scatterplot(x=X[:, 0], y=X[:, 1], hue=y, palette=palette, s=80, alpha=0.6, linewidth=0,
                         legend=add_legend)
     else:
         add_legend = False
-        sns.scatterplot(x=X[:, 0], y=X[:, 1], palette='tab10', s=80, alpha=0.6, linewidth=0,
+        sns.scatterplot(x=X[:, 0], y=X[:, 1], palette=palette, s=80, alpha=0.6, linewidth=0,
                         legend=add_legend)
     plt.xticks([], fontsize=28)
     plt.yticks([], fontsize=28)
@@ -108,10 +114,12 @@ def plot_heatmap(df, file_name: str = "temp", save_path: str = "."):
 
 
 def plot_umap(X, y, subtypes, features_name: list, num_features: int, labels_pred: list = [],
-              standardize: bool = True, num_neighbors: int = 15, min_dist: float = 0,
-              perform_cluster: bool = False, cluster_type: str = "spectral", num_clusters: int = 0,
-              max_clusters: int = 10, heatmap_plot: bool = True, num_jobs: int = 2,
-              suptitle: str = "temp", file_name: str = "temp", save_path: str = "."):
+              perform_undersampling: bool = False, standardize: bool = True,
+              num_neighbors: int = 15, min_dist: float = 0, perform_cluster: bool = False,
+              cluster_type: str = "spectral", num_clusters: int = 0,
+              max_clusters: int = 10, heatmap_plot: bool = True, palette: dict = None, 
+              num_jobs: int = 2, suptitle: str = "temp", file_name: str = "temp", 
+              save_path: str = "."):
     score = 0
     # Standardize if needed
     if standardize:
@@ -121,14 +129,42 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, labels_pre
     # Make umap and umap data
     X_reducer = dimensionality_reduction(X, num_neighbors=num_neighbors, num_components=2, min_dist=min_dist,
                                          reduction_method="umap", num_epochs=2000, num_jobs=num_jobs)
-    plot_scatter(X=X_reducer, y=None, num_features=num_features, legend_title="Class",
+    df = pd.DataFrame(X_reducer, columns=["UMAP1", "UMAP2"])
+    df.to_csv(os.path.join(save_path, file_name + "_umap.csv"), sep=',')
+
+    # Perform under-sampling
+    if perform_undersampling:
+        list_downsamples = list()
+        temp = int(np.mean(list(Counter(subtypes).values())))
+        # temp = 500
+        for subtype in set(subtypes):
+            temp_idx = [idx for idx, t in enumerate(subtypes) if t == subtype]
+            if len(temp_idx) >= temp:
+                temp_idx = resample(temp_idx, replace=False, n_samples=temp, random_state=12345)
+            list_downsamples.extend(temp_idx)
+        X_reducer = X_reducer[list_downsamples]
+        X = X[list_downsamples]
+        y = y[list_downsamples]
+        subtypes = list(np.array(subtypes)[list_downsamples])
+
+        # With TomekLinks cleaning method, the number of samples in each class will not be equalized even if targeted.
+        us = TomekLinks(sampling_strategy="not minority", n_jobs=num_jobs)
+        le = LabelEncoder()
+        subtypes = le.fit_transform(subtypes) 
+        X_reducer, subtypes = us.fit_resample(X=X_reducer, y=subtypes)
+        X = X[us.sample_indices_]
+        y = y[us.sample_indices_]
+        subtypes = list(le.inverse_transform(subtypes))
+        # print(y.shape)
+
+    plot_scatter(X=X_reducer, y=None, num_features=num_features, palette=None, legend_title="Class",
                  suptitle=suptitle, file_name=file_name + "_no_class_umap.png", save_path=save_path)
-    plot_scatter(X=X_reducer, y=y, num_features=num_features, legend_title="Class",
+    plot_scatter(X=X_reducer, y=y, num_features=num_features, palette=None, legend_title="Class",
                  suptitle=suptitle, file_name=file_name + "_umap.png", save_path=save_path)
     if subtypes is not None:
-        plot_scatter(X=X_reducer, y=subtypes, num_features=num_features, suptitle=suptitle,
+        plot_scatter(X=X_reducer, y=subtypes, num_features=num_features, palette=palette, suptitle=suptitle,
                      file_name=file_name + "_subtypes_umap.png", save_path=save_path)
-        plot_scatter(X=X_reducer, y=subtypes, num_features=num_features, add_legend=False,
+        plot_scatter(X=X_reducer, y=subtypes, num_features=num_features, palette=palette, add_legend=False,
                      suptitle=suptitle, file_name=file_name + "_subtypes_nolegend_umap.png",
                      save_path=save_path)
 
@@ -156,7 +192,7 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, labels_pre
         df.to_csv(os.path.join(save_path, file_name + "_clusters.csv"), sep=',')
 
         # Plot scatter 
-        plot_scatter(X=X_reducer, y=labels_pred, num_features=num_features, legend_title="Cluster",
+        plot_scatter(X=X_reducer, y=labels_pred, num_features=num_features, palette=None, legend_title="Cluster",
                      suptitle=suptitle, file_name=file_name + "_clusters_umap.png", save_path=save_path)
 
         if subtypes is not None:

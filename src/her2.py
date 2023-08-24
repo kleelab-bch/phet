@@ -50,20 +50,24 @@ def compute_score(lb, top_features_true, top_features_pred, probes2genes, genes2
                   range_topfeatures):
     top_features_pred = top_features_pred["features"].to_list()
     temp_range = list()
+    temp_markers = list()
     for top_features in range_topfeatures:
         temp = top_features_pred[:top_features]
         add_probes = [p for probe in probes2genes if probe in temp
                       for p in genes2probes[probes2genes[probe]]]
         temp.extend(add_probes)
         temp = list(set(temp))
+        temp_counts = 0
         if len(temp) != 0:
             pred_features = lb.transform(temp).sum(axis=0).astype(int)
             temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
                                      metric="precision")
+            temp_counts = int(top_features_true.dot(pred_features))
         else:
             temp = 0
         temp_range.append(temp)
-    return temp_range
+        temp_markers.append(temp_counts)
+    return temp_range, temp_markers
 
 
 def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features_true, features_name, genes2probes,
@@ -75,6 +79,7 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
         print(desc, end="\r")
 
     list_scores = list()
+    list_true_markers = list()
     temp = np.random.choice(a=X_case.shape[0], size=subsample_size, replace=False)
     X = np.vstack((X_control, X_case[temp]))
     y = np.array(X_control.shape[0] * [0] + subsample_size * [1])
@@ -86,22 +91,24 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False, ascending=True)
     top_features_pred = top_features_pred[top_features_pred["score"] < alpha]
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = StudentTTest(use_statistics=True, direction=direction, adjust_pvalue=True,
                              adjusted_alpha=alpha)
     top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = WilcoxonRankSumTest(use_statistics=False, direction=direction, adjust_pvalue=True,
                                     adjusted_alpha=alpha)
@@ -109,22 +116,24 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False, ascending=True)
     top_features_pred = top_features_pred[top_features_pred["score"] < alpha]
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = WilcoxonRankSumTest(use_statistics=True, direction=direction, adjust_pvalue=True,
                                     adjusted_alpha=alpha)
     top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = KolmogorovSmirnovTest(use_statistics=False, direction=direction, adjust_pvalue=True,
                                       adjusted_alpha=alpha)
@@ -132,22 +141,24 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False, ascending=True)
     top_features_pred = top_features_pred[top_features_pred["score"] < alpha]
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = KolmogorovSmirnovTest(use_statistics=True, direction=direction, adjust_pvalue=True,
                                       adjusted_alpha=alpha)
     top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     top_features_pred = X_limma
     temp = np.nonzero(top_features_pred)[0]
@@ -155,21 +166,23 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = top_features_pred.reshape(top_features_pred.shape[0], 1)
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     top_features_pred = X_limma_distr
     top_features_pred = top_features_pred.reshape(top_features_pred.shape[0], 1)
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = SeuratHVF(per_condition=False, log_transform=False, num_top_features=num_features,
                           min_disp=0.5, min_mean=0.0125, max_mean=3)
@@ -178,11 +191,12 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     del temp_X
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = SeuratHVF(per_condition=True, log_transform=False, num_top_features=num_features,
                           min_disp=0.5, min_mean=0.0125, max_mean=3)
@@ -191,11 +205,12 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     del temp_X
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = DeltaHVFMean(calculate_deltamean=False, log_transform=False, num_top_features=num_features,
                              min_disp=0.5, min_mean=0.0125, max_mean=3)
@@ -204,11 +219,12 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     del temp_X
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = DeltaHVFMean(calculate_deltamean=True, log_transform=False, num_top_features=num_features,
                              min_disp=0.5, min_mean=0.0125, max_mean=3)
@@ -217,111 +233,122 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     del temp_X
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = HIQR(per_condition=False, normalize="zscore", iqr_range=(25, 75))
     top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = HIQR(per_condition=True, normalize="zscore", iqr_range=(25, 75))
     top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = DeltaIQRMean(calculate_deltamean=False, normalize="zscore", iqr_range=(25, 75))
     top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = DeltaIQRMean(calculate_deltamean=True, normalize="zscore", iqr_range=(25, 75))
     top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = COPA(q=75)
     top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = OutlierSumStatistic(q=75, iqr_range=(25, 75), two_sided_test=False)
     top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = OutlierRobustTstatistic(q=75, iqr_range=(25, 75))
     top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = MOST()
     top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = LSOSS(direction=direction)
     top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = DIDS(score_function="tanh", direction=direction)
     top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     top_features_pred = X_deco
     temp = np.nonzero(top_features_pred)[0]
@@ -329,11 +356,12 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = top_features_pred.reshape(top_features_pred.shape[0], 1)
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = PHeT(normalize=None, iqr_range=(25, 75), num_subsamples=1000, delta_type="hvf",
                      calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
@@ -342,11 +370,12 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
     estimator = PHeT(normalize="zscore", iqr_range=(25, 75), num_subsamples=1000, delta_type="iqr",
                      calculate_deltadisp=True, calculate_deltamean=False, calculate_fisher=True,
@@ -355,13 +384,14 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
-    temp_range = compute_score(lb=lb, top_features_true=top_features_true,
-                               top_features_pred=top_features_pred,
-                               probes2genes=probes2genes, genes2probes=genes2probes,
-                               range_topfeatures=range_topfeatures)
+    temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
+                                             top_features_pred=top_features_pred, 
+                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
+    list_true_markers.append(temp_markers)
 
-    return list_scores
+    return list_scores, list_true_markers
 
 
 def train(num_jobs: int = 2):
@@ -438,14 +468,19 @@ def train(num_jobs: int = 2):
                                                                                                     len(features_name),
                                                                                                     selected_features))
     parallel = Parallel(n_jobs=num_jobs, verbose=0)
-    list_scores = parallel(delayed(single_batch)(X_case, X_control, X_deco[:, batch_idx], X_limma[:, batch_idx],
-                                                 X_limma_distr[:, batch_idx], top_features_true, features_name,
-                                                 genes2probes, probes2genes, lb, range_topfeatures, subsample_size,
-                                                 alpha, direction, batch_idx, num_batches)
-                           for batch_idx in range(num_batches))
+    list_scores = parallel(delayed(single_batch)(X_case, X_control, X_deco[:, batch_idx], 
+                                                                    X_limma[:, batch_idx], X_limma_distr[:, batch_idx], 
+                                                                    top_features_true, features_name, genes2probes, probes2genes, 
+                                                                    lb, range_topfeatures, subsample_size, alpha, direction, 
+                                                                    batch_idx, num_batches) for batch_idx in range(num_batches))
+    list_scores, list_true_markers = (list_scores[0][0], list_scores[0][1])
     list_scores = [i for item in list_scores for i in item]
     list_scores = np.array(list_scores)
     list_scores = np.reshape(list_scores, (num_batches, len(METHODS) * len(range_topfeatures)))
+    list_true_markers = [i for item in list_true_markers for i in item]
+    list_true_markers = np.array(list_true_markers)
+    list_true_markers = np.reshape(list_true_markers, (num_batches, len(METHODS) * len(range_topfeatures)))
+
     # Transform to dataframe
     temp_methods = [m for m in METHODS for f in range_topfeatures]
     df = pd.DataFrame(list_scores, index=range(num_batches), columns=temp_methods)
@@ -456,6 +491,16 @@ def train(num_jobs: int = 2):
     temp_range = pd.Series(temp_range)
     df["Range"] = temp_range
     df.to_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',', index=False)
+
+    temp_methods = [m for m in METHODS for f in range_topfeatures]
+    df = pd.DataFrame(list_true_markers, index=range(num_batches), columns=temp_methods)
+    df.index.name = 'Batch'
+    df = pd.melt(df.reset_index(), id_vars='Batch', value_vars=temp_methods, var_name="Methods",
+                 value_name="Counts")
+    temp_range = [f for m in METHODS for f in range_topfeatures for b in range(num_batches)]
+    temp_range = pd.Series(temp_range)
+    df["Range"] = temp_range
+    df.to_csv(os.path.join(RESULT_PATH, "her2_true_markers_count.csv"), sep=',', index=False)
 
     # Plot lineplot
     print("## Plot lineplot using top k features...")
@@ -483,4 +528,4 @@ if __name__ == "__main__":
     # for mac and linux(here, os.name is 'posix')
     else:
         _ = os.system('clear')
-    train(num_jobs=25)
+    train(num_jobs=1)
