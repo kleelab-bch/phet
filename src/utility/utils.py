@@ -264,8 +264,8 @@ def centroid_diameter_distance(X, y, metric: str = "euclidean",
     return score
 
 
-# Intercluster: measuring distance between clusters. Higher
-# values entail clusters are located farther apart.
+# Intercluster: measuring distance between clusters. 
+# Higher values entail clusters are located farther apart.
 def single_linkage_distance(X, y, metric: str = "euclidean", num_jobs: int = 2):
     '''
     The closest distance between two samples in clusters.

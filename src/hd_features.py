@@ -1,10 +1,10 @@
 import os
+from copy import deepcopy
 
 import numpy as np
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
-from copy import deepcopy
 from scipy.stats import zscore
 
 from model.deltaiqrmean import DeltaIQRMean
@@ -20,10 +20,11 @@ np.random.seed(seed=12345)
 
 METHODS = ["DE", "IQR", "HD", "HF"]
 
+
 def train(num_jobs: int = 4):
     # Filtering arguments
     minimum_samples = 5
-    
+
     # Models parameters
     direction = "both"
     methods_save_name = ["de", "iqr", "hd", "hvf"]
@@ -43,13 +44,13 @@ def train(num_jobs: int = 4):
     log_transform = False
     exponentiate = False
     standardize = False
-    perform_undersampling = True 
+    perform_undersampling = True
     palette = None
     if data_name == "baron1":
         palette = {'beta': '#1f77b4', 'delta': '#ff7f0e', 'ductal': '#2ca02c',
                    'alpha': '#d62728', 'gamma': '#9467bd', 'endothelial': '#8c564b',
                    'macrophage': '#e377c2', 'schwann': '#7f7f7f', 't_cell': '#bcbd22'}
-        
+
     # Expression, classes, subtypes, donors, timepoints files
     expression_file_name = data_name + "_matrix.mtx"
     features_file_name = data_name + "_feature_names.csv"
@@ -92,7 +93,7 @@ def train(num_jobs: int = 4):
     feature_ids = dict([(feature_idx, idx) for idx, feature_idx in enumerate(feature_ids)])
     num_examples, num_features = X.shape
     del temp, feature_sums
-    
+
     print("## Perform experimental studies using {0} data...".format(suptitle_name))
     print("\t >> Sample size: {0}; Feature size: {1}; Subtype size: {2}".format(X.shape[0], X.shape[1],
                                                                                 len(np.unique(subtypes))))
@@ -169,10 +170,11 @@ def train(num_jobs: int = 4):
             temp = [idx for idx, feature in enumerate(features_name)]
             temp_feature = [feature for idx, feature in enumerate(features_name)]
         scores = plot_umap(X=X[:, temp], y=y, subtypes=subtypes, features_name=temp_feature, num_features=num_features,
-                           perform_undersampling=perform_undersampling, standardize=standardize, num_neighbors=num_neighbors, 
-                           min_dist=0.0, perform_cluster=True, cluster_type=cluster_type, num_clusters=num_clusters, 
-                           max_clusters=max_clusters, heatmap_plot=False, palette=palette, num_jobs=num_jobs, 
-                           suptitle=suptitle_name + "\n" + method_name, file_name=data_name + "_" + save_name.lower(), 
+                           perform_undersampling=perform_undersampling, standardize=standardize,
+                           num_neighbors=num_neighbors,
+                           min_dist=0.0, perform_cluster=True, cluster_type=cluster_type, num_clusters=num_clusters,
+                           max_clusters=max_clusters, heatmap_plot=False, palette=palette, num_jobs=num_jobs,
+                           suptitle=suptitle_name + "\n" + method_name, file_name=data_name + "_" + save_name.lower(),
                            save_path=RESULT_PATH)
         df = pd.DataFrame(temp_feature, columns=["features"])
         df.to_csv(os.path.join(RESULT_PATH, data_name + "_" + save_name.lower() + "_features.csv"),
@@ -186,6 +188,7 @@ def train(num_jobs: int = 4):
                "Completeness", "V-measure", "Adjusted Rand Index", "Adjusted Mutual Info"]
     df = pd.DataFrame(list_scores, columns=columns, index=METHODS)
     df.to_csv(path_or_buf=os.path.join(RESULT_PATH, data_name + "_cluster_quality.csv"), sep=",")
+
 
 if __name__ == "__main__":
     # for windows

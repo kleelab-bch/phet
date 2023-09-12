@@ -1,4 +1,5 @@
 import os
+
 import numpy as np
 import pandas as pd
 import scanpy as sc
@@ -6,7 +7,6 @@ import seaborn as sns
 
 from utility.file_path import DATASET_PATH, RESULT_PATH
 from utility.plot_utils import plot_umap, plot_barplot
-
 
 sns.set_theme()
 sns.set_theme(style="white")
@@ -48,7 +48,7 @@ def train(num_jobs: int = 4):
     # cluster_type = "kmeans"
 
     standardize = False
-    data_folder = "scRNA" # "scRNA" "microarray"
+    data_folder = "scRNA"  # "scRNA" "microarray"
     if data_folder == "microarray":
         standardize = False
 
@@ -114,9 +114,9 @@ def train(num_jobs: int = 4):
 
         for method_idx, save_name in enumerate(methods_save_name):
             method_name = METHODS[method_idx]
-            df = pd.read_csv(os.path.join(RESULT_PATH, data_folder, 
+            df = pd.read_csv(os.path.join(RESULT_PATH, data_folder,
                                           data_name + "_" + save_name + "_features.csv"),
-                                 sep=',', header=None)
+                             sep=',', header=None)
             if total_progress == method_idx + 1:
                 print("\t >> Progress: {0:.4f}%; Method: {1:30}".format(((method_idx + 1) / total_progress) * 100,
                                                                         method_name))
@@ -125,7 +125,7 @@ def train(num_jobs: int = 4):
                                                                         method_name), end="\r")
             temp = [idx for idx, feature in enumerate(features_name) if feature in df[0].tolist()]
             temp_feature = [feature for idx, feature in enumerate(features_name) if
-                                feature in df[0].tolist()]
+                            feature in df[0].tolist()]
             num_features = len(temp)
             if num_features == 0:
                 temp = [idx for idx, feature in enumerate(features_name)]

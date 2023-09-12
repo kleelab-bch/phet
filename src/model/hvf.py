@@ -21,7 +21,7 @@ class SeuratHVF:
     def fit_predict(self, X, y, control_class: int = 0, case_class: int = 1):
         num_features = X.shape[1]
         num_classes = len(np.unique(y))
-        
+
         # Shift data 
         min_value = X.min(0)
         if len(np.where(min_value < 0)[0]) > 0:

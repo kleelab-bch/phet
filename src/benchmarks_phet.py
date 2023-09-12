@@ -31,7 +31,7 @@ def train(num_jobs: int = 4):
     feature_metric = "f1"
     cluster_type = "spectral"
     standardize = True
-    
+
     # Models parameters
     bin_pvalues = True
     phet_delta_type = "iqr"

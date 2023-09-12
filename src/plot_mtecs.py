@@ -2,12 +2,16 @@ import os
 from copy import deepcopy
 
 import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
+from sklearn.preprocessing import LabelEncoder
+from upsetplot import UpSet
 
 from utility.file_path import RESULT_PATH, DATASET_PATH
+from utility.utils import clustering_performance_wo_ground_truth
 
 sc.settings.verbosity = 0  # verbosity: errors (0), warnings (1), info (2), hints (3)
 sc.settings.set_figure_params(dpi=80, facecolor='white')
@@ -402,8 +406,8 @@ cell_populations.index.names = ["Cluster"]
 cell_populations.reset_index(inplace=True)
 
 # Use static colors
-palette = {"Basal": "#ff7f0e", "KRT4/13+": "#8c564b", 
-           "Secretory": "#1f77b4", "Ciliated": "#2ca02c", 
+palette = {"Basal": "#ff7f0e", "KRT4/13+": "#8c564b",
+           "Secretory": "#1f77b4", "Ciliated": "#2ca02c",
            "Cycling basal": "#bcbd22"}
 
 plt.figure(figsize=(6, 8))
@@ -420,6 +424,7 @@ plt.tight_layout()
 ##############################################################
 ################## Plasschaert Basal (PHet) ##################
 ##############################################################
+print("Analyze basal subtypes using PHet's features...")
 full_features = pd.read_csv(os.path.join(DATASET_PATH,
                                          "plasschaert_mouse_feature_names.csv"), sep=',')
 full_features = full_features["features"].to_list()
@@ -515,20 +520,30 @@ adata.obs["clusters"] = pd.Series(adata.obs["clusters"], name="clusters", dtype=
 # Rename clusters
 new_cluster_names = ['Basal-1', 'Basal-2', 'Basal-3', 'Basal-4']
 adata.rename_categories('clusters', new_cluster_names)
+df_phet = adata.obs[["donors", "clusters"]]
+phet_scores = list()
+le = LabelEncoder()
+subtypes = le.fit_transform(adata.obs["clusters"])
+phet_scores.extend(clustering_performance_wo_ground_truth(X=adata.obsm["X_umap"], labels_pred=subtypes))
+G = nx.from_numpy_array(adata.obsp["connectivities"])
+mod = nx.community.modularity(G, [list(np.where(adata.obs['clusters'] == 'Basal-1')[0]),
+                                  list(np.where(adata.obs['clusters'] == 'Basal-2')[0]),
+                                  list(np.where(adata.obs['clusters'] == 'Basal-3')[0]),
+                                  list(np.where(adata.obs['clusters'] == 'Basal-4')[0])])
+phet_scores.append(mod)
 # Find differentially expressed features
 sc.tl.rank_genes_groups(adata, 'clusters', method='wilcoxon',
                         corr_method='benjamini-hochberg', tie_correct=True)
 # Filter markers
-temp_dict = {}
+phet_markers_dict = {}
 for key, items in markers_dict.items():
     temp = []
     for item in items:
         if item.upper() in adata.var_names:
             temp.append(item.upper())
     if len(temp) > 0:
-        temp_dict[key] = temp
-markers_dict = temp_dict
-markers = [f for k, item in markers_dict.items() for f in item]
+        phet_markers_dict[key] = temp
+markers = [f for k, item in phet_markers_dict.items() for f in item]
 basal_markers = ["KRT5", "KRT14", "KRT15", "KRT19", "TRP63", "PDPN", "NGFR",
                  "ITGA6", "ITGB4", "LAMB3", "BCAM", "DST", "DCN", "COL17A1",
                  "ABI3BP", "TSPAN1", "WFDC2", "ATP1B1", "DUT", "CXCL17"]
@@ -553,22 +568,23 @@ for key, items in selected_features_dict.items():
         temp_dict[key] = temp
 selected_features_dict = temp_dict
 selected_features = [f for k, item in selected_features_dict.items() for f in item]
-temp_dict = {}
+phet_basal_subsets_markers = {}
 for key, items in basal_subsets_markers.items():
     temp = []
     for item in items:
         if item.upper() in adata.var_names:
             temp.append(item.upper())
     if len(temp) > 0:
-        temp_dict[key] = temp
-basal_subsets_markers = temp_dict
+        phet_basal_subsets_markers[key] = temp
 # Plot UMAP 
 adata.uns["donors_colors"] = ["#F05454", "#59CE8F"]
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
-    sc.pl.umap(adata, color=['clusters'] + ['donors'],
+    sc.pl.umap(adata, color=['clusters'] + ['donors'] + selected_features,
                use_raw=False, add_outline=False, legend_loc='on data',
                legend_fontsize=30, legend_fontoutline=0, frameon=False)
-    sc.pl.umap(adata, color=['clusters'] + ['donors'] + selected_features,
+adata.X = X
+with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
+    sc.pl.umap(adata, color=['clusters'] + ['donors'],
                use_raw=False, add_outline=False, legend_loc='on data',
                legend_fontsize=30, legend_fontoutline=0, frameon=False)
 # Plot distributions of basal cells in injury vs uninjury conditions
@@ -594,7 +610,6 @@ ax.set_xlabel(None)
 ax.legend(title=None, fontsize=26, ncol=1, bbox_to_anchor=(1.005, 1),
           loc=2, borderaxespad=0., frameon=False)
 # Violin plot
-adata.X = X
 adata.var_names_make_unique()
 with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '30',
@@ -610,11 +625,14 @@ sc.pp.scale(adata)
 with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '30',
                      'xtick.labelsize': '30', 'ytick.labelsize': '30'}):
-    sc.pl.dotplot(adata, basal_subsets_markers, groupby='clusters',
-                  title=None, colorbar_title="Mean expression values",
-                  size_title="Fraction of expressed \n cells (%)")
     sc.pl.dotplot(adata, selected_features_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
+                  size_title="Fraction of expressed \n cells (%)")
+    sc.pl.dotplot(adata, phet_basal_subsets_markers, groupby='clusters',
+                  title=None, colorbar_title="Mean expression values",
+                  size_title="Fraction of expressed \n cells (%)")
+    sc.pl.dotplot(adata, phet_markers_dict["Basal"], groupby='clusters',
+                  title=None, swap_axes=True, colorbar_title="Mean expression values",
                   size_title="Fraction of expressed \n cells (%)")
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
@@ -628,6 +646,7 @@ with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
 ##############################################################
 ################ Plasschaert Basal (Markers) #################
 ##############################################################
+print("Analyze basal subtypes using known markers...")
 full_features = pd.read_csv(os.path.join(DATASET_PATH,
                                          "plasschaert_mouse_feature_names.csv"), sep=',')
 full_features = full_features["features"].to_list()
@@ -712,20 +731,30 @@ sc.tl.leiden(adata, resolution=0.5, key_added="clusters")
 # Rename clusters
 new_cluster_names = ['Basal-1', 'Basal-2', 'Basal-4', 'Basal-3']
 adata.rename_categories('clusters', new_cluster_names)
+df_markers = adata.obs[["donors", "clusters"]]
+markers_scores = list()
+le = LabelEncoder()
+subtypes = le.fit_transform(adata.obs["clusters"])
+markers_scores.extend(clustering_performance_wo_ground_truth(X=adata.obsm["X_umap"], labels_pred=subtypes))
+G = nx.from_numpy_array(adata.obsp["connectivities"])
+mod = nx.community.modularity(G, [list(np.where(adata.obs['clusters'] == 'Basal-1')[0]),
+                                  list(np.where(adata.obs['clusters'] == 'Basal-2')[0]),
+                                  list(np.where(adata.obs['clusters'] == 'Basal-3')[0]),
+                                  list(np.where(adata.obs['clusters'] == 'Basal-4')[0])])
+markers_scores.append(mod)
 # Find differentially expressed features
 sc.tl.rank_genes_groups(adata, 'clusters', method='wilcoxon',
                         corr_method='benjamini-hochberg', tie_correct=True)
 # Filter markers
-temp_dict = {}
+manual_markers_dict = {}
 for key, items in markers_dict.items():
     temp = []
     for item in items:
         if item.upper() in adata.var_names:
             temp.append(item.upper())
     if len(temp) > 0:
-        temp_dict[key] = temp
-markers_dict = temp_dict
-markers = [f for k, item in markers_dict.items() for f in item]
+        manual_markers_dict[key] = temp
+markers = [f for k, item in manual_markers_dict.items() for f in item]
 basal_markers = ['ABI3BP', 'ATP1B1', 'BCAM', 'COL17A1', 'CXCL17', 'DCN', 'DST', 'DUT',
                  'ITGA6', 'ITGB4', 'KRT15', 'KRT5', 'LAMB3', 'NGFR', 'PDPN', 'TRP63', 'TSPAN1', 'WFDC2']
 basal_markers = sorted(list(set(basal_markers)))
@@ -748,18 +777,22 @@ for key, items in selected_features_dict.items():
         temp_dict[key] = temp
 selected_features_dict = temp_dict
 selected_features = [f for k, item in selected_features_dict.items() for f in item]
-temp_dict = {}
+manual_basal_subsets_markers = {}
 for key, items in basal_subsets_markers.items():
     temp = []
     for item in items:
         if item.upper() in adata.var_names:
             temp.append(item.upper())
     if len(temp) > 0:
-        temp_dict[key] = temp
-basal_subsets_markers = temp_dict
+        manual_basal_subsets_markers[key] = temp
 # Plot UMAP
 adata.uns["donors_colors"] = ["#F05454", "#59CE8F"]
 adata.uns["clusters_colors"] = ['#4c72b0', '#dd8452', '#c44e52', '#55a868']
+with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
+    sc.pl.umap(adata, color=['clusters'] + ['donors'] + selected_features,
+               use_raw=False, add_outline=False, legend_loc='on data',
+               legend_fontsize=30, legend_fontoutline=0, frameon=False)
+adata.X = X
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
     sc.pl.umap(adata, color=['clusters'] + ['donors'],
                use_raw=False, add_outline=False, legend_loc='on data',
@@ -786,7 +819,6 @@ ax.set_xlabel(None)
 ax.legend(title=None, fontsize=26, ncol=1, bbox_to_anchor=(1.005, 1),
           loc=2, borderaxespad=0., frameon=False)
 # Violin plot
-adata.X = X
 adata.var_names_make_unique()
 with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '30',
@@ -805,6 +837,13 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
     sc.pl.dotplot(adata, selected_features_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
                   size_title="Fraction of expressed \n cells (%)")
+    sc.pl.dotplot(adata, manual_basal_subsets_markers, groupby='clusters',
+                  title=None, swap_axes=False, colorbar_title="Mean expression values",
+                  size_title="Fraction of expressed \n cells (%)")
+    sc.pl.dotplot(adata, manual_markers_dict["Basal"], groupby='clusters',
+                  title=None, swap_axes=True, colorbar_title="Mean expression values",
+                  size_title="Fraction of expressed \n cells (%)")
+
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
@@ -817,6 +856,7 @@ with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
 ##############################################################
 ################### Plasschaert Basal (HVF) ##################
 ##############################################################
+print("Analyze basal subtypes using dispersion based features...")
 full_features = pd.read_csv(os.path.join(DATASET_PATH,
                                          "plasschaert_mouse_feature_names.csv"), sep=',')
 full_features = full_features["features"].to_list()
@@ -909,28 +949,45 @@ sc.pp.neighbors(adata, n_neighbors=30, n_pcs=50)
 sc.tl.umap(adata, min_dist=0.0, spread=1.0, n_components=2,
            maxiter=2000)
 # Clustering the neighborhood graph
-sc.tl.leiden(adata, resolution=0.4, key_added="clusters")
+sc.tl.leiden(adata, resolution=0.5, key_added="clusters")
+# adata.obs["clusters"] = ["0" if item == "4" else item for item in adata.obs['clusters']]
+# adata.obs["clusters"] = ["0" if item == "5" else item for item in adata.obs['clusters']]
+# adata.obs["clusters"] = ["0" if item == "3" else item for item in adata.obs['clusters']]
+# adata.obs["clusters"] = pd.Series(adata.obs["clusters"], name="clusters", dtype="category")
 adata.obs["clusters"] = ["0" if item == "4" else item for item in adata.obs['clusters']]
 adata.obs["clusters"] = ["0" if item == "5" else item for item in adata.obs['clusters']]
-adata.obs["clusters"] = ["0" if item == "3" else item for item in adata.obs['clusters']]
+adata.obs["clusters"] = ["T" if item == "1" else item for item in adata.obs['clusters']]
+adata.obs["clusters"] = ["T" if item == "3" else item for item in adata.obs['clusters']]
+adata.obs["clusters"] = ["T" if item == "6" else item for item in adata.obs['clusters']]
+adata.obs["clusters"] = ["1" if item == "2" else item for item in adata.obs['clusters']]
+adata.obs["clusters"] = ["2" if item == "T" else item for item in adata.obs['clusters']]
 adata.obs["clusters"] = pd.Series(adata.obs["clusters"], name="clusters", dtype="category")
 # Rename clusters
 new_cluster_names = ['Basal-1', 'Basal-4', 'Basal-2/3']
 adata.rename_categories('clusters', new_cluster_names)
+df_hvf = adata.obs[["donors", "clusters"]]
+hvf_scores = list()
+le = LabelEncoder()
+subtypes = le.fit_transform(adata.obs["clusters"])
+hvf_scores.extend(clustering_performance_wo_ground_truth(X=adata.obsm["X_umap"], labels_pred=subtypes))
+G = nx.from_numpy_array(adata.obsp["connectivities"])
+mod = nx.community.modularity(G, [list(np.where(adata.obs['clusters'] == 'Basal-1')[0]),
+                                  list(np.where(adata.obs['clusters'] == 'Basal-2/3')[0]),
+                                  list(np.where(adata.obs['clusters'] == 'Basal-4')[0])])
+hvf_scores.append(mod)
 # Find differentially expressed features
 sc.tl.rank_genes_groups(adata, 'clusters', method='wilcoxon',
                         corr_method='benjamini-hochberg', tie_correct=True)
 # Filter markers
-temp_dict = {}
+hvf_markers_dict = {}
 for key, items in markers_dict.items():
     temp = []
     for item in items:
         if item.upper() in adata.var_names:
             temp.append(item.upper())
     if len(temp) > 0:
-        temp_dict[key] = temp
-markers_dict = temp_dict
-markers = [f for k, item in markers_dict.items() for f in item]
+        hvf_markers_dict[key] = temp
+markers = [f for k, item in hvf_markers_dict.items() for f in item]
 basal_markers = ['ABI3BP', 'ATP1B1', 'BCAM', 'COL17A1', 'CXCL17', 'DCN', 'DST', 'DUT',
                  'ITGA6', 'ITGB4', 'KRT15', 'KRT5', 'LAMB3', 'NGFR', 'PDPN', 'TRP63', 'TSPAN1', 'WFDC2']
 basal_markers = sorted(list(set(basal_markers)))
@@ -953,18 +1010,22 @@ for key, items in selected_features_dict.items():
         temp_dict[key] = temp
 selected_features_dict = temp_dict
 selected_features = [f for k, item in selected_features_dict.items() for f in item]
-temp_dict = {}
+hvf_basal_subsets_markers = {}
 for key, items in basal_subsets_markers.items():
     temp = []
     for item in items:
         if item.upper() in adata.var_names:
             temp.append(item.upper())
     if len(temp) > 0:
-        temp_dict[key] = temp
-basal_subsets_markers = temp_dict
+        hvf_basal_subsets_markers[key] = temp
 # Plot UMAP
 adata.uns["donors_colors"] = ["#F05454", "#59CE8F"]
 adata.uns["clusters_colors"] = ['#4c72b0', '#c44e52', '#dd8452']
+with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
+    sc.pl.umap(adata, color=['clusters'] + ['donors'] + selected_features,
+               use_raw=False, add_outline=False, legend_loc='on data',
+               legend_fontsize=30, legend_fontoutline=0, frameon=False)
+adata.X = X
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
     sc.pl.umap(adata, color=['clusters'] + ['donors'],
                use_raw=False, add_outline=False, legend_loc='on data',
@@ -991,7 +1052,6 @@ ax.set_xlabel(None)
 ax.legend(title=None, fontsize=26, ncol=1, bbox_to_anchor=(1.005, 1),
           loc=2, borderaxespad=0., frameon=False)
 # Violin plot
-adata.X = X
 adata.var_names_make_unique()
 with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
                      'axes.titlesize': '30', 'axes.labelsize': '30',
@@ -1010,6 +1070,13 @@ with plt.rc_context({'figure.figsize': (8, 10), 'figure.labelsize': '30',
     sc.pl.dotplot(adata, selected_features_dict, groupby='clusters',
                   title=None, colorbar_title="Mean expression values",
                   size_title="Fraction of expressed \n cells (%)")
+    sc.pl.dotplot(adata, hvf_basal_subsets_markers, groupby='clusters',
+                  title=None, swap_axes=False, colorbar_title="Mean expression values",
+                  size_title="Fraction of expressed \n cells (%)")
+    sc.pl.dotplot(adata, hvf_markers_dict["Basal"], groupby='clusters',
+                  title=None, swap_axes=True, colorbar_title="Mean expression values",
+                  size_title="Fraction of expressed \n cells (%)")
+
 # Heatmaps
 adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
@@ -1018,3 +1085,216 @@ with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
     sc.pl.heatmap(adata, selected_features_dict, groupby='clusters',
                   layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', dendrogram=False,
                   swap_axes=False, figsize=(10, 2))
+
+##############################################################
+############# Comparative Analysis of Basal Cells ############
+##############################################################
+print("Perform comparative analysis for basal subtypes...")
+### Gather all scores
+df_scores = pd.DataFrame([phet_scores, markers_scores, hvf_scores]).T
+df_scores.columns = ["PHet", "Markers", "Dispersion"]
+df_scores.index = ["Complete Diameter Distance", "Average Diameter Distance",
+                   "Centroid Diameter Distance", "Single Linkage Distance",
+                   "Maximum Linkage Distance", "Average Linkage Distance",
+                   "Centroid Linkage Distance", "Ward's Distance", "Silhouette",
+                   "Calinski-Harabasz", "Davies-Bouldin", "Modularity"]
+df_scores.to_csv(path_or_buf=os.path.join(RESULT_PATH, "basal_cluster_quality.csv"),
+                 sep=",")
+
+### Gather all basal data
+df_basal = pd.DataFrame([phet_markers_dict["Basal"],
+                         manual_markers_dict["Basal"],
+                         hvf_markers_dict["Basal"]]).T
+df_basal.columns = ["PHet", "Markers", "Dispersion"]
+df_basal.to_csv(path_or_buf=os.path.join(RESULT_PATH, "detected_basal_markers.csv"),
+                sep=",")
+
+df_basal_comp_quant = []
+df_basal_comp_names = []
+for subset_name, markers in basal_subsets_markers.items():
+    temp_list = []
+    temp_list_subtypes = [[subset_name] * len(markers)]
+    temp_list_subtypes.append(markers)
+    for method in [phet_basal_subsets_markers, manual_basal_subsets_markers,
+                   hvf_basal_subsets_markers]:
+        if subset_name not in method:
+            temp_list.append(0)
+            temp_list_subtypes.append([0] * len(markers))
+            continue
+        temp_list_subtypes.append([1 if feature in method[subset_name] else 0
+                                   for feature in markers])
+        temp = set(method[subset_name]).intersection(markers)
+        temp_list.append(len(temp))
+    df_basal_comp_quant.append(temp_list)
+    df_basal_comp_names.append(temp_list_subtypes)
+df_basal_comp_quant = pd.DataFrame(df_basal_comp_quant)
+df_basal_comp_quant.columns = ["PHet", "Markers", "Dispersion"]
+df_basal_comp_quant.index = list(basal_subsets_markers.keys())
+df_basal_comp_names = pd.DataFrame(np.hstack(df_basal_comp_names)).T
+df_basal_comp_names.columns = ["Basal Subtype", "Features", "PHet", "Markers", "Dispersion"]
+df_basal_comp_names = df_basal_comp_names[df_basal_comp_names.iloc[:, 2:].astype(int).sum(1) > 0]
+df_basal_comp_names.iloc[:, 2:] = df_basal_comp_names.iloc[:, 2:].astype(int).astype(bool)
+
+selected_basal_subsets = dict()
+for subset_name, markers in basal_subsets_markers.items():
+    for f in markers:
+        if f not in df_basal_comp_names["Features"].to_list():
+            continue
+        if subset_name in selected_basal_subsets:
+            selected_basal_subsets[subset_name].append(f)
+        else:
+            selected_basal_subsets[subset_name] = [f]
+
+# Load full features
+full_features = pd.read_csv(os.path.join(DATASET_PATH,
+                                         "plasschaert_mouse_feature_names.csv"), sep=',')
+full_features = full_features["features"].to_list()
+full_features = [f.upper() for f in full_features]
+# load basal subsets markers
+df = pd.read_csv(os.path.join(DATASET_PATH, "basal_subsets_markers.csv"),
+                 sep=',', header=0)
+df = df[["gene", "cluster", "Signature"]]
+df = df[df["Signature"] == "yes"]
+basal_subsets_markers = {}
+for cluster in set(df["cluster"]):
+    if cluster == "Basal1":
+        name_cluster = "Canonical basal"
+    elif cluster == "Basal2":
+        name_cluster = "Proliferating basal"
+    elif cluster == "Basal3":
+        name_cluster = "Serpins expressing basal"
+    elif cluster == "Basal4":
+        name_cluster = "JUN/FOS"
+    else:
+        name_cluster = "Beta-catenin"
+    temp = df[df["cluster"] == cluster]["gene"].values.tolist()
+    temp = [f for f in temp if f in full_features]
+    basal_subsets_markers[name_cluster] = temp
+
+# load trajectory data
+samples_idx = pd.read_csv(os.path.join(RESULT_PATH, "plasschaert_mouse",
+                                       "plasschaert_mouse_basal.txt"),
+                          sep=',', index_col=0, header=None)
+samples_idx = np.squeeze(samples_idx.values.tolist())
+# Load data
+adata = sc.read_mtx(os.path.join(DATASET_PATH, "plasschaert_mouse_matrix.mtx"))
+adata = adata[samples_idx]
+adata.var_names = full_features
+donors.index = adata.obs.index
+adata.obs["donors"] = donors
+X = deepcopy(adata.X)
+sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)
+sc.pp.normalize_total(adata, target_sum=1e4)
+sc.pp.log1p(adata)
+sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
+adata = adata[:, [full_features.index(f) for f in df_basal_comp_names["Features"]]]
+X = X[:, [full_features.index(f) for f in df_basal_comp_names["Features"]]]
+
+# Upset
+index = pd.MultiIndex.from_arrays(arrays=[df_basal_comp_names["PHet"].to_list(),
+                                          df_basal_comp_names["Markers"].to_list(),
+                                          df_basal_comp_names["Dispersion"].to_list()],
+                                  names=["PHet", "Markers", "Dispersion"])
+df_basal_comp_names = df_basal_comp_names.drop(columns=["PHet", "Markers", "Dispersion"])
+df_basal_comp_names["Percentage of Expressed Cells"] = 100 - np.array(adata.var["pct_dropout_by_counts"].to_list())
+df_basal_comp_names["Mean Expression"] = adata.to_df().mean(0).to_list()
+quartiles = adata.to_df().quantile([0.25, 0.75])
+df_basal_comp_names["Absolute IQR"] = np.absolute(quartiles.iloc[0, :] - quartiles.iloc[1, :]).tolist()
+df_basal_comp_names["Highly Variable"] = adata.var["highly_variable"].to_list()
+df_basal_comp_names.index = index
+
+# UpSet plot
+upset = UpSet(df_basal_comp_names, orientation='vertical', sort_by='degree',
+              sort_categories_by='cardinality',
+              subset_size='count', sum_over=None,
+              min_subset_size=None, max_subset_size=None,
+              min_degree=None, max_degree=None,
+              facecolor='auto', other_dots_color=.18, shading_color=.05,
+              with_lines=True, element_size=40,
+              intersection_plot_elements=6, totals_plot_elements=2,
+              show_counts=True, show_percentages=False,
+              include_empty_subsets=False)
+upset.add_catplot(value='Percentage of Expressed Cells', kind='strip', elements=6,
+                  color='blue')
+upset.add_catplot(value='Mean Expression', kind='box', elements=5, color='green')
+upset.add_catplot(value='Absolute IQR', kind='swarm', elements=5, color='red')
+upset.add_catplot(value='Highly Variable', kind='strip', elements=3, color='black')
+upset.style_subsets(present=["PHet"], facecolor="orange")
+upset.plot()
+
+# Boxplot
+adata.X = X
+df = adata.to_df()
+basal_palette = {"Basal-1": "#4c72b0", "Basal-2": "#dd8452",
+                 "Basal-3": "#55a868", "Basal-4": "#c44e52"}
+
+# y = pd.read_csv(os.path.join(DATASET_PATH, "plasschaert_mouse_classes.csv"), sep=',')
+# y[y==0] = "Basal"
+# y[y==1] = "non Basal"
+# df["Class"] = y["classes"].to_list()
+# plt.figure(figsize=(8, 6))
+# ax = sns.boxplot(y="DUT", x='Class', data=df, width=0.85, 
+#                  palette={"Basal": "#000000", "non Basal": "#ff0000"},
+#                  showfliers=False, showmeans=True, 
+#                   meanprops={"marker": "D", 
+#                              "markerfacecolor": "white",
+#                              "markeredgecolor": "black",
+#                              "markersize": "15"})
+# ax.set_ylabel("DUT", fontsize=36)
+# ax.set_xlabel("", fontsize=36)
+# ax.tick_params(axis='both', labelsize=30)
+# sns.despine()
+# plt.tight_layout()
+
+for method_name, df_method, features in [("PHet", df_phet,
+                                          df_basal_comp_names.loc[True]["Features"].to_list()),
+                                         ("Markers", df_markers,
+                                          df_basal_comp_names.loc[:, True, :]["Features"].to_list())]:
+    print(">>> Method: ", method_name)
+    df["Basal"] = df_method["clusters"]
+    df["Donors"] = df_method["donors"]
+    for feature in features:
+        plt.figure(figsize=(8, 6))
+        ax = sns.boxplot(y=feature, x='Basal', data=df, width=0.85,
+                         palette=basal_palette,
+                         showfliers=False, showmeans=True,
+                         meanprops={"marker": "D",
+                                    "markerfacecolor": "white",
+                                    "markeredgecolor": "black",
+                                    "markersize": "15"})
+        ax.set_ylabel(feature, fontsize=36)
+        ax.set_xlabel("", fontsize=36)
+        ax.tick_params(axis='both', labelsize=30)
+        sns.despine()
+        plt.tight_layout()
+
+# PHet
+adata.obs[["donors", "clusters"]] = df_phet
+# Find differentially expressed features
+sc.tl.rank_genes_groups(adata, 'clusters', method='wilcoxon',
+                        corr_method='benjamini-hochberg', tie_correct=True)
+with plt.rc_context({'figure.figsize': (8, 5), 'figure.labelsize': '20',
+                     'axes.titlesize': '24', 'axes.labelsize': '20',
+                     'xtick.labelsize': '14', 'ytick.labelsize': '14'}):
+    sc.pl.rank_genes_groups(adata, n_genes=20, fontsize=18, sharey=False,
+                            **{"axes.xlabel": "Ranking"})
+# Markers
+adata.obs[["donors", "clusters"]] = df_markers
+# Find differentially expressed features
+sc.tl.rank_genes_groups(adata, 'clusters', method='wilcoxon',
+                        corr_method='benjamini-hochberg', tie_correct=True)
+with plt.rc_context({'figure.figsize': (8, 5), 'figure.labelsize': '20',
+                     'axes.titlesize': '24', 'axes.labelsize': '20',
+                     'xtick.labelsize': '14', 'ytick.labelsize': '14'}):
+    sc.pl.rank_genes_groups(adata, n_genes=20, fontsize=18, sharey=False,
+                            **{"axes.xlabel": "Ranking"})
+# Dispersion
+adata.obs[["donors", "clusters"]] = df_hvf
+# Find differentially expressed features
+sc.tl.rank_genes_groups(adata, 'clusters', method='wilcoxon',
+                        corr_method='benjamini-hochberg', tie_correct=True)
+with plt.rc_context({'figure.figsize': (8, 5), 'figure.labelsize': '20',
+                     'axes.titlesize': '24', 'axes.labelsize': '20',
+                     'xtick.labelsize': '14', 'ytick.labelsize': '14'}):
+    sc.pl.rank_genes_groups(adata, n_genes=20, fontsize=18, sharey=False,
+                            **{"axes.xlabel": "Ranking"})

@@ -1,8 +1,8 @@
 import copy
 import os
-import networkx as nx
 
 import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
 import pandas as pd
 import scanpy as sc
@@ -11,11 +11,11 @@ from scipy.io import mmwrite
 from scipy.sparse import coo_matrix
 from scipy.stats import permutation_test, gamma, zscore
 from sklearn.decomposition import PCA
-from statsmodels.stats.multitest import multipletests
 from sklearn.preprocessing import LabelEncoder
+from statsmodels.stats.multitest import multipletests
+
 from utility.file_path import RESULT_PATH, DATASET_PATH
 from utility.utils import clustering_performance_wo_ground_truth
-
 
 sc.settings.verbosity = 0  # verbosity: errors (0), warnings (1), info (2), hints (3)
 sc.settings.set_figure_params(dpi=80, facecolor='white')
@@ -169,6 +169,7 @@ neg.to_csv(os.path.join(RESULT_PATH, "pulseseq", "pulseseq_neg_ionocytes_feature
 # because our statistic is vectorized, we pass `vectorized=True`
 def statistic(x, y, axis):
     return np.mean(x, axis=axis) - np.mean(y, axis=axis)
+
 
 pvalues = []
 for feature in phet_features:
@@ -325,15 +326,15 @@ with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
                      'axes.labelsize': '30', 'xtick.labelsize': '35',
                      'ytick.labelsize': '12'}):
     sc.pl.heatmap(adata, ionocytes_features, groupby='clusters',
-                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', 
+                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r',
                   dendrogram=False, swap_axes=False, figsize=(11, 8))
     sc.pl.heatmap(adata, markers_dict["Ionocyte"], groupby='clusters',
-                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', 
-                  dendrogram=False, var_group_rotation=45, swap_axes=False, 
+                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r',
+                  dendrogram=False, var_group_rotation=45, swap_axes=False,
                   figsize=(11, 6))
     sc.pl.heatmap(adata, markers_dict, groupby='clusters',
-                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', 
-                  dendrogram=False, var_group_rotation=45, swap_axes=False, 
+                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r',
+                  dendrogram=False, var_group_rotation=45, swap_axes=False,
                   figsize=(11, 3))
 
 ##############################################################
@@ -466,17 +467,17 @@ with plt.rc_context({'figure.labelsize': '30', 'axes.titlesize': '20',
                      'axes.labelsize': '30', 'xtick.labelsize': '35',
                      'ytick.labelsize': '12'}):
     sc.pl.heatmap(adata, ionocytes_features, groupby='clusters',
-                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', 
+                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r',
                   dendrogram=False, swap_axes=False, figsize=(11, 8))
     sc.pl.heatmap(adata, markers_dict["Ionocyte"], groupby='clusters',
-                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', 
-                  dendrogram=False, var_group_rotation=45, swap_axes=False, 
+                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r',
+                  dendrogram=False, var_group_rotation=45, swap_axes=False,
                   figsize=(11, 6))
     sc.pl.heatmap(adata, markers_dict, groupby='clusters',
-                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r', 
-                  dendrogram=False, var_group_rotation=45, swap_axes=False, 
+                  layer='scaled', vmin=-2, vmax=2, cmap='RdBu_r',
+                  dendrogram=False, var_group_rotation=45, swap_axes=False,
                   figsize=(11, 3))
-    
+
 ##############################################################
 ####### Remove Pulseseq Negative Tuft & Ionocyte cells #######
 ##############################################################
@@ -1290,5 +1291,5 @@ df_scores.index = ["Complete Diameter Distance", "Average Diameter Distance",
                    "Maximum Linkage Distance", "Average Linkage Distance",
                    "Centroid Linkage Distance", "Ward's Distance", "Silhouette",
                    "Calinski-Harabasz", "Davies-Bouldin", "Modularity"]
-df_scores.to_csv(path_or_buf=os.path.join(RESULT_PATH, "tuft_cluster_quality.csv"), 
+df_scores.to_csv(path_or_buf=os.path.join(RESULT_PATH, "tuft_cluster_quality.csv"),
                  sep=",")

@@ -1,18 +1,18 @@
 import os
 import warnings
+from collections import Counter
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pyCompare
 import seaborn as sns
+from imblearn.under_sampling import TomekLinks
 from scipy.stats import zscore
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
-from utility.utils import dimensionality_reduction, clustering, clustering_performance
 from sklearn.utils import resample
-from collections import Counter
-from imblearn.under_sampling import TomekLinks
+from utility.utils import dimensionality_reduction, clustering, clustering_performance
 
 np.seterr(divide='ignore', invalid='ignore')
 warnings.filterwarnings('ignore')
@@ -62,8 +62,8 @@ def plot_barplot(X, methods_name, metric: str = "f1", suptitle: str = "temp", fi
     plt.close(fig="all")
 
 
-def plot_scatter(X, y, num_features: int = 100, palette: dict = None, add_legend: bool = True, 
-                 legend_title: str = "Class", suptitle: str = "temp", file_name: str = "temp", 
+def plot_scatter(X, y, num_features: int = 100, palette: dict = None, add_legend: bool = True,
+                 legend_title: str = "Class", suptitle: str = "temp", file_name: str = "temp",
                  save_path: str = "."):
     plt.figure(figsize=(12, 10))
     plt.title('%s (%s features)' % (suptitle, str(num_features)), fontsize=36)
@@ -117,8 +117,8 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, labels_pre
               perform_undersampling: bool = False, standardize: bool = True,
               num_neighbors: int = 15, min_dist: float = 0, perform_cluster: bool = False,
               cluster_type: str = "spectral", num_clusters: int = 0,
-              max_clusters: int = 10, heatmap_plot: bool = True, palette: dict = None, 
-              num_jobs: int = 2, suptitle: str = "temp", file_name: str = "temp", 
+              max_clusters: int = 10, heatmap_plot: bool = True, palette: dict = None,
+              num_jobs: int = 2, suptitle: str = "temp", file_name: str = "temp",
               save_path: str = "."):
     score = 0
     # Standardize if needed
@@ -150,7 +150,7 @@ def plot_umap(X, y, subtypes, features_name: list, num_features: int, labels_pre
         # With TomekLinks cleaning method, the number of samples in each class will not be equalized even if targeted.
         us = TomekLinks(sampling_strategy="not minority", n_jobs=num_jobs)
         le = LabelEncoder()
-        subtypes = le.fit_transform(subtypes) 
+        subtypes = le.fit_transform(subtypes)
         X_reducer, subtypes = us.fit_resample(X=X_reducer, y=subtypes)
         X = X[us.sample_indices_]
         y = y[us.sample_indices_]

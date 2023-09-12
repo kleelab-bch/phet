@@ -20,7 +20,7 @@ class DeltaHVFMean:
         num_features = X.shape[1]
         num_classes = len(np.unique(y))
         results = np.zeros((num_features))
-        
+
         # Shift data 
         min_value = X.min(0)
         if len(np.where(min_value < 0)[0]) > 0:

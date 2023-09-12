@@ -60,7 +60,7 @@ def train(num_jobs: int = 4):
     num_neighbors = 5
     max_clusters = 10
     feature_metric = "f1"
-    standardize = True 
+    standardize = True
 
     # Descriptions of the data
     # datasets = ["bc_ccgse3726", "bladdergse89", "braintumor", "glioblastoma", "leukemia_golub", "lung"]

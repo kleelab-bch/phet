@@ -38,11 +38,9 @@ METHODS = ["t-statistic", "t-statistic+Gamma", "Wilcoxon", "Wilcoxon+Gamma",
 PALETTE = sns.color_palette("tab20")
 PALETTE.append("#fcfc81")
 PALETTE.append("#C724B1")
-PALETTE.append("#fcfc81")
-PALETTE.append("#b5563c")
-PALETTE.append("#C724B1")
 PALETTE.append("#606c38")
-PALETTE.append("#283618")
+PALETTE.append("#5A5A5A")
+PALETTE.append("#b5563c")
 PALETTE = dict([(item, mcolors.to_hex(PALETTE[idx])) for idx, item in enumerate(METHODS)])
 
 
@@ -61,8 +59,19 @@ def compute_score(lb, top_features_true, top_features_pred, probes2genes, genes2
         if len(temp) != 0:
             pred_features = lb.transform(temp).sum(axis=0).astype(int)
             temp = comparative_score(pred_features=pred_features, true_features=top_features_true,
-                                     metric="precision")
-            temp_counts = int(top_features_true.dot(pred_features))
+                                     metric="f1")
+            temp_counts = lb.classes_[np.nonzero(np.multiply(top_features_true, pred_features))[0]]
+            temp_dict = {}
+            for probe in temp_counts:
+                if probe not in probes2genes:
+                    temp_dict[probe] = 1
+                else:
+                    gene = probes2genes[probe]
+                    if gene in temp_dict:
+                        temp_dict[gene] += 1
+                    else:
+                        temp_dict[gene] = 1
+            temp_counts = len(temp_dict)
         else:
             temp = 0
         temp_range.append(temp)
@@ -92,8 +101,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
                                       X_map=None, map_genes=False, ascending=True)
     top_features_pred = top_features_pred[top_features_pred["score"] < alpha]
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -104,8 +113,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -117,8 +126,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
                                       X_map=None, map_genes=False, ascending=True)
     top_features_pred = top_features_pred[top_features_pred["score"] < alpha]
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -129,8 +138,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -142,8 +151,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
                                       X_map=None, map_genes=False, ascending=True)
     top_features_pred = top_features_pred[top_features_pred["score"] < alpha]
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -154,8 +163,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -167,8 +176,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -178,8 +187,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -192,8 +201,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -206,8 +215,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -220,8 +229,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -234,8 +243,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -245,8 +254,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -256,8 +265,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -267,8 +276,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -278,8 +287,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -289,8 +298,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -300,8 +309,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -311,8 +320,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -322,8 +331,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -333,8 +342,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -344,8 +353,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -357,8 +366,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -371,8 +380,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -385,8 +394,8 @@ def single_batch(X_case, X_control, X_deco, X_limma, X_limma_distr, top_features
     top_features_pred = sort_features(X=top_features_pred, features_name=features_name,
                                       X_map=None, map_genes=False)
     temp_range, temp_markers = compute_score(lb=lb, top_features_true=top_features_true,
-                                             top_features_pred=top_features_pred, 
-                                             probes2genes=probes2genes, genes2probes=genes2probes, 
+                                             top_features_pred=top_features_pred,
+                                             probes2genes=probes2genes, genes2probes=genes2probes,
                                              range_topfeatures=range_topfeatures)
     list_scores.append(temp_range)
     list_true_markers.append(temp_markers)
@@ -468,12 +477,12 @@ def train(num_jobs: int = 2):
                                                                                                     len(features_name),
                                                                                                     selected_features))
     parallel = Parallel(n_jobs=num_jobs, verbose=0)
-    list_scores = parallel(delayed(single_batch)(X_case, X_control, X_deco[:, batch_idx], 
-                                                                    X_limma[:, batch_idx], X_limma_distr[:, batch_idx], 
-                                                                    top_features_true, features_name, genes2probes, probes2genes, 
-                                                                    lb, range_topfeatures, subsample_size, alpha, direction, 
-                                                                    batch_idx, num_batches) for batch_idx in range(num_batches))
-    list_scores, list_true_markers = (list_scores[0][0], list_scores[0][1])
+    list_scores = parallel(delayed(single_batch)(X_case, X_control, X_deco[:, batch_idx],
+                                                 X_limma[:, batch_idx], X_limma_distr[:, batch_idx],
+                                                 top_features_true, features_name, genes2probes, probes2genes,
+                                                 lb, range_topfeatures, subsample_size, alpha, direction,
+                                                 batch_idx, num_batches) for batch_idx in range(num_batches))
+    list_scores, list_true_markers = list(zip(*list_scores))
     list_scores = [i for item in list_scores for i in item]
     list_scores = np.array(list_scores)
     list_scores = np.reshape(list_scores, (num_batches, len(METHODS) * len(range_topfeatures)))
@@ -485,7 +494,8 @@ def train(num_jobs: int = 2):
     temp_methods = [m for m in METHODS for f in range_topfeatures]
     df = pd.DataFrame(list_scores, index=range(num_batches), columns=temp_methods)
     df.index.name = 'Batch'
-    df = pd.melt(df.reset_index(), id_vars='Batch', value_vars=temp_methods, var_name="Methods",
+    df = pd.melt(df.reset_index(), id_vars='Batch', 
+                 value_vars=temp_methods, var_name="Methods",
                  value_name="Scores")
     temp_range = [f for m in METHODS for f in range_topfeatures for b in range(num_batches)]
     temp_range = pd.Series(temp_range)
@@ -493,14 +503,15 @@ def train(num_jobs: int = 2):
     df.to_csv(os.path.join(RESULT_PATH, "her2_scores.csv"), sep=',', index=False)
 
     temp_methods = [m for m in METHODS for f in range_topfeatures]
-    df = pd.DataFrame(list_true_markers, index=range(num_batches), columns=temp_methods)
-    df.index.name = 'Batch'
-    df = pd.melt(df.reset_index(), id_vars='Batch', value_vars=temp_methods, var_name="Methods",
-                 value_name="Counts")
+    df_markers = pd.DataFrame(list_true_markers, index=range(num_batches), columns=temp_methods)
+    df_markers.index.name = 'Batch'
+    df_markers = pd.melt(df_markers.reset_index(), id_vars='Batch',
+                         value_vars=temp_methods, var_name="Methods",
+                         value_name="Counts")
     temp_range = [f for m in METHODS for f in range_topfeatures for b in range(num_batches)]
     temp_range = pd.Series(temp_range)
-    df["Range"] = temp_range
-    df.to_csv(os.path.join(RESULT_PATH, "her2_true_markers_count.csv"), sep=',', index=False)
+    df_markers["Range"] = temp_range
+    df_markers.to_csv(os.path.join(RESULT_PATH, "her2_counts.csv"), sep=',', index=False)
 
     # Plot lineplot
     print("## Plot lineplot using top k features...")
@@ -510,7 +521,7 @@ def train(num_jobs: int = 2):
     plt.xticks([item for item in range_topfeatures if item % 25 == 0 or item == 1], fontsize=20, rotation=45)
     plt.yticks(fontsize=20)
     plt.xlabel('Top k features', fontsize=22)
-    plt.ylabel("Precision", fontsize=22)
+    plt.ylabel("F1", fontsize=22)
     plt.suptitle("Results using Her2 data", fontsize=26)
     sns.despine()
     plt.tight_layout()
@@ -528,4 +539,4 @@ if __name__ == "__main__":
     # for mac and linux(here, os.name is 'posix')
     else:
         _ = os.system('clear')
-    train(num_jobs=1)
+    train(num_jobs=10)
