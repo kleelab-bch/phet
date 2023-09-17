@@ -14,7 +14,7 @@ sns.set_theme()
 sns.set_style(style='white')
 
 ##############################################################
-#################### Plasschaert (Human) #####################
+########################### HBECs ############################
 ##############################################################
 df = pd.read_csv(os.path.join(RESULT_PATH, "plasschaert_human",
                               "plasschaert_human_groups.csv"),
