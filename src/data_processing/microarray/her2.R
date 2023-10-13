@@ -192,7 +192,7 @@ fit2 <- contrasts.fit(fit, cont.matrix)
 
 # compute statistics and table of top significant genes
 fit2 <- eBayes(fit2, 0.01)
-tT <- topTable(fit2, adjust = "fdr", sort.by = "B", number = 10000)
+tT <- topTable(fit2, adjust = "fdr", sort.by = "B", number = 100000)
 tT <- subset(tT, select = c("ID", "adj.P.Val", "P.Value", "t", "B", "logFC", "Gene.symbol"))
 write.table(tT, file = file.path(working_dir,
                                  paste(file_name, "_limma_features.csv", sep = "")),

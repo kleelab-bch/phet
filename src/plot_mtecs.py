@@ -545,11 +545,11 @@ for key, items in markers_dict.items():
 markers = [f for k, item in phet_markers_dict.items() for f in item]
 basal_markers = ["KRT5", "KRT14", "KRT15", "KRT19", "TRP63", "PDPN", "NGFR",
                  "ITGA6", "ITGB4", "LAMB3", "BCAM", "DST", "DCN", "COL17A1",
-                 "ABI3BP", "TSPAN1", "WFDC2", "ATP1B1", "DUT", "CXCL17"]
+                 "ABI3BP", "TSPAN1", "ATP1B1", "WFDC2", "DUT", "CXCL17"]
 basal_markers += [f.upper() for item in basal_subsets_markers.values() for f in item]
 basal_markers = sorted(list(set(basal_markers)))
 secretory_markers = ["MUC5AC", "MUC5B", "TFF3", "SCGB3A1", "SCGB3A2",
-                     "BPIFB1", "MSMB", "SLPI", "WFDC2", "BPIFA1", "MSLN", "AGR2"]
+                     "BPIFB1", "MSMB", "SLPI", "BPIFA1", "MSLN", "AGR2"]
 secretory_markers = sorted(list(set(secretory_markers)))
 selected_features_dict = {'Basal': basal_markers,
                           'Secretory': secretory_markers}
@@ -583,10 +583,12 @@ with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
                cmap=sns.blend_palette(["lightgray", sns.xkcd_rgb["black"]], as_cmap=True))
 adata.X = X
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
-    sc.pl.umap(adata, color=['clusters'] + ['donors'],
+    sc.pl.umap(adata, color=['clusters'],
                use_raw=False, add_outline=False, legend_loc='on data',
                legend_fontsize=30, legend_fontoutline=0, frameon=False)
-
+    sc.pl.umap(adata, color=['donors'], use_raw=False, add_outline=False, 
+               legend_fontsize=30, legend_fontoutline=0, frameon=False)
+    
 # Find differentially expressed features
 sc.tl.rank_genes_groups(adata, 'clusters', method='wilcoxon',
                         corr_method='benjamini-hochberg', tie_correct=True)
@@ -773,7 +775,7 @@ basal_markers = ["KRT5", "KRT14", "KRT15", "KRT19", "TRP63", "PDPN", "NGFR",
 basal_markers += [f.upper() for item in basal_subsets_markers.values() for f in item]
 basal_markers = sorted(list(set(basal_markers)))
 secretory_markers = ["MUC5AC", "MUC5B", "TFF3", "SCGB3A1", "SCGB3A2",
-                     "BPIFB1", "MSMB", "SLPI", "WFDC2", "BPIFA1", "MSLN", "AGR2"]
+                     "BPIFB1", "MSMB", "SLPI", "BPIFA1", "MSLN", "AGR2"]
 secretory_markers = sorted(list(set(secretory_markers)))
 selected_features_dict = {'Basal': basal_markers,
                           'Secretory': secretory_markers}
@@ -808,8 +810,10 @@ with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
                cmap=sns.blend_palette(["lightgray", sns.xkcd_rgb["black"]], as_cmap=True))
 adata.X = X
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
-    sc.pl.umap(adata, color=['clusters'] + ['donors'],
+    sc.pl.umap(adata, color=['clusters'],
                use_raw=False, add_outline=False, legend_loc='on data',
+               legend_fontsize=30, legend_fontoutline=0, frameon=False)
+    sc.pl.umap(adata, color=['donors'], use_raw=False, add_outline=False, 
                legend_fontsize=30, legend_fontoutline=0, frameon=False)
 
 # Find differentially expressed features
@@ -1018,7 +1022,7 @@ basal_markers = ['ABI3BP', 'ATP1B1', 'BCAM', 'COL17A1', 'CXCL17', 'DCN', 'DST', 
                  'ITGA6', 'ITGB4', 'KRT15', 'KRT5', 'LAMB3', 'NGFR', 'PDPN', 'TRP63', 'TSPAN1', 'WFDC2']
 basal_markers = sorted(list(set(basal_markers)))
 secretory_markers = ['AGR2', 'BPIFA1', 'BPIFB1', 'MSLN', 'MUC5B', 'SCGB3A1',
-                     'SCGB3A2', 'WFDC2']
+                     'SCGB3A2']
 secretory_markers = sorted(list(set(secretory_markers)))
 selected_features_dict = {'Basal': basal_markers,
                           'Secretory': secretory_markers}
@@ -1053,8 +1057,10 @@ with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
                cmap=sns.blend_palette(["lightgray", sns.xkcd_rgb["black"]], as_cmap=True))
 adata.X = X
 with plt.rc_context({'figure.figsize': (8, 6), 'axes.titlesize': '24'}):
-    sc.pl.umap(adata, color=['clusters'] + ['donors'],
+    sc.pl.umap(adata, color=['clusters'],
                use_raw=False, add_outline=False, legend_loc='on data',
+               legend_fontsize=30, legend_fontoutline=0, frameon=False)
+    sc.pl.umap(adata, color=['donors'], use_raw=False, add_outline=False, 
                legend_fontsize=30, legend_fontoutline=0, frameon=False)
 
 # Find differentially expressed features
@@ -1141,6 +1147,19 @@ df_scores.index = ["Complete Diameter Distance", "Average Diameter Distance",
                    "Calinski-Harabasz", "Davies-Bouldin", "Modularity"]
 df_scores.to_csv(path_or_buf=os.path.join(RESULT_PATH, "basal_cluster_quality.csv"),
                  sep=",")
+
+plt.figure(figsize=(10, 8))
+df_temp = pd.DataFrame(df_scores.loc["Silhouette"]).reset_index()
+ax = sns.barplot(data=df_temp, x='Methods', y='Silhouette', width=0.8,
+                 dodge=False)
+ax.set_xlabel(None)
+ax.set_ylabel("Silhouette score", fontsize=32)
+ticks = [str(float(t.get_text()) * 100) for t in ax.get_yticklabels()]
+ax.set_yticklabels(ticks, fontsize=28)
+ticks = [t.get_text().capitalize() for t in ax.get_xticklabels()]
+ax.set_xticklabels(ticks, rotation=45, fontsize=32)
+sns.despine()
+plt.tight_layout()
 
 ### Gather all basal data
 df_basal = pd.DataFrame([phet_markers_dict["Basal"],

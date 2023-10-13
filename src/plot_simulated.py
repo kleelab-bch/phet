@@ -198,7 +198,7 @@ ax.legend(title="Methods", title_fontsize=30, fontsize=26, ncol=5,
 ####################################################################################
 ###                                 HER2 results                                 ###
 ####################################################################################
-top_k_features = 100
+top_k_features = 50
 range_topfeatures = list(range(0, top_k_features + 5, 5))
 range_topfeatures[0] = 1
 
@@ -206,11 +206,14 @@ range_topfeatures[0] = 1
 df = pd.read_csv(os.path.join(RESULT_PATH, "simulated", "her2_scores.csv"), sep=',')
 temp = [idx for idx, item in enumerate(df["Methods"].tolist())]
 df = df.iloc[temp]
+df = df[df["Range"].astype(int) <= top_k_features]
+df.groupby(["Methods", "Range"]).mean("Scores").to_csv(os.path.join(RESULT_PATH, "her2_group_score.csv"), sep=',')
 
 df_counts = pd.read_csv(os.path.join(RESULT_PATH, "simulated", "her2_counts.csv"), sep=',')
 temp = [idx for idx, item in enumerate(df["Methods"].tolist())]
 df_counts = df_counts.iloc[temp]
-
+df_counts = df_counts[df_counts["Range"].astype(int) <= top_k_features]
+df_counts.groupby(["Methods", "Range"]).max("Counts").to_csv(os.path.join(RESULT_PATH, "her2_group_counts.csv"), sep=',')
 tp = df_counts["Counts"].copy()
 temp = df_counts["Range"] > 20
 
@@ -224,6 +227,8 @@ fp[temp] = df_counts["Range"][temp] - 20
 
 recall =  tp / (tp + fn)
 precision = tp / (tp + fp)
+np.nan_to_num(recall, nan=0.0, posinf=0.0, neginf=0.0, copy=False)
+np.nan_to_num(precision, nan=0.0, posinf=0.0, neginf=0.0, copy=False)
 
 df_counts["True Positive"] = tp
 df_counts["False Positive"] = fp
@@ -231,13 +236,12 @@ df_counts["False Negative"] = fn
 df_counts["Recall"] = recall
 df_counts["Precision"] = precision
 
-
 # Selected methods
 selected_df = df.iloc[[idx for idx, item in enumerate(df["Methods"]) if item in selected_methods]]
 print("## Plot lineplot of F1 using top k features...")
 plt.figure(figsize=(14, 8))
 sns.lineplot(data=selected_df, x='Range', y='Scores', hue="Methods", palette=PALETTE, style="Methods")
-plt.xticks([item for item in range_topfeatures if item % 25 == 0 or item == 1], fontsize=20, rotation=45)
+plt.xticks([item for item in range_topfeatures if item % 5 == 0 or item == 1], fontsize=20, rotation=45)
 plt.yticks(fontsize=20)
 plt.xlabel('Top k features', fontsize=22)
 plt.ylabel("F1", fontsize=22)
@@ -251,45 +255,45 @@ plt.clf()
 plt.cla()
 plt.close(fig="all")
 
-selected_df_counts = df_counts.iloc[[idx for idx, item in enumerate(df_counts["Methods"]) 
-                                     if item in selected_methods]]
-print("## Plot lineplot of precision using top k features...")
-plt.figure(figsize=(14, 8))
-sns.lineplot(data=selected_df_counts, x='Range', y='Precision', hue="Methods", 
-             palette=PALETTE, style="Methods")
-plt.xticks([item for item in range_topfeatures if item % 25 == 0 or item == 1], fontsize=20, rotation=45)
-plt.yticks(fontsize=20)
-plt.xlabel('Top k features', fontsize=22)
-plt.ylabel("Precision", fontsize=22)
-plt.legend('', frameon=False)
-plt.suptitle("Results using Her2 data", fontsize=26)
-sns.despine()
-plt.tight_layout()
-file_path = os.path.join(RESULT_PATH, "her2_lineplot_precision.png")
-plt.savefig(file_path)
-plt.clf()
-plt.cla()
-plt.close(fig="all")
+# selected_df_counts = df_counts.iloc[[idx for idx, item in enumerate(df_counts["Methods"]) 
+#                                      if item in selected_methods]]
+# print("## Plot lineplot of precision using top k features...")
+# plt.figure(figsize=(14, 8))
+# sns.lineplot(data=selected_df_counts, x='Range', y='Precision', hue="Methods", 
+#              palette=PALETTE, style="Methods")
+# plt.xticks([item for item in range_topfeatures if item % 25 == 0 or item == 1], fontsize=20, rotation=45)
+# plt.yticks(fontsize=20)
+# plt.xlabel('Top k features', fontsize=22)
+# plt.ylabel("Precision", fontsize=22)
+# plt.legend('', frameon=False)
+# plt.suptitle("Results using Her2 data", fontsize=26)
+# sns.despine()
+# plt.tight_layout()
+# file_path = os.path.join(RESULT_PATH, "her2_lineplot_precision.png")
+# plt.savefig(file_path)
+# plt.clf()
+# plt.cla()
+# plt.close(fig="all")
 
-selected_df_counts = df_counts.iloc[[idx for idx, item in enumerate(df_counts["Methods"]) 
-                                     if item in selected_methods]]
-print("## Plot lineplot of recall using top k features...")
-plt.figure(figsize=(14, 8))
-sns.lineplot(data=selected_df_counts, x='Range', y='Recall', hue="Methods", 
-             palette=PALETTE, style="Methods")
-plt.xticks([item for item in range_topfeatures if item % 25 == 0 or item == 1], fontsize=20, rotation=45)
-plt.yticks(fontsize=20)
-plt.xlabel('Top k features', fontsize=22)
-plt.ylabel("Recall", fontsize=22)
-plt.legend('', frameon=False)
-plt.suptitle("Results using Her2 data", fontsize=26)
-sns.despine()
-plt.tight_layout()
-file_path = os.path.join(RESULT_PATH, "her2_lineplot_recall.png")
-plt.savefig(file_path)
-plt.clf()
-plt.cla()
-plt.close(fig="all")
+# selected_df_counts = df_counts.iloc[[idx for idx, item in enumerate(df_counts["Methods"]) 
+#                                      if item in selected_methods]]
+# print("## Plot lineplot of recall using top k features...")
+# plt.figure(figsize=(14, 8))
+# sns.lineplot(data=selected_df_counts, x='Range', y='Recall', hue="Methods", 
+#              palette=PALETTE, style="Methods")
+# plt.xticks([item for item in range_topfeatures if item % 25 == 0 or item == 1], fontsize=20, rotation=45)
+# plt.yticks(fontsize=20)
+# plt.xlabel('Top k features', fontsize=22)
+# plt.ylabel("Recall", fontsize=22)
+# plt.legend('', frameon=False)
+# plt.suptitle("Results using Her2 data", fontsize=26)
+# sns.despine()
+# plt.tight_layout()
+# file_path = os.path.join(RESULT_PATH, "her2_lineplot_recall.png")
+# plt.savefig(file_path)
+# plt.clf()
+# plt.cla()
+# plt.close(fig="all")
 
 # Full methods
 print("## Plot lineplot of F1 using top k features...")
@@ -297,7 +301,7 @@ plt.figure(figsize=(14, 8))
 sns.lineplot(data=df, x='Range', y='Scores', hue="Methods", palette=PALETTE)
 # sns.lineplot(data=df, x='Range', y='Scores', hue="Methods", palette=PALETTE, style="Methods")
 # plt.axvline(20, color='red')
-plt.xticks([item for item in range_topfeatures if item % 25 == 0 or item == 1], fontsize=20, rotation=45)
+plt.xticks([item for item in range_topfeatures if item % 5 == 0 or item == 1], fontsize=20, rotation=45)
 plt.yticks(fontsize=20)
 plt.xlabel('Top k features', fontsize=22)
 plt.ylabel("F1", fontsize=22)
