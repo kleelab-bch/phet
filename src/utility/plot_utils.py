@@ -5,7 +5,6 @@ from collections import Counter
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import pyCompare
 import seaborn as sns
 from imblearn.under_sampling import TomekLinks
 from scipy.stats import zscore
@@ -238,19 +237,3 @@ def plot_boxplot(X, y, features_name, num_features: int, standardize: bool = Fal
         plt.ylabel("Expression values (Z-score)")
         plt.suptitle(features_name[feature_idx], fontsize=18, fontweight="bold")
         sns.despine()
-
-
-def plot_blandaltman(X, y, features_name, num_features: int, standardize: bool = False, save_path: str = "."):
-    if np.unique(y).shape[0] != 2:
-        raise Exception("Bland–Altman plot supports only two groups!")
-    # standardize if needed
-    if standardize:
-        X = zscore(X)
-
-    classes = np.unique(y)
-    # cycle through which features
-    for feature_idx in range(num_features):
-        examples1 = np.where(y == classes[0])[0]
-        examples2 = np.where(y == classes[1])[0]
-        file_path = os.path.join(save_path, features_name[feature_idx] + "_blandAltman.png")
-        pyCompare.blandAltman(X[examples1, feature_idx], X[examples2, feature_idx], savePath=file_path)

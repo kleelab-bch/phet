@@ -1,13 +1,12 @@
 import warnings
 
-import hdbscan
 import numpy as np
 import pandas as pd
 import umap
 from scipy.stats import zscore, gamma
 from sklearn.cluster import AffinityPropagation, AgglomerativeClustering
 from sklearn.cluster import SpectralClustering, MiniBatchKMeans
-from sklearn.cluster import SpectralCoclustering
+from sklearn.cluster import SpectralCoclustering, HDBSCAN
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.metrics import jaccard_score, f1_score, roc_auc_score
@@ -54,8 +53,10 @@ def clustering(X, cluster_type: str = "spectral", affinity: str = "nearest_neigh
     elif cluster_type == "gmm":
         cls = GaussianMixture(n_components=num_clusters, max_iter=500, random_state=12345)
     elif cluster_type == "hdbscan":
-        cls = hdbscan.HDBSCAN(min_samples=num_neighbors, min_cluster_size=5, allow_single_cluster=False,
-                              core_dist_n_jobs=num_jobs)
+        cls = HDBSCAN(min_cluster_size=5, min_samples=num_neighbors, max_cluster_size=None,
+                      metric="euclidean", algorithm="auto", leaf_size=40, n_jobs=num_jobs,
+                      cluster_selection_method="eom",
+                      allow_single_cluster=False)
     elif cluster_type == "spectral":
         if num_neighbors > num_examples:
             num_neighbors = num_examples
