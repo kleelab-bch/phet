@@ -20,8 +20,8 @@ SEED_VALUE = 0.001
 class PHeT:
     def __init__(self, normalize: Optional[str] = "zscore", iqr_range: Optional[tuple] = (25, 75),
                  num_subsamples: int = 1000, subsampling_size: int = None, partition_by_anova: bool = False,
-                 delta_type: str = "iqr", calculate_deltadisp: bool = True, calculate_deltamean: bool = False,
-                 calculate_fisher: bool = True, calculate_profile: bool = True, binary_clustering: bool = True,
+                 disp_type: str = "iqr", calculate_deltadisp: bool = True, calculate_deltamean: bool = False,
+                 calculate_fisher: bool = True, calculate_disc_power: bool = True, binary_clustering: bool = True,
                  bin_pvalues: bool = False, feature_weight: list = None, weight_range: list = None,
                  num_jobs: int = 2):
         self.normalize = normalize  # robust, zscore, or log
@@ -29,14 +29,14 @@ class PHeT:
         self.num_subsamples = num_subsamples
         self.subsampling_size = subsampling_size
         self.partition_by_anova = partition_by_anova
-        self.delta_type = delta_type
-        if delta_type == "hvf":
+        self.disp_type = disp_type
+        if disp_type == "hvf":
             if self.normalize is not None:
                 self.normalize = "log"
         self.calculate_deltadisp = calculate_deltadisp
         self.calculate_deltamean = calculate_deltamean
         self.calculate_fisher = calculate_fisher
-        self.calculate_profile = calculate_profile
+        self.calculate_disc_power = calculate_disc_power
         self.binary_clustering = binary_clustering
         self.bin_pvalues = bin_pvalues
         if len(feature_weight) < 2:
@@ -111,7 +111,7 @@ class PHeT:
         # Total number of combinations
         num_combinations = len(list(combinations(range(num_classes), 2)))
 
-        if self.delta_type == "hvf":
+        if self.disp_type == "hvf":
             # Shift data 
             min_value = X.min(0)
             if len(np.where(min_value < 0)[0]) > 0:
@@ -189,7 +189,7 @@ class PHeT:
                         examples_j = np.where(y == j)[0]
                         examples_i = np.random.choice(a=examples_i, size=subsampling_size, replace=False)
                         examples_j = np.random.choice(a=examples_j, size=subsampling_size, replace=False)
-                        if self.delta_type == "hvf":
+                        if self.disp_type == "hvf":
                             adata = ad.AnnData(X=X[examples_i])
                             sc.pp.highly_variable_genes(adata, n_top_genes=num_features)
                             disp1 = adata.var["dispersions_norm"].to_numpy()
@@ -217,7 +217,7 @@ class PHeT:
                         P[:, sample_idx] += pvalue / num_combinations
                     combination_idx += 1
                 R = np.max(temp, axis=1)
-                if self.delta_type == "hvf":
+                if self.disp_type == "hvf":
                     del temp, disp1, disp2, delta_h
                 else:
                     del temp, iq_range_i, iq_range_j, delta_h
@@ -259,7 +259,7 @@ class PHeT:
             del P
 
         # Step 3: Identification of 4 feature profiles
-        if self.calculate_profile:
+        if self.calculate_disc_power:
             temp = []
             for class_idx in range(num_classes):
                 examples_idx = np.where(y == class_idx)[0]
@@ -336,7 +336,7 @@ class PHeT:
             R /= R.sum()
         else:
             R = 0
-        if self.calculate_profile:
+        if self.calculate_disc_power:
             O = self.feature_weight.dot(O.T)
         else:
             O = np.ones((num_features,))
