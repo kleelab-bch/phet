@@ -4,13 +4,11 @@
 
 ## Basic Description
 
-This repo contains various implementations of subtype detection algorithms. Mainly, the PHet (**P**reserving **Het**erogeneity) algorithm performs recurrent subsampling differential analysis of IQR between classes to identify a minimal set of heterogeneity-preserving features while maximizing the quality of subtype clustering. Using public datasets of microarray and single-cell RNA-seq, PHet effectively identifies disease subtypes and outperforms the previous outlier-based methods. This guide gives a tutorial on running 25 algorithms but does not describe every feature of the package.
+This repo contains various implementations of subtype detection algorithms. Mainly, the PHet (**P**reserving **Het**erogeneity) algorithm performs recurrent subsampling differential analysis and IQR between conditions to identify a minimal set of heterogeneity-preserving features while maximizing the quality of subtype clustering. Using public datasets of microarray and single-cell RNA-seq, PHet effectively identifies disease subtypes and outperforms the previous outlier-based methods. This guide gives a tutorial on running 25 algorithms but does not describe every feature of the package.
 
 ## Dependencies
 
-We highly recommend installing [Anaconda](https://www.anaconda.com/) which is an open source distribution of the Python
-and R programming languages for data wrangling, predictive analytics, and scientific computing. The codebase is tested
-to work under Python 3.11. To install the necessary requirements, run the following commands:
+We highly recommend installing [Anaconda](https://www.anaconda.com/) which is an open source distribution of the Python and R programming languages for data wrangling, predictive analytics, and scientific computing. The codebase is tested to work under Python 3.11. To install the necessary requirements, run the following commands:
 
 ``pip install -r requirements.txt``
 
@@ -84,7 +82,7 @@ For the *--file-name* argument, please include only the name of the data and rem
 
 ### Example 3
 
-To export file for the SPRING plot, enable the argument *--export-spring*. Here, we run the **PHet** (with IQR) model using the [hbecs](samples/plasschaert_human_basal_vs_ionocytes_matrix.mtx) data:
+To export file for the SPRING plot, enable the argument *--export-spring*. Here, we run the **PHet** (with IQR) model using the [HBECs](samples/plasschaert_human_basal_vs_ionocytes_matrix.mtx) data:
 
 ``
 python main.py --dspath [path to the folder containing data] --rspath [path to the folder containing results] --file-name "hbecs" --suptitle-name "Basal vs Ionocytes" --control-name "Basal" --case-name "Ionocytes" --methods phet_br --export-spring --iqr-range 25 75 --normalize "zscore" --num-subsamples 1000 --feature-weight 0.4 0.3 0.2 0.1 --alpha 0.01 --score-metric "f1" --top-k-features 100 --cluster-type "kmeans" --num-jobs 2
