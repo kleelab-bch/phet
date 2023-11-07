@@ -137,10 +137,8 @@ def parse_command_line():
                              "folder outside the source code.")
 
     # Arguments for file names and models
-    parser.add_argument("--file-name", type=str, default="srbct",
-                        help="The name of the input data.")
-    # parser.add_argument("--file-name", type=str, required=True,
-    # help = "The name of the input data.")
+    parser.add_argument("--file-name", type=str, required=True,
+                        help = "The name of the input data.")
     parser.add_argument("--suptitle-name", type=str, default="Omics",
                         help="The name of the suptitle of the figures. (default: 'Omics')")
     parser.add_argument("--control-name", type=str, default="Control",

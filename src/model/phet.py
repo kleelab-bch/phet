@@ -1,34 +1,27 @@
-'''
-DeteCtion of celluLar hEterogeneity by anAlyzing variatioNs of cElls.
-'''
-
 from itertools import combinations
 from typing import Optional
 
 import anndata as ad
 import numpy as np
 import scanpy as sc
-from scipy.stats import f_oneway, ks_2samp
 from scipy.stats import iqr, norm, zscore, ttest_ind
+from scipy.stats import ks_2samp
 from sklearn.preprocessing import KBinsDiscretizer
 from statsmodels.stats.weightstats import ztest
-from utility.utils import clustering
 
 SEED_VALUE = 0.001
 
 
 class PHeT:
     def __init__(self, normalize: Optional[str] = "zscore", iqr_range: Optional[tuple] = (25, 75),
-                 num_subsamples: int = 1000, subsampling_size: int = None, partition_by_anova: bool = False,
-                 disp_type: str = "iqr", calculate_deltadisp: bool = True, calculate_deltamean: bool = False,
-                 calculate_fisher: bool = True, calculate_disc_power: bool = True, binary_clustering: bool = True,
-                 bin_pvalues: bool = True, feature_weight: list = None, weight_range: list = None,
-                 num_jobs: int = 2):
+                 num_subsamples: int = 1000, subsampling_size: int = None, disp_type: str = "iqr",
+                 calculate_deltadisp: bool = True, calculate_deltamean: bool = False, calculate_fisher: bool = True,
+                 calculate_disc_power: bool = True, bin_pvalues: bool = True, feature_weight: list = None,
+                 weight_range: list = None, num_jobs: int = 2):
         self.normalize = normalize  # robust, zscore, or log
         self.iqr_range = iqr_range
         self.num_subsamples = num_subsamples
         self.subsampling_size = subsampling_size
-        self.partition_by_anova = partition_by_anova
         self.delta_type = disp_type
         if disp_type == "hvf":
             if self.normalize is not None:
@@ -37,7 +30,6 @@ class PHeT:
         self.calculate_deltamean = calculate_deltamean
         self.calculate_fisher = calculate_fisher
         self.calculate_disc_power = calculate_disc_power
-        self.binary_clustering = binary_clustering
         self.bin_pvalues = bin_pvalues
         if len(feature_weight) < 2:
             feature_weight = [0.4, 0.3, 0.2, 0.1]
@@ -50,63 +42,20 @@ class PHeT:
         self.weight_range = weight_range  # [0.1, 0.4, 0.8]
         self.num_jobs = num_jobs
 
-    def __binary_partitioning(self, X):
-        num_examples, num_features = X.shape
-        M = np.zeros((num_features,))
-        K = np.zeros((num_features, num_examples), dtype=np.int8)
-        for feature_idx in range(num_features):
-            temp = np.zeros((num_examples - 2))
-            temp_X = np.sort(X[:, feature_idx])[::-1]
-            order_list = np.argsort(X[:, feature_idx])[::-1]
-            for k in range(1, num_examples - 1):
-                S1 = temp_X[:k]
-                S2 = temp_X[k:]
-                if self.partition_by_anova:
-                    _, pvalue = f_oneway(S1, S2)
-                    temp[k - 1] = pvalue
-                else:
-                    # For the two subsets, the mean and sum of squares for each
-                    # feature are calculated
-                    mean1 = np.mean(S1)
-                    mean2 = np.mean(S2)
-                    SS1 = np.sum((S1 - mean1) ** 2)
-                    SS2 = np.sum((S2 - mean2) ** 2)
-                    temp[k - 1] = SS1 + SS2
-            k = np.argmin(temp) + 1
-            M[feature_idx] = np.min(temp)
-            K[feature_idx, order_list[k:]] = 1
-        k = np.argmin(M)
-        y = K[k]
-        if self.binary_clustering:
-            y = clustering(X=K.T, cluster_type="agglomerative", affinity="euclidean", num_neighbors=5,
-                           num_clusters=2, num_jobs=self.num_jobs, predict=True)
-        return y
-
-    def fit_predict(self, X, y=None, partition_data: bool = False, control_class: int = 0,
-                    case_class: int = 1):
+    def fit_predict(self, X, y, control_class: int = 0, case_class: int = 1):
         # Extract properties
         num_examples, num_features = X.shape
         # Check if classes information is not provided (unsupervised analysis)
-        num_classes = 1
-        if y is not None:
-            if np.unique(y).shape[0] != 2:
-                temp = "Only two valid groups are allowed!"
-                raise Exception(temp)
-            if control_class == case_class:
-                temp = "Please provide two distinct groups ids!"
-                raise Exception(temp)
-            if control_class not in np.unique(y) or case_class not in np.unique(y):
-                temp = "Please provide valid control/case group ids!"
-                raise Exception(temp)
-            num_classes = len(np.unique(y))
-        else:
-            # If there is no class information the algorithm will iteratively group
-            # samples into two classes based on minimum within class mean differences
-            # For each feature, the expression levels in all samples are sorted in
-            # descending order and then divided into two subsets
-            if partition_data:
-                y = self.__binary_partitioning(X=X)
-                num_classes = len(np.unique(y))
+        if np.unique(y).shape[0] != 2:
+            temp = "Only two valid groups are allowed!"
+            raise Exception(temp)
+        if control_class == case_class:
+            temp = "Please provide two distinct groups ids!"
+            raise Exception(temp)
+        if control_class not in np.unique(y) or case_class not in np.unique(y):
+            temp = "Please provide valid control/case group ids!"
+            raise Exception(temp)
+        num_classes = len(np.unique(y))
 
         # Total number of combinations
         num_combinations = len(list(combinations(range(num_classes), 2)))
@@ -219,16 +168,6 @@ class PHeT:
                     del temp, disp1, disp2, delta_h
                 else:
                     del temp, iq_range_i, iq_range_j, delta_h
-            else:
-                sample2example = np.zeros((num_subsamples, num_examples), dtype=np.int16)
-                temp = np.zeros((num_features, num_subsamples))
-                for sample_idx in range(num_subsamples):
-                    subset = np.random.choice(a=num_examples, size=subsampling_size, replace=False)
-                    delta_h = iqr(X[subset], axis=0, rng=self.iqr_range, scale=1.0)
-                    P[:, sample_idx] = pvalue
-                    sample2example[sample_idx, subset] = 1
-                    temp[:, sample_idx] = np.absolute(delta_h)
-                R = np.max(temp, axis=1)
             np.nan_to_num(R, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
             # Check if iqr statistics for each feature has high variances across samples
@@ -245,15 +184,10 @@ class PHeT:
             # Standardize I to be used in the final ranking of features. This is useful 
             # to calculate p-values)
             I = (I - 2 * num_subsamples) / np.sqrt(4 * num_subsamples)
-            # Keep only the highest Fisher's statisitcs
+            # Keep only the highest Fisher's statistics
             I[I < 0] = SEED_VALUE
             I = np.absolute(I)
             np.nan_to_num(I, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
-            # Calculate p-values from the Chi-square distribution with
-            #  2 x self.subsets degrees of freedom
-            # P = 1 - chi2.cdf(x = I, df = 2 * self.num_subsamples)
-            # Adjusted p-values by BH method
-            # _, P = fdrcorrection(pvals=P, alpha=0.05, is_sorted=False)
             del P
 
         # Step 3: Discriminative power calculation
@@ -348,4 +282,5 @@ class PHeT:
 
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
         results = np.reshape(results, (results.shape[0], 1))
+
         return results
