@@ -22,14 +22,14 @@ class PHeT:
                  num_subsamples: int = 1000, subsampling_size: int = None, partition_by_anova: bool = False,
                  disp_type: str = "iqr", calculate_deltadisp: bool = True, calculate_deltamean: bool = False,
                  calculate_fisher: bool = True, calculate_disc_power: bool = True, binary_clustering: bool = True,
-                 bin_pvalues: bool = False, feature_weight: list = None, weight_range: list = None,
+                 bin_pvalues: bool = True, feature_weight: list = None, weight_range: list = None,
                  num_jobs: int = 2):
         self.normalize = normalize  # robust, zscore, or log
         self.iqr_range = iqr_range
         self.num_subsamples = num_subsamples
         self.subsampling_size = subsampling_size
         self.partition_by_anova = partition_by_anova
-        self.disp_type = disp_type
+        self.delta_type = disp_type
         if disp_type == "hvf":
             if self.normalize is not None:
                 self.normalize = "log"
@@ -111,7 +111,7 @@ class PHeT:
         # Total number of combinations
         num_combinations = len(list(combinations(range(num_classes), 2)))
 
-        if self.disp_type == "hvf":
+        if self.delta_type == "hvf":
             # Shift data 
             min_value = X.min(0)
             if len(np.where(min_value < 0)[0]) > 0:
@@ -173,14 +173,12 @@ class PHeT:
                 subsampling_size = temp
 
         if self.calculate_deltadisp or self.calculate_fisher:
-            # Step 1: Recurrent-sampling differential analysis to select and rank
+            # Step 1: Iterative subsampling process to select and rank
             # significant features
-            # Define frequency raw p-value P matrices
+            # Define IQR and P matrices
             P = np.zeros((num_features, num_subsamples))
             R = np.zeros((num_features,))
             if num_classes > 1:
-                # Make transposed matrix with shape (feat per class, observation per class)
-                # find mean and iqr difference between genes
                 combination_idx = 0
                 temp = np.zeros((num_features, num_combinations))
                 for i, j in combinations(range(num_classes), 2):
@@ -189,7 +187,7 @@ class PHeT:
                         examples_j = np.where(y == j)[0]
                         examples_i = np.random.choice(a=examples_i, size=subsampling_size, replace=False)
                         examples_j = np.random.choice(a=examples_j, size=subsampling_size, replace=False)
-                        if self.disp_type == "hvf":
+                        if self.delta_type == "hvf":
                             adata = ad.AnnData(X=X[examples_i])
                             sc.pp.highly_variable_genes(adata, n_top_genes=num_features)
                             disp1 = adata.var["dispersions_norm"].to_numpy()
@@ -217,7 +215,7 @@ class PHeT:
                         P[:, sample_idx] += pvalue / num_combinations
                     combination_idx += 1
                 R = np.max(temp, axis=1)
-                if self.disp_type == "hvf":
+                if self.delta_type == "hvf":
                     del temp, disp1, disp2, delta_h
                 else:
                     del temp, iq_range_i, iq_range_j, delta_h
@@ -258,7 +256,7 @@ class PHeT:
             # _, P = fdrcorrection(pvals=P, alpha=0.05, is_sorted=False)
             del P
 
-        # Step 3: Identification of 4 feature profiles
+        # Step 3: Discriminative power calculation
         if self.calculate_disc_power:
             temp = []
             for class_idx in range(num_classes):
@@ -347,6 +345,7 @@ class PHeT:
             I = O
             I /= I.sum()
         results = R + I
+
         np.nan_to_num(results, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
         results = np.reshape(results, (results.shape[0], 1))
         return results
