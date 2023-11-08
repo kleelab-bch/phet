@@ -15,9 +15,8 @@ SEED_VALUE = 0.001
 class PHeT:
     def __init__(self, normalize: Optional[str] = "zscore", iqr_range: Optional[tuple] = (25, 75),
                  num_subsamples: int = 1000, subsampling_size: int = None, disp_type: str = "iqr",
-                 calculate_deltadisp: bool = True, calculate_deltamean: bool = False, calculate_fisher: bool = True,
-                 calculate_disc_power: bool = True, bin_pvalues: bool = True, feature_weight: list = None,
-                 weight_range: list = None, num_jobs: int = 2):
+                 calculate_deltadisp: bool = True, calculate_fisher: bool = True,
+                 calculate_disc_power: bool = True, feature_weight: list = None, num_jobs: int = 2):
         self.normalize = normalize  # robust, zscore, or log
         self.iqr_range = iqr_range
         self.num_subsamples = num_subsamples
@@ -27,19 +26,11 @@ class PHeT:
             if self.normalize is not None:
                 self.normalize = "log"
         self.calculate_deltadisp = calculate_deltadisp
-        self.calculate_deltamean = calculate_deltamean
         self.calculate_fisher = calculate_fisher
         self.calculate_disc_power = calculate_disc_power
-        self.bin_pvalues = bin_pvalues
         if len(feature_weight) < 2:
             feature_weight = [0.4, 0.3, 0.2, 0.1]
-        if not bin_pvalues:
-            if len(feature_weight) > 4:
-                feature_weight = [0.4, 0.3, 0.2, 0.1]
-            if len(weight_range) != 3:
-                weight_range = [0.1, 0.3, 0.5]
         self.feature_weight = np.array(feature_weight) / np.sum(feature_weight)
-        self.weight_range = weight_range  # [0.1, 0.4, 0.8]
         self.num_jobs = num_jobs
 
     def fit_predict(self, X, y, control_class: int = 0, case_class: int = 1):
@@ -150,13 +141,7 @@ class PHeT:
                             iq_range_j = iqr(X[examples_j], axis=0, rng=self.iqr_range, scale=1.0)
                             delta_h = np.absolute(iq_range_i - iq_range_j)
                         np.nan_to_num(delta_h, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
-                        delta_means = 0
-                        if self.calculate_deltamean:
-                            mean_i = np.mean(X[examples_i], axis=0)
-                            mean_j = np.mean(X[examples_j], axis=0)
-                            delta_means = np.absolute(mean_i - mean_j)
-                            np.nan_to_num(delta_means, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
-                        temp[:, combination_idx] += (delta_h + delta_means) / num_subsamples
+                        temp[:, combination_idx] += delta_h / num_subsamples
                         if subsampling_size < 30:
                             _, pvalue = ttest_ind(X[examples_i], X[examples_j])
                         else:
@@ -198,10 +183,7 @@ class PHeT:
                 temp.append(len(examples_idx))
             min_size = np.min(temp)
             slice_size = subsampling_size
-            weight_range = self.weight_range
-            O = np.zeros((num_features, 4))
-            if self.bin_pvalues:
-                O = np.zeros((num_features, 1))
+            O = np.zeros((num_features, 1))
             for feature_idx in range(num_features):
                 if num_classes > 1:
                     temp_pvalues = list()
@@ -223,45 +205,17 @@ class PHeT:
                             temp.append(pvalue)
                         pvalue = np.min(temp)
                         temp_pvalues.append(pvalue)
-                    if self.bin_pvalues:
-                        O[feature_idx] = np.mean(temp_pvalues)
-                        continue
-                    # Complete change
-                    if weight_range[0] > np.mean(temp_pvalues):  # or 0.1
-                        O[feature_idx, 0] = 1
-                    # Majority change
-                    elif weight_range[1] > np.mean(temp_pvalues) >= weight_range[0]:  # or [0.4, 0.1]
-                        O[feature_idx, 1] = 1
-                    # Minority change
-                    elif weight_range[2] > np.mean(temp_pvalues) >= weight_range[1]:  # or [0.8, 0.4]
-                        O[feature_idx, 2] = 1
-                    # Mixed change
-                    else:
-                        O[feature_idx, 3] = 1
+                    O[feature_idx] = np.mean(temp_pvalues)
                 else:
                     temp_pvalues = 1 - norm.cdf(zscore(X[:, feature_idx]))
-                    if self.bin_pvalues:
-                        O[feature_idx] = np.mean(temp_pvalues)
-                        continue
-                    # Complete change
-                    if 0.1 > np.mean(temp_pvalues):  # or 0.1
-                        O[feature_idx, 0] = 1
-                    # Majority change
-                    elif 0.3 > np.mean(temp_pvalues) >= 0.1:  # or [0.4, 0.1]
-                        O[feature_idx, 1] = 1
-                    # Minority change
-                    elif 0.5 > np.mean(temp_pvalues) >= 0.3:  # or [0.8, 0.4]
-                        O[feature_idx, 2] = 1
-                    # Mixed change
-                    else:
-                        O[feature_idx, 3] = 1
-            if self.bin_pvalues:
-                temp = KBinsDiscretizer(n_bins=len(self.feature_weight), encode="ordinal",
-                                        strategy="uniform").fit_transform(O)
-                O = np.zeros((num_features, len(self.feature_weight)), dtype=np.int8)
-                for bin_idx in range(len(self.feature_weight)):
-                    O[np.where(temp == bin_idx)[0], bin_idx] = 1
-                del temp
+                    O[feature_idx] = np.mean(temp_pvalues)
+
+            temp = KBinsDiscretizer(n_bins=len(self.feature_weight), encode="ordinal",
+                                    strategy="uniform").fit_transform(O)
+            O = np.zeros((num_features, len(self.feature_weight)), dtype=np.int8)
+            for bin_idx in range(len(self.feature_weight)):
+                O[np.where(temp == bin_idx)[0], bin_idx] = 1
+            del temp
 
         # Step 4: Estimating features statistics based on combined parameters (I, O, R)
         if self.calculate_deltadisp:

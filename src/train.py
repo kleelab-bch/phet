@@ -148,7 +148,7 @@ def train(args):
             top_features_true = top_features_true.loc[temp]
             temp = top_features_true[top_features_true["adj.P.Val"] <= args.alpha]
             if temp.shape[0] < args.top_k_features:
-                temp = top_features_true[:top_k_features - 1]
+                temp = top_features_true[:args.top_k_features - 1]
                 if args.sort_by_pvalue and temp.shape[0] == 0:
                     args.plot_top_k_features = True
             top_features_true = [str(feature_idx) for feature_idx in temp.index.to_list()[:args.top_k_features]]
@@ -456,9 +456,8 @@ def train(args):
             phet_hvf_normalize = "log"
         estimator = PHeT(normalize=phet_hvf_normalize, iqr_range=args.iqr_range, num_subsamples=args.num_subsamples,
                          disp_type="hvf", calculate_deltadisp=args.calculate_deltadisp,
-                         calculate_deltamean=args.calculate_deltamean, calculate_fisher=args.calculate_fisher,
-                         calculate_disc_power=args.calculate_disc_power, bin_pvalues=args.bin_pvalues,
-                         feature_weight=args.feature_weight, weight_range=args.weight_range)
+                         calculate_fisher=args.calculate_fisher, calculate_disc_power=args.calculate_disc_power,
+                         feature_weight=args.feature_weight)
         if args.exponentiate:
             df = estimator.fit_predict(X=np.exp(X), y=y, control_class=0, case_class=1)
         else:
@@ -473,9 +472,8 @@ def train(args):
                                                                   METHODS[24]))
         estimator = PHeT(normalize="zscore", iqr_range=args.iqr_range, num_subsamples=args.num_subsamples,
                          disp_type="iqr", calculate_deltadisp=args.calculate_deltadisp,
-                         calculate_deltamean=args.calculate_deltamean, calculate_fisher=args.calculate_fisher,
-                         calculate_disc_power=args.calculate_disc_power, bin_pvalues=args.bin_pvalues,
-                         feature_weight=args.feature_weight, weight_range=args.weight_range)
+                         calculate_fisher=args.calculate_fisher, calculate_disc_power=args.calculate_disc_power,
+                         feature_weight=args.feature_weight)
         df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         methods_save_name.append("phet_br")
         temp_methods.append(METHODS[24])

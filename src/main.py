@@ -82,18 +82,13 @@ def __internal_args(parse_args):
     args.calculate_deltadisp = True
     if parse_args.no_calculate_deltadisp:
         args.calculate_deltadisp = False
-    args.calculate_deltamean = parse_args.calculate_deltamean
     args.calculate_fisher = True
     if parse_args.no_calculate_fisher:
         args.calculate_fisher = False
     args.calculate_disc_power = True
     if parse_args.no_calculate_disc_power:
         args.calculate_disc_power = False
-    args.bin_pvalues = True
-    if parse_args.no_binning_pvalues:
-        args.bin_pvalues = False
     args.feature_weight = parse_args.feature_weight
-    args.weight_range = parse_args.weight_range
 
     ###***************************        Evaluate arguments        ***************************###
     args.alpha = parse_args.alpha
@@ -200,27 +195,16 @@ def parse_command_line():
     parser.add_argument("--no-calculate-deltadisp", action="store_true", default=False,
                         help="Skip computing the delta dispersion for PHet. "
                              "(default: False).")
-    parser.add_argument("--calculate-deltamean", action="store_true", default=False,
-                        help="Compute the delta mean for PHet. "
-                             "(default: False).")
     parser.add_argument("--no-calculate-fisher", action="store_true", default=False,
                         help="Skip computing the Fisher\"s method for PHet. "
                              "(default: False).")
     parser.add_argument("--no-calculate-disc-power", action="store_true", default=False,
                         help="Skip computing the discriminative power for features. "
                              "(default: False).")
-    parser.add_argument("--no-binning-pvalues", action="store_true", default=False,
-                        help="Skip binning pvalues from the KS test for PHet. "
-                             "(default: False).")
     parser.add_argument("--feature-weight", nargs="+", type=float,
                         default=[0.4, 0.3, 0.2, 0.1],
                         help="Weights for the binning intervals used to scale features for PHet. "
                              "(default: [0.4, 0.3, 0.2, 0.1]).")
-    parser.add_argument("--weight-range", nargs="+", type=float,
-                        default=[0.1, 0.4, 0.8],
-                        help="Three hyper-parameters to give a weight for a feature. This is only used "
-                             "when the '--bin-pvalues' is set to false. "
-                             "(default: [0.1, 0.4, 0.8]).")
 
     # Arguments for evaluation
     parser.add_argument("--alpha", type=float, default=0.01,
