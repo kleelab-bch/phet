@@ -79,15 +79,6 @@ def __internal_args(parse_args):
     args.seurat_log_transform = parse_args.seurat_log_transform  # See list of data
     # PHet
     args.num_subsamples = parse_args.num_subsamples
-    args.calculate_deltadisp = True
-    if parse_args.no_calculate_deltadisp:
-        args.calculate_deltadisp = False
-    args.calculate_fisher = True
-    if parse_args.no_calculate_fisher:
-        args.calculate_fisher = False
-    args.calculate_disc_power = True
-    if parse_args.no_calculate_disc_power:
-        args.calculate_disc_power = False
     args.feature_weight = parse_args.feature_weight
 
     ###***************************        Evaluate arguments        ***************************###
@@ -133,7 +124,7 @@ def parse_command_line():
 
     # Arguments for file names and models
     parser.add_argument("--file-name", type=str, required=True,
-                        help = "The name of the input data.")
+                        help="The name of the input data.")
     parser.add_argument("--suptitle-name", type=str, default="Omics",
                         help="The name of the suptitle of the figures. (default: 'Omics')")
     parser.add_argument("--control-name", type=str, default="Control",
@@ -192,15 +183,6 @@ def parse_command_line():
     #                     choices=["hvf", "iqr"],
     #                     help="Type of the statistical dispersion measurement for PHet. "
     #                          "(default: 'iqr').")
-    parser.add_argument("--no-calculate-deltadisp", action="store_true", default=False,
-                        help="Skip computing the delta dispersion for PHet. "
-                             "(default: False).")
-    parser.add_argument("--no-calculate-fisher", action="store_true", default=False,
-                        help="Skip computing the Fisher\"s method for PHet. "
-                             "(default: False).")
-    parser.add_argument("--no-calculate-disc-power", action="store_true", default=False,
-                        help="Skip computing the discriminative power for features. "
-                             "(default: False).")
     parser.add_argument("--feature-weight", nargs="+", type=float,
                         default=[0.4, 0.3, 0.2, 0.1],
                         help="Weights for the binning intervals used to scale features for PHet. "
