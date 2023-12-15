@@ -15,7 +15,7 @@ SEED_VALUE = 0.001
 class PHeT:
     def __init__(self, normalize: Optional[str] = "zscore", iqr_range: Optional[tuple] = (25, 75),
                  num_subsamples: int = 1000, subsampling_size: int = None, disp_type: str = "iqr",
-                 feature_weight: list = None, num_jobs: int = 2):
+                 feature_weight: list = None):
         self.normalize = normalize  # robust, zscore, or log
         self.iqr_range = iqr_range
         self.num_subsamples = num_subsamples
@@ -27,7 +27,6 @@ class PHeT:
         if len(feature_weight) < 2:
             feature_weight = [0.4, 0.3, 0.2, 0.1]
         self.feature_weight = np.array(feature_weight) / np.sum(feature_weight)
-        self.num_jobs = num_jobs
 
     def fit_predict(self, X, y, control_class: int = 0, case_class: int = 1):
         # Extract properties
