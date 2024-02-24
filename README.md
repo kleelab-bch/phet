@@ -1,15 +1,22 @@
-# Heterogeneity-Preserving Discriminative Feature Selection for Subtype Discovery
+# Heterogeneity-Preserving Discriminative Feature Selection for Disease-Specific Subtype Discovery
 
 ![Workflow](images/symbol.png)
 
 ## Basic Description
 
-This repo contains various implementations of subtype detection algorithms. Mainly, the PHet (**P**reserving **Het**
-erogeneity) algorithm performs recurrent subsampling differential analysis and IQR between conditions to identify a
-minimal set of heterogeneity-preserving features while maximizing the quality of subtype clustering. Using public
-datasets of microarray and single-cell RNA-seq, PHet effectively identifies disease subtypes and outperforms the
-previous outlier-based methods. This guide gives a tutorial on running 25 algorithms but does not describe every feature
-of the package.
+This repository encompasses a range of subtype detection algorithms, with a primary focus on the PHet (**P**reserving *
+*Het**
+erogeneity) algorithm. The PHet algorithm is designed to conduct recurrent subsampling differential analysis and
+interquartile
+range (IQR) calculations between conditions, in order to pinpoint a minimal set of features that preserve heterogeneity
+while maximizing the quality of subtype clustering. Through the utilization of public datasets from microarray and
+single-cell RNA-seq studies, PHet has demonstrated its effectiveness in identifying disease subtypes, surpassing the
+performance
+of previous outlier-based methods. While this guide offers a tutorial on executing 25 different algorithms, it does not
+delve
+into an exhaustive description of every feature within the package. For additional information about arguments and
+functionalities,
+it is recommended to execute `python main.py --help`.
 
 ## Dependencies
 
@@ -126,8 +133,8 @@ generate several files located in the **rspath** folder.
 If you find **PHet** useful in your research, please consider citing the following paper:
 
 - M. A. Basher, Abdur Rahman, Hallinan, Caleb, and Lee, Kwonmoo. *
-  *["Heterogeneity-Preserving Discriminative Feature Selection for Subtype Discovery."](https://doi.org/10.1101/2023.05.14.540686)
-  **, bioRxiv (2023).
+  *["Heterogeneity-Preserving Discriminative Feature Selection for Disease-Specific Subtype Discovery."](https://doi.org/10.1101/2023.05.14.540686)
+  **, bioRxiv (2024).
 
 ## Contact
 

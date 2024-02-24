@@ -1,12 +1,14 @@
 __author__ = "Abdurrahman Abul-Basher"
-__date__ = "10/17/2023"
-__copyright__ = "Copyright 2023, The Lee Lab"
-__license__ = "GPL"
+__date__ = "01/01/2024"
+__copyright__ = "Copyright 2024, The Lee Lab"
+__license__ = "MIT"
 __version__ = "1.0"
 __maintainer__ = "Abdurrahman Abul-Basher"
 __email__ = "ar.basher@childrens.harvard.edu"
 __status__ = "Production"
-__description__ = "This file is the main entry to perform subtype detection."
+__description__ = ("This file serves as the primary entry point for "
+                   "the exploration and identification of cell subtypes "
+                   "or heterogeneous cell populations.")
 
 import datetime
 import json
