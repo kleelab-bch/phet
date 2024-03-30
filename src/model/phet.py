@@ -1,5 +1,5 @@
 from itertools import combinations
-from typing import Optional
+from typing import Optional, Literal
 
 import anndata as ad
 import numpy as np
@@ -13,9 +13,10 @@ SEED_VALUE = 0.001
 
 
 class PHeT:
-    def __init__(self, normalize: Optional[str] = "zscore", iqr_range: Optional[tuple] = (25, 75),
-                 num_subsamples: int = 1000, subsampling_size: int = None, disp_type: str = "iqr",
-                 feature_weight: list = None):
+    def __init__(self, normalize: Literal["robust", "zscore", "log", "none"] = "zscore", 
+                 iqr_range: Optional[tuple] = (25, 75), num_subsamples: int = 1000, 
+                 subsampling_size: int = None, disp_type: Literal["iqr", "hvf"] = "iqr", 
+                 feature_weight: list = None, num_jobs: int = 2):
         self.normalize = normalize  # robust, zscore, or log
         self.iqr_range = iqr_range
         self.num_subsamples = num_subsamples
@@ -54,7 +55,6 @@ class PHeT:
             # Logarithm transformation
             if self.normalize == "log":
                 X = np.log(X + 1)
-            np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
         else:
             if self.normalize == "robust":
                 # Robustly estimate median by classes
@@ -77,7 +77,7 @@ class PHeT:
                 if len(np.where(min_value < 0)[0]) > 0:
                     X = X - min_value + 1
                 X = np.log1p(X)
-                np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+        np.nan_to_num(X, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
         # Define the subsampling size for iterative subsampling
         num_subsamples = self.num_subsamples
@@ -144,8 +144,10 @@ class PHeT:
         f = -2 * np.log(P)
         f[f == np.inf] = 0
         f = np.sum(f, axis=1)
-        # Standardize I to be used in the final ranking of features. This is useful
-        # to calculate p-values)
+        # f has a chi-squared distribution with 2*num_subsamples degrees of freedom. 
+        # So, we can standardize f to be used in the final ranking of features. 
+        # Mean of chi-squared is 2*num_subsamples while the standard deviation 
+        # is np.sqrt(4 * num_subsamples).
         f = (f - 2 * num_subsamples) / np.sqrt(4 * num_subsamples)
         # Keep only the highest Fisher's statistics
         f[f < 0] = SEED_VALUE
