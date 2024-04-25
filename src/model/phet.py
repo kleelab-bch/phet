@@ -1,3 +1,16 @@
+import os
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+import warnings
+
+warnings.filterwarnings('ignore')
+
+import logging
+
+logging.getLogger('tensorflow').disabled = True
+logging.disable(logging.WARNING)
+
 from itertools import combinations
 from typing import Optional, Literal
 
@@ -12,17 +25,17 @@ from statsmodels.stats.weightstats import ztest
 SEED_VALUE = 0.001
 
 
-class PHeT:
-    def __init__(self, normalize: Literal["robust", "zscore", "log", "none"] = "zscore", 
-                 iqr_range: Optional[tuple] = (25, 75), num_subsamples: int = 1000, 
-                 subsampling_size: int = None, disp_type: Literal["iqr", "hvf"] = "iqr", 
+class PHet:
+    def __init__(self, normalize: Literal["robust", "zscore", "log"] | None = "zscore",
+                 iqr_range: Optional[tuple] = (25, 75), num_subsamples: int = 1000,
+                 subsampling_size: int = None, delta_type: Literal["iqr", "hvf"] = "iqr",
                  feature_weight: list = None, num_jobs: int = 2):
         self.normalize = normalize  # robust, zscore, or log
         self.iqr_range = iqr_range
         self.num_subsamples = num_subsamples
         self.subsampling_size = subsampling_size
-        self.delta_type = disp_type
-        if disp_type == "hvf":
+        self.delta_type = delta_type
+        if delta_type == "hvf":
             if self.normalize is not None:
                 self.normalize = "log"
         if len(feature_weight) < 2:
@@ -107,30 +120,31 @@ class PHeT:
         combination_idx = 0
         temp = np.zeros((num_features, num_combinations))
         for i, j in combinations(range(num_classes), 2):
+            examples_i = np.where(y == i)[0]
+            examples_j = np.where(y == j)[0]
             for sample_idx in range(num_subsamples):
-                examples_i = np.where(y == i)[0]
-                examples_j = np.where(y == j)[0]
-                examples_i = np.random.choice(a=examples_i, size=subsampling_size, replace=False)
-                examples_j = np.random.choice(a=examples_j, size=subsampling_size, replace=False)
+                subsample_i = np.random.choice(a=examples_i, size=subsampling_size, replace=False)
+                subsample_j = np.random.choice(a=examples_j, size=subsampling_size, replace=False)
                 if self.delta_type == "hvf":
-                    adata = ad.AnnData(X=X[examples_i])
+                    adata = ad.AnnData(X=X[subsample_i])
                     sc.pp.highly_variable_genes(adata, n_top_genes=num_features)
                     disp1 = adata.var["dispersions_norm"].to_numpy()
-                    adata = ad.AnnData(X=X[examples_j])
+                    adata = ad.AnnData(X=X[subsample_j])
                     sc.pp.highly_variable_genes(adata, n_top_genes=num_features)
                     disp2 = adata.var["dispersions_norm"].to_numpy()
                     delta_h = np.absolute(disp1 - disp2)
                     del adata
                 else:
-                    iq_range_i = iqr(X[examples_i], axis=0, rng=self.iqr_range, scale=1.0)
-                    iq_range_j = iqr(X[examples_j], axis=0, rng=self.iqr_range, scale=1.0)
+                    iq_range_i = iqr(X[subsample_i], axis=0, rng=self.iqr_range, scale=1.0)
+                    iq_range_j = iqr(X[subsample_j], axis=0, rng=self.iqr_range, scale=1.0)
                     delta_h = np.absolute(iq_range_i - iq_range_j)
                 np.nan_to_num(delta_h, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
                 temp[:, combination_idx] += delta_h / num_subsamples
                 if subsampling_size < 30:
-                    _, pvalue = ttest_ind(X[examples_i], X[examples_j])
+                    _, pvalue = ttest_ind(X[subsample_i], X[subsample_j])
                 else:
-                    _, pvalue = ztest(X[examples_i], X[examples_j])
+                    _, pvalue = ztest(X[subsample_i], X[subsample_j])
+                np.nan_to_num(pvalue, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
                 P[:, sample_idx] += pvalue / num_combinations
             combination_idx += 1
         r = np.max(temp, axis=1)
@@ -167,19 +181,19 @@ class PHeT:
             temp_pvalues = list()
             for i, j in combinations(range(num_classes), 2):
                 temp = []
-                examples_i = np.where(y == i)[0]
-                examples_j = np.where(y == j)[0]
-                examples_i = X[examples_i, feature_idx]
-                examples_j = X[examples_j, feature_idx]
-                examples_i = np.random.permutation(examples_i)
-                examples_j = np.random.permutation(examples_j)
+                subsample_i = np.where(y == i)[0]
+                subsample_j = np.where(y == j)[0]
+                subsample_i = X[subsample_i, feature_idx]
+                subsample_j = X[subsample_j, feature_idx]
+                subsample_i = np.random.permutation(subsample_i)
+                subsample_j = np.random.permutation(subsample_j)
                 for slice_idx in np.arange(0, min_size, slice_size):
                     temp_size = slice_size
                     if slice_idx + slice_size >= min_size:
-                        temp_size = np.min((examples_j[slice_idx:].shape[0],
-                                            examples_i[slice_idx:].shape[0]))
-                    pvalue = ks_2samp(examples_i[slice_idx: slice_idx + temp_size],
-                                      examples_j[slice_idx: slice_idx + temp_size])[1]
+                        temp_size = np.min((subsample_j[slice_idx:].shape[0],
+                                            subsample_i[slice_idx:].shape[0]))
+                    pvalue = ks_2samp(subsample_i[slice_idx: slice_idx + temp_size],
+                                      subsample_j[slice_idx: slice_idx + temp_size])[1]
                     temp.append(pvalue)
                 pvalue = np.min(temp)
                 temp_pvalues.append(pvalue)

@@ -16,7 +16,7 @@ from model.most import MOST
 from model.nonparametric_test import StudentTTest, WilcoxonRankSumTest, KolmogorovSmirnovTest
 from model.ort import OutlierRobustTstatistic
 from model.oss import OutlierSumStatistic
-from model.phet import PHeT
+from model.phet import PHet
 from utility.plot_utils import plot_umap, plot_barplot
 from utility.utils import comparative_score
 from utility.utils import sort_features, significant_features
@@ -454,7 +454,7 @@ def train(args):
         phet_hvf_normalize = None
         if args.seurat_log_transform:
             phet_hvf_normalize = "log"
-        estimator = PHeT(normalize=phet_hvf_normalize, iqr_range=args.iqr_range, num_subsamples=args.num_subsamples,
+        estimator = PHet(normalize=phet_hvf_normalize, iqr_range=args.iqr_range, num_subsamples=args.num_subsamples,
                          disp_type="hvf", feature_weight=args.feature_weight)
         if args.exponentiate:
             df = estimator.fit_predict(X=np.exp(X), y=y, control_class=0, case_class=1)
@@ -468,7 +468,7 @@ def train(args):
     if "phet_br" in args.methods:
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                   METHODS[24]))
-        estimator = PHeT(normalize="zscore", iqr_range=args.iqr_range, num_subsamples=args.num_subsamples,
+        estimator = PHet(normalize="zscore", iqr_range=args.iqr_range, num_subsamples=args.num_subsamples,
                          disp_type="iqr", feature_weight=args.feature_weight)
         df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
         methods_save_name.append("phet_br")
