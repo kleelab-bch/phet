@@ -100,7 +100,7 @@ class PHet:
             for class_idx in range(num_classes):
                 examples_idx = np.where(y == class_idx)[0]
                 temp.append(len(examples_idx))
-            if np.min(temp) <= 2:
+            if np.min(temp) <= 2 or int(np.sqrt(np.min(temp))) < 8:
                 temp = int(np.min(temp))
             else:
                 temp = int(np.sqrt(np.min(temp)))
