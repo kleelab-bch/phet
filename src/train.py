@@ -455,11 +455,12 @@ def train(args):
         if args.seurat_log_transform:
             phet_hvf_normalize = "log"
         estimator = PHet(normalize=phet_hvf_normalize, iqr_range=args.iqr_range, num_subsamples=args.num_subsamples,
-                         disp_type="hvf", feature_weight=args.feature_weight)
+                         subsampling_size="sqrt", delta_type="hvf", adjust_pvalue=False,
+                         feature_weight=args.feature_weight)
         if args.exponentiate:
-            df = estimator.fit_predict(X=np.exp(X), y=y, control_class=0, case_class=1)
+            df = estimator.fit_predict(X=np.exp(X), y=y)
         else:
-            df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+            df = estimator.fit_predict(X=X, y=y)
         methods_save_name.append("phet_bd")
         temp_methods.append(METHODS[23])
         methods_dict.update({METHODS[23]: df})
@@ -469,8 +470,9 @@ def train(args):
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                   METHODS[24]))
         estimator = PHet(normalize="zscore", iqr_range=args.iqr_range, num_subsamples=args.num_subsamples,
-                         disp_type="iqr", feature_weight=args.feature_weight)
-        df = estimator.fit_predict(X=X, y=y, control_class=0, case_class=1)
+                         subsampling_size="sqrt", delta_type="iqr", adjust_pvalue=False,
+                         feature_weight=args.feature_weight)
+        df = estimator.fit_predict(X=X, y=y)
         methods_save_name.append("phet_br")
         temp_methods.append(METHODS[24])
         methods_dict.update({METHODS[24]: df})
@@ -490,6 +492,7 @@ def train(args):
             continue
         if args.sort_by_pvalue:
             temp = significant_features(X=df, features_name=features_name, alpha=args.alpha,
+                                        scoreatpercentile=args.scoreatpercentile, per=args.per,
                                         X_map=None, map_genes=False, ttest=False)
         else:
             temp = sort_features(X=df, features_name=features_name, X_map=None,

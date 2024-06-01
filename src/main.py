@@ -168,7 +168,7 @@ def parse_command_line():
                              "(default: 75.0).")
     # OutlierSumStatistic
     parser.add_argument("--two-sided-test", action="store_true", default=False,
-                        help="Whether or not to compute the two sided test for OutlierSumStatistic. "
+                        help="Whether or not to compute the two tailed test for OutlierSumStatistic. "
                              "(default: False).")
     # DIDS
     parser.add_argument("--dids-scoref", type=str, default="tanh",
@@ -193,6 +193,11 @@ def parse_command_line():
     # Arguments for evaluation
     parser.add_argument("--alpha", type=float, default=0.01,
                         help="Significance level. (default: 0.01).")
+    parser.add_argument("--per", type=int, default=95,
+                        help="Percentile(s) at which to extract score. (default: 95).")
+    parser.add_argument("--scoreatpercentile", action="store_true", default=False,
+                        help="Select features based on a given percentile. "
+                             "(default: False).")
     parser.add_argument("--no-sort-by-pvalue", action="store_true", default=False,
                         help="Do not rank features based on results from the Gamma distribution. "
                              "(default: False).")

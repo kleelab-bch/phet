@@ -3,7 +3,7 @@ import warnings
 import numpy as np
 import pandas as pd
 import umap
-from scipy.stats import zscore, gamma
+from scipy.stats import zscore, gamma, scoreatpercentile
 from sklearn.cluster import AffinityPropagation, AgglomerativeClustering
 from sklearn.cluster import SpectralClustering, MiniBatchKMeans
 from sklearn.cluster import SpectralCoclustering, HDBSCAN
@@ -76,13 +76,19 @@ def clustering(X, cluster_type: str = "spectral", affinity: str = "nearest_neigh
     return cls
 
 
-def significant_features(X, features_name, alpha: float = 0.01, X_map=None, map_genes: bool = True,
-                         ttest: bool = False):
+def significant_features(X, features_name, alpha: float = 0.01, X_map=None,
+                         scoreatpercentile: bool = False, per: int = 95,
+                         map_genes: bool = True, ttest: bool = False):
     tempX = np.copy(X)
     if X.shape[1] != 1:
         tempX = X[:, 3]
-    shape, loc, scale = gamma.fit(zscore(tempX))
-    selected_features = np.where((1 - gamma.cdf(zscore(tempX), shape, loc=loc, scale=scale)) < alpha)[0]
+    tempX += 0.001
+    if scoreatpercentile:
+        temp = scoreatpercentile(tempX, per, interpolation_method="higher")
+        selected_features = np.where(tempX > temp)[0]
+    else:
+        shape, loc, scale = gamma.fit(zscore(tempX))
+        selected_features = np.where((1 - gamma.cdf(zscore(tempX), shape, loc=loc, scale=scale)) < alpha)[0]
     if len(selected_features) != 0:
         X = X[selected_features]
         features_name = np.array(features_name)[selected_features].tolist()
