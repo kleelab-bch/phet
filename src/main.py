@@ -85,6 +85,8 @@ def __internal_args(parse_args):
 
     ###***************************        Evaluate arguments        ***************************###
     args.alpha = parse_args.alpha
+    args.scoreatpercentile = parse_args.scoreatpercentile
+    args.per = parse_args.per
     args.sort_by_pvalue = True
     if parse_args.no_sort_by_pvalue:
         args.sort_by_pvalue = False
