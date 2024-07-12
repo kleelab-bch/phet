@@ -493,10 +493,13 @@ def train(args):
         if args.sort_by_pvalue:
             temp = significant_features(X=df, features_name=features_name, alpha=args.alpha,
                                         scoreatpercentile=args.scoreatpercentile, per=args.per,
-                                        X_map=None, map_genes=False, ttest=False)
+                                        X_map=None, map_genes=False, ttest=False, 
+                                        file_name=args.file_name + "_" + methods_save_name[method_idx], 
+                                        save_path=args.rspath)
         else:
-            temp = sort_features(X=df, features_name=features_name, X_map=None,
-                                 map_genes=False, ttest=False)
+            temp = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, 
+                                 ttest=False, file_name=args.file_name + "_" + methods_save_name[method_idx], 
+                                 save_path=args.rspath)
         methods_dict[method_name] = temp
 
     if top_features_true != -1:
