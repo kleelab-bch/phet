@@ -1,10 +1,10 @@
-import os
 import warnings
+from typing import Literal
 
 import numpy as np
 import pandas as pd
 import umap
-from scipy.stats import zscore, gamma, scoreatpercentile
+from scipy.stats import zscore, gamma, scoreatpercentile, lognorm, expon
 from sklearn.cluster import AffinityPropagation, AgglomerativeClustering
 from sklearn.cluster import SpectralClustering, MiniBatchKMeans
 from sklearn.cluster import SpectralCoclustering, HDBSCAN
@@ -77,17 +77,22 @@ def clustering(X, cluster_type: str = "spectral", affinity: str = "nearest_neigh
     return cls
 
 
-def significant_features(X, features_name, alpha: float = 0.01, X_map=None,
-                         scoreatpercentile: bool = False, per: int = 95,
-                         map_genes: bool = True, ttest: bool = False,
-                         file_name: str = "temp", save_path: str = "."):
+def significant_features(X, features_name, alpha: float = 0.05, X_map=None,
+                         fit_type: Literal["expon", "gamma", "lognormal", "percentile"] = "gamma",
+                         per: int = 95, map_genes: bool = True, ttest: bool = False):
     tempX = np.copy(X)
     if X.shape[1] != 1:
         tempX = X[:, 3]
     tempX += 0.001
-    if scoreatpercentile:
+    if fit_type == "percentile":
         temp = scoreatpercentile(tempX, per, interpolation_method="higher")
         selected_features = np.where(tempX > temp)[0]
+    elif fit_type == "lognormal":
+        shape, loc, scale = lognorm.fit(tempX)
+        selected_features = np.where((1 - lognorm.cdf(tempX, shape, loc=loc, scale=scale)) < alpha)[0]
+    elif fit_type == "expon":
+        shape, scale = expon.fit(tempX)
+        selected_features = np.where((1 - expon.cdf(tempX, shape, scale=scale)) < alpha)[0]
     else:
         shape, loc, scale = gamma.fit(zscore(tempX))
         selected_features = np.where((1 - gamma.cdf(zscore(tempX), shape, loc=loc, scale=scale)) < alpha)[0]
@@ -95,37 +100,33 @@ def significant_features(X, features_name, alpha: float = 0.01, X_map=None,
         X = X[selected_features]
         features_name = np.array(features_name)[selected_features].tolist()
     df = sort_features(X=X, features_name=features_name, X_map=X_map, map_genes=map_genes,
-                       ttest=ttest, file_name = file_name, save_path = save_path)
+                       ttest=ttest)
     return df
 
 
 def sort_features(X, features_name, X_map=None, map_genes: bool = True, ttest: bool = False,
-                  ascending: bool = False, file_name: str = "temp", save_path: str = "."):
+                  ascending: bool = False):
     df = pd.concat([pd.DataFrame(features_name), pd.DataFrame(X)], axis=1)
     if X.shape[1] == 5:
         df.columns = ['features', 'iqr', 'median_diff', 'ttest', 'score', 'class']
-        df.to_csv(os.path.join(save_path, file_name + "_features_scores.csv"), sep=',', index=False)
         if ttest:
             df = df.sort_values(by=["ttest"], ascending=ascending).reset_index(drop=True)
         else:
             df = df.sort_values(by=["score"], ascending=ascending).reset_index(drop=True)
     elif X.shape[1] == 6:
         df.columns = ['features', 'iqr', 'median_diff', 'ttest', 'score', 'class', 'pvalue']
-        df.to_csv(os.path.join(save_path, file_name + "_features_scores.csv"), sep=',', index=False)
         if ttest:
             df = df.sort_values(by=["ttest"], ascending=ascending).reset_index(drop=True)
         else:
             df = df.sort_values(by=["score"], ascending=ascending).reset_index(drop=True)
     elif X.shape[1] == 2:
         df.columns = ['features', 'score', 'pvalue']
-        df.to_csv(os.path.join(save_path, file_name + "_features_scores.csv"), sep=',', index=False)
         if ttest:
             df = df.sort_values(by=["pvalue"], ascending=ascending).reset_index(drop=True)
         else:
             df = df.sort_values(by=["score"], ascending=ascending).reset_index(drop=True)
     elif X.shape[1] == 1:
         df.columns = ['features', 'score']
-        df.to_csv(os.path.join(save_path, file_name + "_features_scores.csv"), sep=',', index=False)
         df = df.sort_values(by=["score"], ascending=ascending).reset_index(drop=True)
     else:
         raise Exception("Please provide correct shape for X")

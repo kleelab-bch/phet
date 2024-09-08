@@ -267,7 +267,9 @@ def train(args):
         df = pd.read_csv(os.path.join(args.dspath, args.file_name + "_limma_features.csv"), sep=',')
         df = df[["ID", "B"]]
         temp = [features_name.index(item) for item in df["ID"].to_list() if item in features_name]
-        df = np.absolute(df.iloc[temp]["B"].to_numpy()[:, None])
+        df = df.iloc[temp]["B"].to_numpy()[:, None]
+        shift = np.min(df)
+        df = df - shift + 2
         methods_save_name.append("limma_g")
         temp_methods.append(METHODS[7])
         methods_dict.update({METHODS[7]: df})
@@ -492,13 +494,13 @@ def train(args):
             continue
         if args.sort_by_pvalue:
             temp = significant_features(X=df, features_name=features_name, alpha=args.alpha,
-                                        scoreatpercentile=args.scoreatpercentile, per=args.per,
-                                        X_map=None, map_genes=False, ttest=False, 
-                                        file_name=args.file_name + "_" + methods_save_name[method_idx], 
+                                        fit_type=args.fit_type, per=args.per,
+                                        X_map=None, map_genes=False, ttest=False,
+                                        file_name=args.file_name + "_" + methods_save_name[method_idx],
                                         save_path=args.rspath)
         else:
-            temp = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False, 
-                                 ttest=False, file_name=args.file_name + "_" + methods_save_name[method_idx], 
+            temp = sort_features(X=df, features_name=features_name, X_map=None, map_genes=False,
+                                 ttest=False, file_name=args.file_name + "_" + methods_save_name[method_idx],
                                  save_path=args.rspath)
         methods_dict[method_name] = temp
 

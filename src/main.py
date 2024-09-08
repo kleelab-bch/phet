@@ -85,7 +85,7 @@ def __internal_args(parse_args):
 
     ###***************************        Evaluate arguments        ***************************###
     args.alpha = parse_args.alpha
-    args.scoreatpercentile = parse_args.scoreatpercentile
+    args.fit_type = parse_args.fit_type
     args.per = parse_args.per
     args.sort_by_pvalue = True
     if parse_args.no_sort_by_pvalue:
@@ -163,7 +163,7 @@ def parse_command_line():
                              "Percentiles over which to compute the range. Each must be "
                              "between 0 and 100, inclusive. (default: (25, 75)).")
     parser.add_argument("--normalize", type=str, default="zscore",
-                        help="Type of normalization. Possible values are: zscore and robust. "
+                        help="Type of normalization. Possible values are: zscore, robust, and log. "
                              "(default: zscore).")
     parser.add_argument("--q", type=float, default=75.0,
                         help="Percentile to compute, which must be between 0 and 100 inclusive. "
@@ -193,13 +193,13 @@ def parse_command_line():
                              "(default: [0.4, 0.3, 0.2, 0.1]).")
 
     # Arguments for evaluation
-    parser.add_argument("--alpha", type=float, default=0.01,
-                        help="Significance level. (default: 0.01).")
+    parser.add_argument("--alpha", type=float, default=0.05,
+                        help="Significance level. (default: 0.05).")
     parser.add_argument("--per", type=int, default=95,
                         help="Percentile(s) at which to extract score. (default: 95).")
-    parser.add_argument("--scoreatpercentile", action="store_true", default=False,
-                        help="Select features based on a given percentile. "
-                             "(default: False).")
+    parser.add_argument("--fit-type", type=str, default="gamma", choices=["expon", "gamma", "lognormal", "percentile"],
+                        help="Select features based on given fitting choices. "
+                             "(default: gamma).")
     parser.add_argument("--no-sort-by-pvalue", action="store_true", default=False,
                         help="Do not rank features based on results from the Gamma distribution. "
                              "(default: False).")
