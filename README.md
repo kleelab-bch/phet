@@ -167,7 +167,7 @@ adata = adata[:, phet_features]
 ### Step 2b: Import features into Seurat
 
 ``` R
-# Load required packages
+# Load R required packages
 require(Seurat)
 require(Matrix)
 # Load the full feature set from the SRBCT dataset
