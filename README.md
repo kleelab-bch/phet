@@ -128,6 +128,66 @@ python main.py --dspath [path to the folder containing data] --rspath [path to t
 For the *--file-name* argument, please include only the name of the data and remove the suffix *_matrix.mtx*. This will
 generate several files located in the **rspath** folder.
 
+## Integrating PHet with SCANPY or Seurat
+
+To integrate the features of PHet into SCANPY or Seurat, the procedure consists of two primary steps. First, execute PHet to generate the desired features based on your dataset. Subsequently, import these features into SCANPY or Seurat for the purpose of conducting further analysis. These two steps are presented below:
+
+### Step 1: Run PHet (using the sample data "SRBCT")
+
+``` python
+python main.py --dspath [path to the folder containing data] --rspath [path to the folder containing results] --file-name "srbct" --suptitle-name "SRBCT" --control-name "Control" --case-name "Case" --methods ttest_g wilcoxon_g ks_g copa os ort most lsoss dids phet_br --direction "both" --iqr-range 25 75 --normalize "zscore" --q 75 --dids-scoref "tanh" --num-subsamples 1000 --feature-weight 0.4 0.3 0.2 0.1 --alpha 0.01 --score-metric "f1" --top-k-features 100 --cluster-type "kmeans" --num-jobs 2
+```
+
+For the *--file-name* argument, please include only the name of the data and remove the suffix *_matrix.mtx*. This will
+generate several files located in the **rspath** folder.
+
+### Step 2a: Import features into SCANPY
+
+``` python
+# Load the scanpy package
+import scanpy as sc
+# Load full features from the SRBCT data
+full_features = pd.read_csv(os.path.join([path to the folder containing data],
+                                         "srbct_feature_names.csv"), sep=',')
+full_features = full_features["features"].to_list()
+full_features = [f.upper() for f in full_features]
+# Load PHet's features (see Example 1)
+phet_features = pd.read_csv(os.path.join([path to the folder containing results],
+                                          "srbct_phet_br_features.csv"),
+                            sep=',', header=None)
+phet_features = np.squeeze(phet_features.values.tolist())
+phet_features = [f.upper() for f in phet_features]
+# Load expression values
+adata = sc.read_mtx(os.path.join([path to the folder containing data], "srbct_matrix.mtx"))
+adata.var_names = full_features
+# Reduce the feature size to PHet's features only
+adata = adata[:, phet_features]
+```
+
+### Step 2b: Import features into Seurat
+
+``` R
+# Load required packages
+require(Seurat)
+require(Matrix)
+# Load full features from the SRBCT data
+full_features <- read.csv(file.path([path to the folder containing data], 
+                                    "srbct_feature_names.csv"), 
+                          header = TRUE)
+full_features <- full_features$features
+# Load PHet's features (see Example 1)
+phet_features <- read.csv(file.path([path to the folder containing results], 
+                                    "srbct_phet_br_features.csv"), 
+                          header = FALSE)
+phet_features <- phet_features$V1
+# Load expression values
+X <- readMM(file = file.path(data_dir, "srbct_matrix.mtx"))
+colnames(X) <- full_features
+# Reduce the feature size to PHet's features only
+X <- X[, phet_features]
+seurat_obj <- CreateSeuratObject(counts = t(X))
+```
+
 ## Citing
 
 If you find **PHet** useful in your research, please consider citing the following paper:
