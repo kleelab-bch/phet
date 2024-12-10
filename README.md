@@ -146,21 +146,21 @@ generate several files located in the **rspath** folder.
 ``` python
 # Load the scanpy package
 import scanpy as sc
-# Load full features from the SRBCT data
+# Load the full feature set from the SRBCT dataset
 full_features = pd.read_csv(os.path.join([path to the folder containing data],
                                          "srbct_feature_names.csv"), sep=',')
 full_features = full_features["features"].to_list()
 full_features = [f.upper() for f in full_features]
-# Load PHet's features (see Example 1)
+# Incorporate PHet's features
 phet_features = pd.read_csv(os.path.join([path to the folder containing results],
                                           "srbct_phet_br_features.csv"),
                             sep=',', header=None)
 phet_features = np.squeeze(phet_features.values.tolist())
 phet_features = [f.upper() for f in phet_features]
-# Load expression values
+# Load the corresponding expression values for the SRBCT dataset
 adata = sc.read_mtx(os.path.join([path to the folder containing data], "srbct_matrix.mtx"))
 adata.var_names = full_features
-# Reduce the feature size to PHet's features only
+# Reduce the feature size of the SRBCT dataset by including only PHet's features
 adata = adata[:, phet_features]
 ```
 
@@ -170,20 +170,20 @@ adata = adata[:, phet_features]
 # Load required packages
 require(Seurat)
 require(Matrix)
-# Load full features from the SRBCT data
+# Load the full feature set from the SRBCT dataset
 full_features <- read.csv(file.path([path to the folder containing data], 
                                     "srbct_feature_names.csv"), 
                           header = TRUE)
 full_features <- full_features$features
-# Load PHet's features (see Example 1)
+# Incorporate PHet's features
 phet_features <- read.csv(file.path([path to the folder containing results], 
                                     "srbct_phet_br_features.csv"), 
                           header = FALSE)
 phet_features <- phet_features$V1
-# Load expression values
+# Load the corresponding expression values for the SRBCT dataset
 X <- readMM(file = file.path(data_dir, "srbct_matrix.mtx"))
 colnames(X) <- full_features
-# Reduce the feature size to PHet's features only
+# Reduce the feature size of the SRBCT dataset by including only PHet's features
 X <- X[, phet_features]
 seurat_obj <- CreateSeuratObject(counts = t(X))
 ```
