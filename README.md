@@ -128,15 +128,15 @@ python main.py --dspath [path to the folder containing data] --rspath [path to t
 For the *--file-name* argument, please include only the name of the data and remove the suffix *_matrix.mtx*. This will
 generate several files located in the **rspath** folder.
 
-## Integrating PHet with SCANPY or Seurat
+## Integrating PHet with SCANPY and Seurat
 
 To integrate the features of PHet into SCANPY or Seurat, the procedure consists of two primary steps. First, execute PHet to generate the desired features based on your dataset. Subsequently, import these features into SCANPY or Seurat for the purpose of conducting further analysis. These two steps are presented below:
 
 ### Step 1: Run PHet (using the sample data "SRBCT")
 
-``` python
+``
 python main.py --dspath [path to the folder containing data] --rspath [path to the folder containing results] --file-name "srbct" --suptitle-name "SRBCT" --control-name "Control" --case-name "Case" --methods ttest_g wilcoxon_g ks_g copa os ort most lsoss dids phet_br --direction "both" --iqr-range 25 75 --normalize "zscore" --q 75 --dids-scoref "tanh" --num-subsamples 1000 --feature-weight 0.4 0.3 0.2 0.1 --alpha 0.01 --score-metric "f1" --top-k-features 100 --cluster-type "kmeans" --num-jobs 2
-```
+``
 
 For the *--file-name* argument, please include only the name of the data and remove the suffix *_matrix.mtx*. This will
 generate several files located in the **rspath** folder.
