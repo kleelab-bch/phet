@@ -130,7 +130,7 @@ generate several files located in the **rspath** folder.
 
 ## Integrating PHet with SCANPY and Seurat
 
-To integrate the features of PHet into SCANPY or Seurat, the procedure consists of two primary steps. First, execute PHet to generate the desired features based on your dataset. Subsequently, import these features into SCANPY or Seurat for the purpose of conducting further analysis. These two steps are presented below:
+To effectively integrate PHet with established frameworks such as SCANPY and Seurat, the procedure encompasses two primary steps. First, execute PHet to generate the requisite features from your dataset. Thereafter, import these features into SCANPY or Seurat for subsequent analysis. The following outlines these two essential steps:
 
 ### Step 1: Run PHet (using the sample data "SRBCT")
 
