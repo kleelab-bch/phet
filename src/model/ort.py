@@ -1,3 +1,10 @@
+'''
+Cancer outlier differential gene expression detection.
+
+1. Wu, B., 2007. Cancer outlier differential gene expression 
+detection. Biostatistics, 8(3), pp.566-575.
+'''
+
 from typing import Optional
 
 import numpy as np
