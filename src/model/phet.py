@@ -2,11 +2,13 @@ import logging
 import os
 import warnings
 
+# Suppress TensorFlow and other warnings for cleaner output
 logging.getLogger('tensorflow').disabled = True
 logging.disable(logging.WARNING)
 warnings.filterwarnings('ignore')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
+# Import necessary libraries and modules
 from itertools import combinations
 from typing import Optional, Literal
 
@@ -18,23 +20,57 @@ import scanpy as sc
 from scipy.stats import f_oneway, kruskal, false_discovery_control
 from scipy.stats import iqr, zscore, ttest_ind
 from scipy.stats import ks_2samp, norm
-from sklearn.preprocessing import KBinsDiscretizer
+from sklearn.preprocessing import KBinsDiscretizer, LabelEncoder
 from statsmodels.stats.weightstats import ztest
+from tqdm import tqdm
 
+# Define a constant seed value for numerical stability
 SEED_VALUE = 0.001
 
 
 class PHet:
     def __init__(self, normalize: Literal["robust", "zscore", "log"] | None = "zscore",
-                 iqr_range: Optional[tuple] = (25, 75), num_subsamples: int = 1000,
+                 percentiles: Optional[tuple[int, int]] = (25, 75), num_subsamples: int = 1000,
                  subsampling_size: Literal["optimum", "sqrt"] | int = "sqrt",
                  delta_type: Literal["iqr", "hvf"] = "iqr",
                  group_test: Literal["anova", "kruskal"] = "anova",
                  multiconditions_strategy: Literal["pairwise", "one_vs_all"] = "one_vs_all",
                  multiconditions_aggregation: Literal["mean", "max"] = "max",
-                 adjust_pvalue: bool = False, feature_weight: list = None):
-        self.normalize = normalize  # robust, zscore, or log
-        self.iqr_range = iqr_range
+                 adjust_pvalue: bool = False, feature_weight: Optional[list[float]] = None):
+        """
+        Initialize the PHet class with configuration parameters.
+
+        Parameters:
+        -----------
+        normalize : {"robust", "zscore", "log"} or None, optional
+            Normalization method to apply to the data (default is "zscore").
+        percentiles : tuple of int, optional
+            Percentiles to use for interquartile range (IQR) calculation (default is (25, 75)).
+        num_subsamples : int, optional
+            Number of subsamples to use during subsampling (default is 1000).
+        subsampling_size : {"optimum", "sqrt"} or int, optional
+            Strategy or fixed size for subsampling (default is "sqrt").
+        delta_type : {"iqr", "hvf"}, optional
+            Method to calculate feature variability (default is "iqr").
+        group_test : {"anova", "kruskal"}, optional
+            Statistical test to use for group comparisons (default is "anova").
+        multiconditions_strategy : {"pairwise", "one_vs_all"}, optional
+            Strategy for handling multiple conditions (default is "one_vs_all").
+        multiconditions_aggregation : {"mean", "max"}, optional
+            Aggregation method for combining results across multiple conditions 
+            (default is "max").
+        adjust_pvalue : bool, optional
+            Whether to apply p-value adjustment for multiple testing (default is False).
+        feature_weight : list of float, optional
+            Weights for feature importance ranking (default is [0.4, 0.3, 0.2, 0.1]).
+
+        Raises:
+        -------
+        ValueError
+            If `feature_weight` is provided but contains fewer than 2 elements.
+        """
+        self.normalize = normalize
+        self.iqr_range = percentiles
         self.num_subsamples = num_subsamples
         self.subsampling_size = subsampling_size
         self.delta_type = delta_type
@@ -42,25 +78,95 @@ class PHet:
         self.multiconditions_strategy = multiconditions_strategy
         self.multiconditions_aggregation = multiconditions_aggregation
         self.adjust_pvalue = adjust_pvalue
-        if delta_type == "hvf":
-            if self.normalize is not None:
-                self.normalize = "log"
-        if len(feature_weight) < 2:
+
+        # Ensure normalization is set to "log" if delta_type is "hvf"
+        if delta_type == "hvf" and self.normalize is not None:
+            self.normalize = "log"
+
+        # Validate and set feature weights
+        if feature_weight is None:
             feature_weight = [0.4, 0.3, 0.2, 0.1]
+        elif len(feature_weight) < 2:
+            raise ValueError("Feature weight list must contain at least two elements.")
         self.feature_weight = np.array(feature_weight) / np.sum(feature_weight)
 
     def __optimum_sample_size(self, control_size: int, case_size: int, alpha: float = 0.05,
-                              margin_error: float = 0.1):
+                              margin_error: float = 0.1) -> int:
+        """
+        Calculate the optimum sample size for a given control and case group size.
+
+        This method uses the formula for sample size calculation in proportion testing,
+        considering the desired significance level (alpha) and margin of error.
+
+        Parameters:
+        -----------
+        control_size : int
+            The number of samples in the control group.
+        case_size : int
+            The number of samples in the case group.
+        alpha : float, optional
+            The significance level for the test (default is 0.05).
+        margin_error : float, optional
+            The acceptable margin of error for the sample size calculation (default is 0.1).
+
+        Returns:
+        --------
+        int
+            The calculated optimum sample size.
+
+        Example:
+        --------
+        >>> sample_size = self.__optimum_sample_size(control_size=100, case_size=50, alpha=0.05, 
+                                                     margin_error=0.1)
+        >>> print(sample_size)
+        """
         total_samples = control_size + case_size
         p = control_size / total_samples
         q = 1 - p
-        z = np.sign(norm.ppf(alpha)) * norm.ppf(alpha)
-        numerator = (z ** 2 * p * (1 - q)) / margin_error ** 2
+        z = norm.ppf(1 - alpha / 2)  # Two-tailed z-score for the given alpha
+        numerator = (z ** 2 * p * q) / (margin_error ** 2)
         denominator = 1 + (numerator / total_samples)
         sample_size = int(np.ceil(numerator / denominator))
         return sample_size
 
     def fit_predict(self, X, y, sample_ids: list | None = None, subtypes: list | None = None):
+        """
+        Perform feature selection and ranking based on statistical tests and subsampling.
+        This method processes input data to identify and rank significant features 
+        using a combination of statistical tests, subsampling, and normalization techniques. 
+        It supports both binary and multi-class classification scenarios.
+        
+        Parameters:
+        -----------
+        X : numpy.ndarray
+            A 2D array of shape (num_examples, num_features) containing the feature matrix.
+        y : numpy.ndarray
+            A 1D array of shape (num_examples,) containing the target binary labels.
+        sample_ids : list or None, optional
+            A list of sample IDs corresponding to each example in `X`. If provided, 
+            it enables pseudobulk differential expression analysis (default is None).
+        subtypes : list or None, optional
+            A list of subtype labels corresponding to each example in `X`. If provided, 
+            it is used in conjunction with `sample_ids` for pseudobulk analysis 
+            (default is None).
+        
+        Returns:
+        --------
+        numpy.ndarray
+            A 2D array of shape (num_features, 1) containing the ranked feature scores.
+
+        Raises:
+        -------
+        Exception
+            If the number of unique classes in `y` is less than 2.
+            If the length of `sample_ids` or `subtypes` does not match the number of 
+            examples in `X`.
+
+        Example:
+        --------
+        >>> results = model.fit_predict(X, y, sample_ids=sample_ids, subtypes=subtypes)
+        >>> print(results)
+        """
         # Extract properties
         num_examples, num_features = X.shape
         # Check if classes information is not provided
@@ -69,6 +175,8 @@ class PHet:
         if num_classes < 2:
             temp = "More than two valid groups are allowed!"
             raise Exception(temp)
+        # Encode target labels with value between 0 and num conditions minus 1.
+        y = LabelEncoder().fit_transform(y=y)
         multiple_conditions = False
         if num_classes > 2:
             multiple_conditions = True
@@ -181,12 +289,20 @@ class PHet:
                 temp = int(np.sqrt(np.min(temp)))
             subsampling_size = temp
 
+        # Initialize progress bar
+        counts = 0
+        if multiple_conditions:
+            counts = 1 if pseudobulk_de else self.num_subsamples
+        counts += self.num_subsamples * num_combinations 
+        counts += num_features * num_combinations + 2
+        total_progress = tqdm(total=counts, position=0, leave=True)
+
         # Step 1: Iterative subsampling process to select and rank significant features
         num_subsamples = self.num_subsamples
         if pseudobulk_de:
             num_subsamples = 1
         P = np.zeros((num_features, num_subsamples))
-        # multiple conditions
+        # Handling multiple conditions
         if multiple_conditions:
             examples_idx = []
             replace = False
@@ -200,6 +316,9 @@ class PHet:
                     if subsampling_size > examples.shape[0]:
                         replace = True
             for sample_idx in range(num_subsamples):
+                total_progress.set_description("Step 1. Subsampling")
+                total_progress.update(1)
+
                 subsamples = []
                 for examples in examples_idx:
                     if pseudobulk_de:
@@ -234,6 +353,9 @@ class PHet:
             if subsampling_size > len(examples_i) or subsampling_size > len(examples_j):
                 replace = True
             for sample_idx in range(num_subsamples):
+                total_progress.set_description("Step 1. Subsampling")
+                total_progress.update(1)
+                
                 subsample_i = np.random.choice(a=examples_i, size=subsampling_size, replace=replace)
                 subsample_j = np.random.choice(a=examples_j, size=subsampling_size, replace=replace)
                 if self.delta_type == "hvf":
@@ -267,6 +389,7 @@ class PHet:
                         pvalue = false_discovery_control(pvalue, method="bh")
                     P[:, sample_idx] = pvalue
             combination_idx += 1
+
         r = np.mean(r, axis=1)
         if self.multiconditions_aggregation == "mean":
             r = np.mean(r, axis=1)
@@ -279,6 +402,8 @@ class PHet:
         np.nan_to_num(r, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
         # Step 2: Apply Fisher's method for combined probability
+        total_progress.set_description("Step 2. Fisher's method")
+        total_progress.update(1)
         f = -2 * np.log(P)
         f[f == np.inf] = 0
         f = np.sum(f, axis=1)
@@ -306,6 +431,8 @@ class PHet:
         for feature_idx in range(num_features):
             temp_pvalues = list()
             for i, j in total_combinations:
+                total_progress.set_description("Step 3. Discriminative power")
+                total_progress.update(1)
                 temp = []
                 examples_i = np.where(y == i)[0]
                 if multiple_conditions and self.multiconditions_strategy == "one_vs_all":
@@ -335,7 +462,9 @@ class PHet:
             o[np.where(temp == bin_idx)[0], bin_idx] = 1
         del temp
 
-        # Step 4: Estimating features statistics based on combined parameters (r, o, f)
+        # Step 4: Estimate feature statistics based on combined parameters (r, o, f)
+        total_progress.set_description("Step 4. Feature statistics")
+        total_progress.update(1)
         r /= r.sum()
         o = self.feature_weight.dot(o.T)
         f = np.multiply(f, o)
