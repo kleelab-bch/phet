@@ -38,7 +38,7 @@ class PHet:
                  multiconditions_aggregation: Literal["mean", "max"] = "max",
                  adjust_pvalue: bool = False, feature_weight: Optional[list[float]] = None):
         """
-        Initialize the PHet class with configuration parameters.
+        Initialize the PHet with configuration parameters.
 
         Parameters:
         -----------
