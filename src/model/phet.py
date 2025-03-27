@@ -2,11 +2,12 @@ import logging
 import os
 import warnings
 
-# Suppress TensorFlow and other warnings for cleaner output
+# Suppress TensorFlow and other warnings for cleaner output.  This helps to keep the console output
+# focused on the important information and avoids cluttering it with unnecessary messages.
 logging.getLogger('tensorflow').disabled = True
 logging.disable(logging.WARNING)
 warnings.filterwarnings('ignore')
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Reduces TensorFlow log verbosity
 
 # Import necessary libraries and modules
 from itertools import combinations
@@ -44,25 +45,57 @@ class PHet:
         -----------
         normalize : {"robust", "zscore", "log"} or None, optional
             Normalization method to apply to the data (default is "zscore").
+            -   "robust":  Uses the median and median absolute deviation (MAD) for normalization,
+                making it less sensitive to outliers.
+            -   "zscore":  Standardizes the data by subtracting the mean and dividing by the standard
+                deviation.
+            -   "log": Applies a logarithmic transformation (log1p) to the data, often used for
+                count data or data with a wide range of values.
+            -   None: No normalization is applied.
         percentiles : tuple of int, optional
             Percentiles to use for interquartile range (IQR) calculation (default is (25, 75)).
+            The IQR is a measure of statistical dispersion, representing the difference between the
+            upper and lower quartiles.
         num_subsamples : int, optional
-            Number of subsamples to use during subsampling (default is 1000).
+            Number of subsamples to use during subsampling (default is 1000).  A larger number of
+            subsamples generally leads to more robust results but increases computation time.
         subsampling_size : {"optimum", "sqrt"} or int, optional
             Strategy or fixed size for subsampling (default is "sqrt").
+            -   "optimum":  Calculates the optimum sample size based on the control and case group
+                sizes, significance level (alpha), and margin of error.
+            -   "sqrt": Sets the subsampling size to the square root of the minimum number of
+                samples in any class.
+            -   int: A fixed integer value for the subsampling size.
         delta_type : {"iqr", "hvf"}, optional
             Method to calculate feature variability (default is "iqr").
+            -   "iqr": Uses the interquartile range (IQR) to measure the spread or dispersion of
+                the data.
+            -   "hvf": Uses highly variable features (HVF) selection to identify features with high variance.
         group_test : {"anova", "kruskal"}, optional
             Statistical test to use for group comparisons (default is "anova").
+            -   "anova":  Analysis of variance, a parametric test that assumes the data is
+                normally distributed.
+            -   "kruskal": Kruskal-Wallis test, a non-parametric alternative to ANOVA that does
+                not assume normality.
         multiconditions_strategy : {"pairwise", "one_vs_all"}, optional
-            Strategy for handling multiple conditions (default is "one_vs_all").
+            Strategy for handling multiple conditions (default is "one_vs_all").  This parameter
+            determines how the method compares different groups when there are more than two classes.
+            -   "pairwise":  Compares all possible pairs of conditions.
+            -   "one_vs_all": Compares each condition against all other conditions combined.
         multiconditions_aggregation : {"mean", "max"}, optional
-            Aggregation method for combining results across multiple conditions 
-            (default is "max").
+            Aggregation method for combining results across multiple conditions
+            (default is "max").  This parameter specifies how the results from the pairwise or
+            one-vs-all comparisons are combined into a single score for each feature.
+            -   "mean":  Calculates the average score across all comparisons.
+            -   "max":  Takes the maximum score across all comparisons.
         adjust_pvalue : bool, optional
-            Whether to apply p-value adjustment for multiple testing (default is False).
+            Whether to apply p-value adjustment for multiple testing (default is False).  When
+            performing multiple statistical tests, it is necessary to adjust the p-values to
+            control the family-wise error rate.
         feature_weight : list of float, optional
-            Weights for feature importance ranking (default is [0.4, 0.3, 0.2, 0.1]).
+            Weights for feature importance ranking (default is [0.4, 0.3, 0.2, 0.1]).  These
+            weights are used to combine different feature scores (e.g., statistical significance
+            and discriminative power) into a final ranking.  The weights should sum to 1.
 
         Raises:
         -------
@@ -81,7 +114,7 @@ class PHet:
 
         # Ensure normalization is set to "log" if delta_type is "hvf"
         if delta_type == "hvf" and self.normalize is not None:
-            self.normalize = "log"
+            self.normalize = "log"  # HVF typically works on log-transformed data
 
         # Validate and set feature weights
         if feature_weight is None:
@@ -96,7 +129,9 @@ class PHet:
         Calculate the optimum sample size for a given control and case group size.
 
         This method uses the formula for sample size calculation in proportion testing,
-        considering the desired significance level (alpha) and margin of error.
+        considering the desired significance level (alpha) and margin of error.  It aims to
+        determine the minimum number of samples needed to detect a statistically significant
+        difference between the two groups with a specified level of confidence.
 
         Parameters:
         -----------
@@ -108,17 +143,13 @@ class PHet:
             The significance level for the test (default is 0.05).
         margin_error : float, optional
             The acceptable margin of error for the sample size calculation (default is 0.1).
+            This defines the precision of the estimate.
 
         Returns:
         --------
         int
-            The calculated optimum sample size.
-
-        Example:
-        --------
-        >>> sample_size = self.__optimum_sample_size(control_size=100, case_size=50, alpha=0.05, 
-                                                     margin_error=0.1)
-        >>> print(sample_size)
+            The calculated optimum sample size.  This is the minimum number of samples required
+            in *each* group to achieve the desired statistical power.
         """
         total_samples = control_size + case_size
         p = control_size / total_samples
@@ -131,42 +162,52 @@ class PHet:
 
     def fit_predict(self, X, y, sample_ids: list | None = None, subtypes: list | None = None):
         """
-        Perform feature selection and ranking based on statistical tests and subsampling.
-        This method processes input data to identify and rank significant features 
-        using a combination of statistical tests, subsampling, and normalization techniques. 
-        It supports both binary and multi-class classification scenarios.
-        
+        Perform feature selection based on statistical tests and subsampling. This method is the
+        core of the PHet class. It takes the input data, performs a series of computational steps,
+        and returns feature scores.
+
         Parameters:
         -----------
         X : numpy.ndarray
-            A 2D array of shape (num_examples, num_features) containing the feature matrix.
+            A 2D array of shape (num_examples, num_features) containing the feature matrix.  Each
+            row represents a sample, and each column represents a feature.
         y : numpy.ndarray
-            A 1D array of shape (num_examples,) containing the target binary labels.
+            A 1D array of shape (num_examples,) containing the target binary labels.  Each element
+            corresponds to the class label of the corresponding sample in `X`.  The labels should
+            represent the groups or conditions being compared.
         sample_ids : list or None, optional
-            A list of sample IDs corresponding to each example in `X`. If provided, 
-            it enables pseudobulk differential expression analysis (default is None).
+            A list of sample IDs corresponding to each example in `X`. If provided,
+            it enables pseudobulk differential expression analysis (default is None).  This is
+            useful when the input data represents aggregated measurements from multiple individual
+            samples.
         subtypes : list or None, optional
-            A list of subtype labels corresponding to each example in `X`. If provided, 
-            it is used in conjunction with `sample_ids` for pseudobulk analysis 
-            (default is None).
-        
+            A list of subtype labels corresponding to each example in `X`. If provided,
+            it is used in conjunction with `sample_ids` for pseudobulk analysis
+            (default is None).  This allows for more refined analysis when samples are further
+            subdivided into subtypes.
+
         Returns:
         --------
         numpy.ndarray
-            A 2D array of shape (num_features, 1) containing the ranked feature scores.
+            A 2D array of shape (num_features, 1) containing the ranked feature scores.  Each
+            element represents the importance score of the corresponding feature.  Higher scores
+            indicate greater importance.
 
         Raises:
         -------
         Exception
-            If the number of unique classes in `y` is less than 2.
-            If the length of `sample_ids` or `subtypes` does not match the number of 
-            examples in `X`.
+            If the number of unique classes in `y` is less than 2.  PHet requires at least two
+            distinct groups to perform meaningful feature selection.
+        Exception
+            If the length of `sample_ids` or `subtypes` does not match the number of
+            examples in `X`.  The input data must be consistent in its dimensions.
 
         Example:
         --------
         >>> results = model.fit_predict(X, y, sample_ids=sample_ids, subtypes=subtypes)
         >>> print(results)
         """
+
         # Extract properties
         num_examples, num_features = X.shape
         # Check if classes information is not provided
@@ -191,6 +232,7 @@ class PHet:
                     raise Exception(temp)
             pseudobulk_de = True
 
+        # Pseudobulk analysis: Aggregate data by sample IDs
         if pseudobulk_de:
             if subtypes:
                 temp = pd.DataFrame([sample_ids, [str(idx) for idx in y], subtypes]).T
@@ -293,7 +335,7 @@ class PHet:
         counts = 0
         if multiple_conditions:
             counts = 1 if pseudobulk_de else self.num_subsamples
-        counts += self.num_subsamples * num_combinations 
+        counts += self.num_subsamples * num_combinations
         counts += num_features * num_combinations + 2
         total_progress = tqdm(total=counts, position=0, leave=True)
 
@@ -355,7 +397,7 @@ class PHet:
             for sample_idx in range(num_subsamples):
                 total_progress.set_description("Step 1. Subsampling")
                 total_progress.update(1)
-                
+
                 subsample_i = np.random.choice(a=examples_i, size=subsampling_size, replace=replace)
                 subsample_j = np.random.choice(a=examples_j, size=subsampling_size, replace=replace)
                 if self.delta_type == "hvf":
