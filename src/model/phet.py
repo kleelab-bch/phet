@@ -9,7 +9,7 @@ logging.disable(logging.WARNING)
 warnings.filterwarnings('ignore')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Reduces TensorFlow log verbosity
 
-# Import necessary libraries and modules
+# Import the necessary libraries and modules
 from itertools import combinations
 from typing import Optional, Literal
 

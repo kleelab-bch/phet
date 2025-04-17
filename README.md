@@ -38,7 +38,6 @@ Basically, **PHet** requires following packages:
 - [seaborn](https://seaborn.pydata.org/) (>=0.12)
 - [scanpy](https://scanpy.readthedocs.io/en/stable/) (>=1.9)
 - [anndata](https://anndata.readthedocs.io/en/latest/) (>=0.9)
-- [imblearn](https://imbalanced-learn.org/stable/) (>=0.11)
 
 ## Test Samples
 
@@ -130,7 +129,9 @@ generate several files located in the **rspath** folder.
 
 ## Integrating PHet with SCANPY and Seurat
 
-To effectively integrate PHet with established frameworks such as SCANPY and Seurat, the procedure encompasses two primary steps. First, execute PHet to generate the requisite features from your dataset. Thereafter, import these features into SCANPY or Seurat for subsequent analysis. The following outlines these two essential steps:
+To effectively integrate PHet with established frameworks such as SCANPY and Seurat, the procedure encompasses two
+primary steps. First, execute PHet to generate the requisite features from your dataset. Thereafter, import these
+features into SCANPY or Seurat for subsequent analysis. The following outlines these two essential steps:
 
 ### Step 1: Run PHet (using the sample data "SRBCT")
 
