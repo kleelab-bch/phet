@@ -79,7 +79,8 @@ def clustering(X, cluster_type: str = "spectral", affinity: str = "nearest_neigh
 
 def significant_features(X, features_name, alpha: float = 0.05, X_map=None,
                          fit_type: Literal["expon", "gamma", "lognormal", "percentile"] = "gamma",
-                         per: int = 95, map_genes: bool = True, ttest: bool = False):
+                         per: int = 95, map_genes: bool = True, ttest: bool = False,
+                         file_name=None, save_path=None):
     tempX = np.copy(X)
     if X.shape[1] != 1:
         tempX = X[:, 3]
@@ -105,7 +106,7 @@ def significant_features(X, features_name, alpha: float = 0.05, X_map=None,
 
 
 def sort_features(X, features_name, X_map=None, map_genes: bool = True, ttest: bool = False,
-                  ascending: bool = False):
+                  ascending: bool = False, file_name=None, save_path=None):
     df = pd.concat([pd.DataFrame(features_name), pd.DataFrame(X)], axis=1)
     if X.shape[1] == 5:
         df.columns = ['features', 'iqr', 'median_diff', 'ttest', 'score', 'class']
