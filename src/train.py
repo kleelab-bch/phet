@@ -456,7 +456,7 @@ def train(args):
         phet_hvf_normalize = None
         if args.seurat_log_transform:
             phet_hvf_normalize = "log"
-        estimator = PHet(normalize=phet_hvf_normalize, iqr_range=args.iqr_range, num_subsamples=args.num_subsamples,
+        estimator = PHet(normalize=phet_hvf_normalize, percentiles=args.iqr_range, num_subsamples=args.num_subsamples,
                          subsampling_size="sqrt", delta_type="hvf", adjust_pvalue=False,
                          feature_weight=args.feature_weight)
         if args.exponentiate:
@@ -471,7 +471,7 @@ def train(args):
     if "phet_br" in args.methods:
         print("\t\t--> Progress: {0:.4f}%; Method: {1:30}".format((current_progress / total_progress) * 100,
                                                                   METHODS[24]))
-        estimator = PHet(normalize="zscore", iqr_range=args.iqr_range, num_subsamples=args.num_subsamples,
+        estimator = PHet(normalize="zscore", percentiles=args.iqr_range, num_subsamples=args.num_subsamples,
                          subsampling_size="sqrt", delta_type="iqr", adjust_pvalue=False,
                          feature_weight=args.feature_weight)
         df = estimator.fit_predict(X=X, y=y)
